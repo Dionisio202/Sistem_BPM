@@ -1,0 +1,193 @@
+/* Contenedor principal */
+.contenedorPrincipal {
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #f0f4f8; /* Fondo más suave */
+}
+
+/* Contenedor del login */
+.contenedorLoguin {
+  width: 90%;
+  max-width: 1200px;
+  background-color: #ffffff;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1); /* Sombra más suave */
+  border-radius: 12px;
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+/* Ajustes para la imagen de portada */
+.portadasLoguin {
+  width: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #e8f7f3; /* Fondo sutil y relajante */
+  padding: 20px;
+}
+
+.porta {
+  height: 70vh;
+  width: 90%;
+  background-color: #dcdcdc;
+  background-image: url("../../assets/img/logoUTA.png");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  transition: all 0.3s ease;
+  border-radius: 10px; /* Bordes más suaves */
+}
+
+/* Contenedor del formulario */
+.contenedorFormularioLoguin {
+  width: 50%;
+  padding: 50px 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  font-family: "Raleway", sans-serif;
+  color: #333333; /* Texto más oscuro para mejor legibilidad */
+}
+
+/* Encabezado */
+.encabezadoLoguin {
+  width: 100%;
+  font-weight: bold;
+  font-size: 32px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  margin-bottom: 25px;
+  color: #931D21; /* Color verde turquesa más vibrante */
+}
+
+.encabezadoLoguin img {
+  width: 120px;
+  height: auto;
+  margin-bottom: 15px;
+}
+
+/* Estilos del formulario */
+.formularioLoguin {
+  width: 100%;
+  margin-top: 20px;
+}
+
+.formularioLoguin form div {
+  margin-bottom: 25px; /* Espacio entre campos más amplio */
+}
+
+/* Contenedor del campo de contraseña */
+.campoContrasena {
+  position: relative;
+  width: 100%;
+}
+
+/* Estilo de los inputs */
+.formularioLoguin form input {
+  width: 100%;
+  padding: 12px 18px;
+  border: 1px solid #d1d1d1;
+  border-radius: 8px; /* Bordes más redondeados */
+  font-size: 18px; /* Mayor tamaño de fuente */
+  outline: none;
+  transition: all 0.3s ease;
+  background-color: #f8f9fa; /* Fondo suave y ligero */
+}
+
+.formularioLoguin form input:focus {
+  border-color: #931D21; /* Borde verde vibrante */
+  box-shadow: 0 0 8px rgba(22, 160, 133, 0.3);
+  background-color: #ffffff; /* Fondo blanco cuando está enfocado */
+}
+
+/* Icono de visibilidad de contraseña */
+.iconoIngreso {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 20px;
+  cursor: pointer;
+  color: #6c757d;
+}
+
+/* Enlace de recuperación de contraseña */
+.formularioLoguin form p {
+  text-align: right;
+  font-size: 14px;
+  color: #6c757d;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.formularioLoguin form p:hover {
+  color: #931D21; /* Cambio de color en hover */
+  transform: scale(1.05);
+}
+
+/* Estilo del botón */
+.botonVerde {
+  width: 100%;
+  padding: 12px 18px;
+  background-color: #931D21; /* Fondo verde vibrante */
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.botonVerde:hover {
+  background-color: #931D21; /* Fondo más oscuro en hover */
+}
+
+/* Estilo para la opción de registrarse */
+.registrate {
+  display: flex;
+  justify-content: flex-end;
+  gap: 5px;
+  font-size: 14px;
+  color: #6c757d;
+}
+
+.registrate .palabra {
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.registrate .palabra:hover {
+  color: #931D21; /* Cambio de color en hover */
+  transform: scale(1.1);
+}
+
+/* Estilos responsivos */
+@media screen and (max-width: 768px) {
+  .contenedorLoguin {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .portadasLoguin {
+    display: none;
+  }
+
+  .contenedorFormularioLoguin {
+    width: 100%;
+    padding: 25px;
+  }
+
+  .formularioLoguin {
+    padding: 0;
+  }
+ 
+
+}
