@@ -25,9 +25,9 @@ const staticDocuments: Record<string, DocumentType> = {
     nombre: "Formato_datos_informativos_autores_3-Test001.pdf",
   },
 };
-  const [json, setJson] = useState<temporalData | null>(null);
 
 export default function ConfirmationScreen() {
+  const [json, setJson] = useState<temporalData | null>(null);
   // @ts-ignore
   const { obtenerUsuarioAutenticado, obtenerDatosBonita, error } =
     useBonitaService();
