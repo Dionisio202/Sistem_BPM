@@ -44,6 +44,7 @@ export default function WebPage() {
     socket,
     { intervalRef }
   );
+  // @ts-ignore
   const [teareaActual, setTareaActual] = useState<Tarea | null>(null);
   const [usuario, setUsuario] = useState<{
     user_id: string;

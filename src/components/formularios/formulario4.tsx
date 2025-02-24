@@ -8,7 +8,7 @@ import Button from "../UI/button";
 import { SERVER_BACK_URL } from "../../config.ts";
 import { useBonitaService } from "../../services/bonita.service";
 
-// Crear instancia de socket (podrías moverla a un contexto o hook personalizado)
+// Crear instancia de socket
 const socket = io(SERVER_BACK_URL);
 
 export default function UploadForm() {
@@ -23,8 +23,12 @@ export default function UploadForm() {
     caseId: string;
     processName: string;
   } | null>(null);
-  // @ts-ignore
-  const [isSubmitted, setIsSubmitted] = useState(false); // Estado para controlar el envío
+  // Estado para controlar el envío
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  // Estado para guardar la última certificación presupuestaria
+  const [lastCertification, setLastCertification] = useState<{ fecha_doc: string; yaPasoUnAño: boolean } | null>(null);
+  // Permite forzar la subida de un nuevo documento aun cuando ya exista uno previo
+  const [forceNewUpload, setForceNewUpload] = useState(false);
 
   const bonita = new BonitaUtilities();
 
@@ -55,7 +59,39 @@ export default function UploadForm() {
     fetchData();
   }, [usuario, obtenerDatosBonita]);
 
-  // Función para manejar el cambio del archivo del memorando usando Socket.io
+  // Obtener la última certificación presupuestaria usando el endpoint /last-document
+  useEffect(() => {
+    const fetchLastDocument = async () => {
+      try {
+        const response = await fetch(`${SERVER_BACK_URL}/api/last-document?id_tipo_documento=5`);
+        if (response.ok) {
+          const data = await response.json();
+          setLastCertification(data);
+        } else {
+          console.error("Error al obtener el último documento");
+        }
+      } catch (error) {
+        console.error("Error en fetchLastDocument", error);
+      }
+    };
+
+    fetchLastDocument();
+  }, [isSubmitted]);
+
+  // Función para calcular el tiempo restante hasta cumplir un año
+  const calculateRemainingTime = (fecha_doc: string) => {
+    const fechaDocumento = new Date(fecha_doc);
+    const fechaActual = new Date();
+    const unAñoMs = 365 * 24 * 60 * 60 * 1000;
+    const diffMs = fechaActual.getTime() - fechaDocumento.getTime();
+    const remainingMs = unAñoMs - diffMs;
+    if (remainingMs <= 0) return "0 días";
+    const days = Math.floor(remainingMs / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((remainingMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    return `${days} días y ${hours} horas`;
+  };
+
+  // Manejar el cambio del archivo del memorando usando Socket.io
   const handleMemoFileChange = useCallback(async (file: File | null) => {
     if (!file) return;
 
@@ -101,18 +137,19 @@ export default function UploadForm() {
         alert("Por favor, ingrese el código del memorando.");
         return;
       }
-      if (!file) {
+      if (!file && (forceNewUpload || !lastCertification)) {
         alert("Por favor, cargue un archivo de certificación.");
         return;
       }
 
       // Extraer el nombre del archivo sin extensión
-      const fileName = file.name;
+      const fileName = file?.name || "";
       const dotIndex = fileName.lastIndexOf(".");
       const baseName = dotIndex !== -1 ? fileName.substring(0, dotIndex) : fileName;
 
       // Convertir el archivo a base64
       const fileBase64 = await new Promise<string>((resolve, reject) => {
+        if (!file) return resolve("");
         const reader = new FileReader();
         reader.readAsDataURL(file);
         reader.onload = () => {
@@ -152,12 +189,14 @@ export default function UploadForm() {
         setIsSubmitted(true);
         setNotificaciones((prev) => [...prev, "Datos enviados correctamente."]);
         alert("Datos enviados correctamente.");
+        // Reiniciamos la opción de forzar nueva subida tras el envío
+        setForceNewUpload(false);
       } catch (error) {
         console.error("Error en la solicitud:", error);
         alert("Ocurrió un error al enviar los datos.");
       }
     },
-    [memoCode, file, bonitaData]
+    [memoCode, file, bonitaData, forceNewUpload, lastCertification]
   );
 
   return (
@@ -172,40 +211,63 @@ export default function UploadForm() {
           Subir código y documento emitido para certificación.
         </h1>
 
-        <div className="mb-4">
-          <UploadFile
-            id="memo-file"
-            onFileChange={handleMemoFileChange}
-            label="Subir archivo del memorando"
-          />
-        </div>
+        { (lastCertification && !lastCertification.yaPasoUnAño && !forceNewUpload) ? (
+          <div className="mb-4 p-4 border rounded bg-gray-50">
+            <p>
+              Certificación presupuestaria subida el:{" "}
+              {new Date(lastCertification.fecha_doc).toLocaleDateString()}
+            </p>
+            <p>
+              Faltan: {calculateRemainingTime(lastCertification.fecha_doc)} para cumplir 1 año.
+            </p>
+            <Button
+              type="button"
+              className="mt-2 bg-green-600 text-white px-4 rounded hover:bg-green-700"
+              onClick={() => setForceNewUpload(true)}
+            >
+              Subir nueva certificación
+            </Button>
+          </div>
+        ) : (
+          <>
+            <div className="mb-4">
+              <UploadFile
+                id="memo-file"
+                onFileChange={handleMemoFileChange}
+                label="Subir archivo del memorando"
+              />
+            </div>
 
-        <div className="mb-4">
-          <UploadFile
-            id="document-file"
-            onFileChange={(file) => setFile(file)}
-            label="Subir Certificación Presupuestaria"
-          />
-        </div>
-        <div className="mb-4">
-          <label htmlFor="memoCode" className="block font-semibold">
-            Código del memorando
-          </label>
-          <input
-            id="memoCode"
-            type="text"
-            className="w-full border p-2 rounded mt-1"
-            value={memoCode}
-            onChange={(e) => setMemoCode(e.target.value)}
-            placeholder="El código se llenará automáticamente al cargar el archivo"
-          />
-        </div>
-        <Button
-          type="submit"
-          className="mt-5 w-full bg-blue-600 text-white px-6 rounded hover:bg-blue-700"
-        >
-          Enviar Datos
-        </Button>
+            <div className="mb-4">
+              <UploadFile
+                id="document-file"
+                onFileChange={(file) => setFile(file)}
+                label="Subir Certificación Presupuestaria"
+              />
+            </div>
+
+            <div className="mb-4">
+              <label htmlFor="memoCode" className="block font-semibold">
+                Código del memorando
+              </label>
+              <input
+                id="memoCode"
+                type="text"
+                className="w-full border p-2 rounded mt-1"
+                value={memoCode}
+                onChange={(e) => setMemoCode(e.target.value)}
+                placeholder="El código se llenará automáticamente al cargar el archivo"
+              />
+            </div>
+
+            <Button
+              type="submit"
+              className="mt-5 w-full bg-blue-600 text-white px-6 rounded hover:bg-blue-700"
+            >
+              Enviar Datos
+            </Button>
+          </>
+        )}
 
         <Button
           className="mt-5 bg-[#931D21] text-white rounded-lg px-6 min-w-full hover:bg-blue-700 transition-colors duration-200"
