@@ -37,3 +37,10 @@ export interface Actividad {
     total_actividad: number;
     responsables: string;
   }
+
+  export interface temporalData{
+    id_registro: string;
+    id_funcionario: number,
+    jsonData: string,
+    id_tarea: number,
+  }
