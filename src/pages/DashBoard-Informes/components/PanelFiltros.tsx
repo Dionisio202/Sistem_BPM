@@ -2,7 +2,7 @@ import React from "react";
 
 const PanelFiltros: React.FC = () => {
   return (
-    <div className="w-50 bg-gray-800 text-white p-4">
+    <div className="w-55 bg-gray-800 text-white p-4">
       <h2 className="text-xl font-bold mb-4">Filtros</h2>
 
       {/* Filtro por Año */}
@@ -54,7 +54,7 @@ const PanelFiltros: React.FC = () => {
       </div>
 
       {/* Filtro por Rango de Fechas */}
-      <div className="mb-4">
+      <div className="mb-7">
         <label htmlFor="startDate" className="block text-sm font-medium mb-1">
           Rango de Fechas
         </label>

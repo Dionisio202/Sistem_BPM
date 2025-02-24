@@ -1,9 +1,5 @@
-interface TaskProgressCardProps {
-  completedTasks: number;
-  totalTasks: number;
-  nameTasks: string;
-}
 
+import { TaskProgressCardProps } from "./interfaces/cardtareasprops.interface";
 const TaskProgressCard: React.FC<TaskProgressCardProps> = ({
   completedTasks,
   totalTasks,
@@ -21,7 +17,7 @@ const TaskProgressCard: React.FC<TaskProgressCardProps> = ({
       </p>
 
       {/* Barra de progreso */}
-      <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
+      <div className="w-full bg-gray-200 rounded-full h-2 mt-4">
         <div
           className="bg-blue-500 h-2 rounded-full"
           style={{ width: `${progress}%` }}
