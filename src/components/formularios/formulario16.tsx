@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import CardContainer from "./components/CardContainer";
 import Checkbox from "./components/Checkbox";
-import UploadFile from "./components/UploadFile"; // Se importa el componente de carga
+import UploadFile from "./components/UploadFile"; // Componente para cargar archivos
 // @ts-ignore
 import BonitaUtilities from "../bonita/bonita-utilities";
 import { useBonitaService } from "../../services/bonita.service";
@@ -50,7 +50,7 @@ export default function DocumentForm() {
       if (userData) setUsuario(userData);
     };
     fetchUser();
-  }, []);
+  }, [obtenerUsuarioAutenticado]);
 
   useEffect(() => {
     if (bonitaData) {
@@ -86,7 +86,7 @@ export default function DocumentForm() {
       }
     };
     fetchData();
-  }, [usuario]);
+  }, [usuario, obtenerDatosBonita]);
 
   useEffect(() => {
     if (bonitaData && usuario) {
@@ -107,7 +107,7 @@ export default function DocumentForm() {
     setMemoCode(event.target.value);
   };
 
-  // Función para subir el archivo del memorando y obtener el código
+  // Función para subir el archivo del memorando y obtener el código mediante Socket.io
   const handleFileUpload = async (file: File | null) => {
     if (!file) return;
     try {
@@ -124,19 +124,15 @@ export default function DocumentForm() {
         };
         reader.onerror = (error) => reject(error);
       });
-      // Llamar al backend para obtener el código del memorando
-      const response = await fetch(`${SERVER_BACK_URL}/api/get-memo-code`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ document: memoBase64 }),
+      // Emitir el evento "subir_documento" mediante Socket.io para obtener el código
+      socket.emit("subir_documento", { documento: memoBase64 }, (response: any) => {
+        if (response.success) {
+          setMemoCode(response.codigo);
+        } else {
+          console.error("Error al obtener el código del memorando:", response.message);
+          setUploadError("Error al obtener el código del memorando.");
+        }
       });
-      if (!response.ok) {
-        throw new Error("Error al obtener el código del memorando");
-      }
-      const data = await response.json();
-      if (data.memoCode) {
-        setMemoCode(data.memoCode);
-      }
     } catch (error) {
       console.error("Error al subir archivo del memorando:", error);
       setUploadError("Error al subir el archivo del memorando. Intente nuevamente.");
@@ -189,7 +185,6 @@ export default function DocumentForm() {
     <CardContainer title="Expediente de Entrega">
       <Title text="Oficio de entrega y Expediente" className="text-center mb-1" />
       <form onSubmit={handleSubmit} className="flex flex-col space-y-4">
-      
         {/* Componente para subir el archivo del memorando */}
         <div className="flex flex-col">
           <label htmlFor="memoFile" className="block font-semibold">
@@ -202,7 +197,7 @@ export default function DocumentForm() {
           />
           {uploadError && <p className="text-red-500">{uploadError}</p>}
         </div>
-       {/* Input para el código del memorando */}
+        {/* Input para el código del memorando */}
         <div className="flex flex-col">
           <label htmlFor="memoCode" className="block font-semibold">
             Código de Oficio realizado para entrega de ejemplares
@@ -215,7 +210,6 @@ export default function DocumentForm() {
             onChange={handleMemoCodeChange}
           />
         </div>
-      
         {/* Checkboxes para los documentos */}
         <div className="space-y-2 text-xn">
           <Checkbox

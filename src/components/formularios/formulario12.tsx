@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import DocumentViewer from "../files/DocumentViewer"; // Componente para mostrar documentos
 // @ts-ignore
 import BonitaUtilities from "../bonita/bonita-utilities";
@@ -72,7 +72,7 @@ export default function WebPage() {
     fetchData();
   }, [usuario, obtenerDatosBonita]);
 
-  // Emitir el evento socket para obtener el código de almacenamiento cuando la data de Bonita esté disponible
+  // Emitir el evento socket para obtener el código de almacenamiento cuando se disponga de la data de Bonita
   useEffect(() => {
     if (bonitaData) {
       socket.emit(
@@ -98,8 +98,8 @@ export default function WebPage() {
     };
   }, [bonitaData]);
 
-  // Función para subir el archivo del memorando y obtener el código automáticamente
-  const handleFileUpload = async (file: File | null) => {
+  // Función para subir el archivo del memorando y obtener el código mediante Socket.io
+  const handleFileUpload = useCallback(async (file: File | null) => {
     if (!file) return;
     try {
       // Convertir el archivo a base64
@@ -114,37 +114,26 @@ export default function WebPage() {
         reader.onerror = (error) => reject(error);
       });
 
-      // Llamar al backend para obtener el código del memorando
-      const response = await fetch(`${SERVER_BACK_URL}/api/get-memo-code`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          document: memoBase64,
-          // Puedes incluir otros parámetros si es necesario
-        }),
+      // Emitir el evento "subir_documento" a través del socket para obtener el código del memorando
+      socket.emit("subir_documento", { documento: memoBase64 }, (response: any) => {
+        if (response.success) {
+          setCodigo(response.codigo);
+        } else {
+          console.error("Error al obtener el código del memorando:", response.message);
+        }
       });
-
-      if (!response.ok) {
-        throw new Error("Error al obtener el código del memorando");
-      }
-
-      const data = await response.json();
-      if (data.memoCode) {
-        setCodigo(data.memoCode);
-      }
     } catch (err) {
-      console.error("Error al obtener el código del memorando:", err);
+      console.error("Error al procesar el archivo:", err);
     }
-  };
+  }, []);
 
+  // Función para avanzar, guardando el memorando
   const handleSiguiente = async () => {
     if (codigo.trim() !== "") {
       setCodigoGuardado(codigo);
       try {
         setCodigo("");
-        bonita.changeTask();
+        await bonita.changeTask();
         setAlertMessage("Avanzando a la siguiente página...");
         const response = await fetch(
           `${SERVER_BACK_URL}/api/update-document?codigo_almacenamiento=${codigoalmacenamiento}&codigo_documento=${codigo}`
@@ -168,7 +157,7 @@ export default function WebPage() {
 
       {/* DocumentViewer para mostrar el documento */}
       <div className="w-full h-full md:w-3/4 pl-6 mt-0.5">
-      <DocumentViewer
+        <DocumentViewer
           keyDocument={selectedDocument.key}
           title={selectedDocument.title}
           documentName={selectedDocument.nombre}
@@ -215,7 +204,7 @@ export default function WebPage() {
 
       {/* Mostrar el código guardado si existe */}
       {codigoGuardado && (
-        <p className="mt-4 text-black-600 font-medium">Código guardado: {codigoGuardado}</p>
+        <p className="mt-4 text-black font-medium">Código guardado: {codigoGuardado}</p>
       )}
 
       {/* Mostrar mensaje de alerta */}

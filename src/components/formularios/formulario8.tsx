@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import io from "socket.io-client";
 import CardContainer from "./components/CardContainer";
 import UploadFile from "./components/UploadFile"; // Componente para cargar archivos
 // @ts-ignore
@@ -7,15 +8,18 @@ import Title from "./components/TitleProps";
 import { SERVER_BACK_URL } from "../../config.ts";
 import { useBonitaService } from "../../services/bonita.service";
 
+// Crear la instancia de Socket.io
+const socket = io(SERVER_BACK_URL);
+
 export default function MemoCodeForm() {
   const [memoCode, setMemoCode] = useState("");
   const [loading, setLoading] = useState(false);
   // @ts-ignore
   const [error, setError] = useState("");
   const bonita: BonitaUtilities = new BonitaUtilities();
-
   const id_tipo_documento = 3; // Valor de ejemplo, reemplazar según corresponda
-    // @ts-ignore
+
+  // @ts-ignore
   const { obtenerUsuarioAutenticado, obtenerDatosBonita, error: errorService } = useBonitaService();
   const [usuario, setUsuario] = useState<{ user_id: string; user_name: string } | null>(null);
   const [bonitaData, setBonitaData] = useState<{
@@ -52,8 +56,8 @@ export default function MemoCodeForm() {
     fetchData();
   }, [usuario, obtenerDatosBonita]);
 
-  // Función para manejar la carga del archivo del memorando y obtener el código
-  const handleMemoFileChange = async (file: File | null) => {
+  // Función para manejar la carga del archivo del memorando y obtener el código mediante Socket.io
+  const handleMemoFileChange = useCallback(async (file: File | null) => {
     if (!file) return;
     try {
       setLoading(true);
@@ -70,44 +74,37 @@ export default function MemoCodeForm() {
         reader.onerror = (error) => reject(error);
       });
 
-      // Llamar al backend para obtener el código del memorando
-      const response = await fetch(`${SERVER_BACK_URL}/api/get-memo-code`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          document: memoBase64,
+      // Emitir el evento "subir_documento" a través del socket
+      socket.emit(
+        "subir_documento",
+        {
+          documento: memoBase64,
           id_tipo_documento,
           id_registro: `${bonitaData?.processId}-${bonitaData?.caseId}`,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Error al obtener el código del memorando");
-      }
-
-      const data = await response.json();
-      if (data.memoCode) {
-        setMemoCode(data.memoCode);
-      } else {
-        setError("No se pudo obtener el código del memorando.");
-      }
+        },
+        (response: any) => {
+          if (response.success) {
+            setMemoCode(response.codigo);
+          } else {
+            setError("No se pudo obtener el código del memorando.");
+          }
+          setLoading(false);
+        }
+      );
     } catch (err) {
-      console.error("Error:", err);
+      console.error("Error al obtener el código del memorando:", err);
       setError("Error al obtener el código del memorando. Intente nuevamente.");
-    } finally {
       setLoading(false);
     }
-  };
+  }, [id_tipo_documento, bonitaData]);
 
   // Función para continuar con el proceso usando el código obtenido
   const handleSubmit = async () => {
     try {
       setError("");
       alert("Avanzando a la siguiente página...");
-      // Se invoca el cambio de tarea
-      bonita.changeTask();
+      // Invocar el cambio de tarea
+      await bonita.changeTask();
 
       // Enviar el código del memorando al endpoint de guardado
       const response = await fetch(
@@ -123,8 +120,6 @@ export default function MemoCodeForm() {
     } catch (err) {
       setError("Error al guardar el memorando. Verifica el código e intenta nuevamente.");
       console.error("Error:", err);
-    } finally {
-      setLoading(false);
     }
   };
 
