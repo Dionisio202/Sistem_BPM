@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
 import CardContainer from "./components/CardContainer";
-
+import UploadFile from "./components/UploadFile"; // Componente para cargar archivos
 // @ts-ignore
-import BonitaUtilities  from "../bonita/bonita-utilities";
+import BonitaUtilities from "../bonita/bonita-utilities";
 import Checkbox from "./components/Checkbox";
-
 import Title from "./components/TitleProps";
 import io from "socket.io-client";
 import { useBonitaService } from "../../services/bonita.service";
@@ -14,26 +13,22 @@ import { SERVER_BACK_URL } from "../../config.ts";
 const socket = io(SERVER_BACK_URL);
 
 export default function ConfirmationScreen() {
-  // Usamos las funciones extendidas del hook
   const { startAutoSave, saveFinalState } = useSaveTempState(socket);
   const [selectedDocuments, setSelectedDocuments] = useState({
     contrato: false,
     acta: false,
   });
-
-  const [usuario, setUsuario] = useState<{
-    user_id: string;
-    user_name: string;
-  } | null>(null);
+  const [usuario, setUsuario] = useState<{ user_id: string; user_name: string } | null>(null);
   const [bonitaData, setBonitaData] = useState<{
     processId: string;
     taskId: string;
     caseId: string;
     processName: string;
   } | null>(null);
-
-  const bonita: BonitaUtilities = new BonitaUtilities();
+  const [contratoFile, setContratoFile] = useState<File | null>(null);
+  const [actaFile, setActaFile] = useState<File | null>(null);
   const { obtenerUsuarioAutenticado, obtenerDatosBonita, error } = useBonitaService();
+  const bonita: BonitaUtilities = new BonitaUtilities();
 
   const handleChange = (name: string, checked: boolean) => {
     setSelectedDocuments((prevState) => ({
@@ -73,7 +68,7 @@ export default function ConfirmationScreen() {
   useEffect(() => {
     if (bonitaData) {
       const id_registro = `${bonitaData.processId}-${bonitaData.caseId}`;
-      const id_tarea = bonitaData.taskId; // o parsearlo si es necesario
+      const id_tarea = bonitaData.taskId;
 
       socket.emit(
         "obtener_estado_temporal",
@@ -110,27 +105,88 @@ export default function ConfirmationScreen() {
     }
   }, [selectedDocuments, bonitaData, usuario, startAutoSave]);
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    console.log("📌 Documentos confirmados:", selectedDocuments);
+  // Función para subir un archivo firmado usando el endpoint "get-document"
+  const uploadSignedDocument = async (file: File, documentType: "contrato" | "acta") => {
+    if (!bonitaData) return;
+    // Convertir el archivo a base64
+    const fileBase64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const result = reader.result as string;
+        const base64String = result.split(",")[1];
+        resolve(base64String);
+      };
+      reader.onerror = (error) => reject(error);
+    });
+
+    // Extraer el nombre base del archivo
+    const fileName = file.name;
+    const dotIndex = fileName.lastIndexOf(".");
+    const baseName = dotIndex !== -1 ? fileName.substring(0, dotIndex) : fileName;
+
+    const payload = {
+      nombre: baseName + `_${bonitaData.processId}-${bonitaData.caseId}-${bonitaData.taskId}`,
+      id_registro_per: `${bonitaData.processId}-${bonitaData.caseId}`,
+      id_tipo_documento: documentType === "contrato" ? "4" : "5", // Asigna IDs según la lógica de tu negocio
+      document: fileBase64,
+      memorando: "", // No se requiere para archivos firmados
+    };
+
+    try {
+      const response = await fetch(`${SERVER_BACK_URL}/api/get-document`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error en la solicitud: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      console.log(`Respuesta del servidor para ${documentType}:`, data);
+    } catch (error) {
+      console.error(`Error al subir archivo firmado de ${documentType}:`, error);
+      alert(`Ocurrió un error al subir el archivo firmado de ${documentType}.`);
+    }
   };
 
-  // 🔹 Guardado final al hacer clic en "Siguiente"
+  // 🔹 Guardado final y subida de archivos firmados al hacer clic en "Siguiente"
   const handleNext = async () => {
     if (bonitaData && usuario) {
       try {
+        // Guardado final del estado temporal
         await saveFinalState({
           id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
           id_tarea: parseInt(bonitaData.taskId),
           jsonData: JSON.stringify(selectedDocuments),
           id_funcionario: parseInt(usuario.user_id),
         });
+
+        // Subir el archivo firmado de contrato si está seleccionado y cargado
+        if (selectedDocuments.contrato && contratoFile) {
+          await uploadSignedDocument(contratoFile, "contrato");
+        }
+        // Subir el archivo firmado de acta si está seleccionado y cargado
+        if (selectedDocuments.acta && actaFile) {
+          await uploadSignedDocument(actaFile, "acta");
+        }
+
         alert("Avanzando a la siguiente página...");
-        bonita.changeTask();
+        await bonita.changeTask();
       } catch (error) {
-        console.error("Error guardando estado final:", error);
+        console.error("Error guardando estado final o subiendo archivos:", error);
       }
     }
+  };
+
+  // Manejador de submit (puedes usarlo para guardar el estado sin cambiar de tarea)
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    console.log("📌 Documentos confirmados:", selectedDocuments);
   };
 
   return (
@@ -152,6 +208,23 @@ export default function ConfirmationScreen() {
             onChange={(checked) => handleChange("acta", checked)}
           />
         </div>
+
+        {/* Componentes para subir los archivos firmados */}
+        <div className="mb-4">
+          <UploadFile
+            id="contrato-file"
+            onFileChange={(file) => setContratoFile(file)}
+            label="Subir archivo firmado del Contrato"
+          />
+        </div>
+        <div className="mb-4">
+          <UploadFile
+            id="acta-file"
+            onFileChange={(file) => setActaFile(file)}
+            label="Subir archivo firmado del Acta"
+          />
+        </div>
+
         <button
           type="submit"
           className="w-full bg-[#931D21] hover:bg-[#7A171A] text-white py-2 rounded-lg font-semibold hover:scale-105 transition-transform duration-300"
