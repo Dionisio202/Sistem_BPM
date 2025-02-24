@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import io from "socket.io-client";
 import DropdownCard from "./components/DropdownCard"; // Componente para el dropdown
 import DocumentViewer from "../files/DocumentViewer"; // Componente para visualizar el documento
 import Button from "../UI/button"; // Componente botón
@@ -6,6 +7,9 @@ import Button from "../UI/button"; // Componente botón
 import BonitaUtilities  from "../bonita/bonita-utilities";
 import { SERVER_BACK_URL } from "../../config.ts";
 import { useBonitaService } from "../../services/bonita.service";
+import { useSaveTempState } from "../bonita/hooks/datos_temprales";
+import { temporalData } from "../../interfaces/actividad.interface.ts";
+const socket = io(SERVER_BACK_URL);
 
 // Definimos un tipo para nuestros documentos
 type StaticDocument = {
@@ -18,12 +22,18 @@ type StaticDocument = {
 export default function Formulario6() {
   const { obtenerUsuarioAutenticado, obtenerDatosBonita } = useBonitaService();
   const urlSave = `${SERVER_BACK_URL}/api/save-document`;
+  const { startAutoSave, saveFinalState } = useSaveTempState(socket);
   // Estado para almacenar el documento seleccionado
   const [selectedDocument, setSelectedDocument] = useState<StaticDocument | null>(null);
   const bonita: BonitaUtilities = new BonitaUtilities();
-
+  const [json, setJson] = useState<temporalData | null>(null);
   const handleNext = async () => {
     try {
+      if (json) {
+        await saveFinalState(json);
+      } else {
+        console.error("❌ Error: json is null");
+      }
       await bonita.changeTask();
       alert("Avanzando a la siguiente página...");
     } catch (error) {
@@ -63,6 +73,18 @@ export default function Formulario6() {
         };
         fetchData();
       }, [usuario, obtenerDatosBonita]);
+        useEffect(() => {
+          if (bonitaData && usuario) {
+            const data: temporalData = {
+              id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
+              id_tarea: parseInt(bonitaData.taskId),
+              jsonData: JSON.stringify("No Form Data"),
+              id_funcionario: parseInt(usuario.user_id),
+            };
+            setJson(data);
+            startAutoSave(data, 10000, "En Proceso");
+          }
+        }, [bonitaData, usuario, startAutoSave]);
       const nombrePlantilla="fsvt-001";
       const codigoProceso=`${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}`;
       const staticDocuments: Record<string, StaticDocument> = {

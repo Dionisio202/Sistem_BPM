@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import CardContainer from "./components/CardContainer";
+import io from "socket.io-client";
 import UploadFile from "./components/UploadFile";
 // @ts-ignore
 import BonitaUtilities from "../bonita/bonita-utilities";
@@ -7,12 +8,16 @@ import Button from "../UI/button";
 import Title from "./components/TitleProps";
 import { SERVER_BACK_URL } from "../../config.ts";
 import { useBonitaService } from "../../services/bonita.service";
-
+import { useSaveTempState } from "../bonita/hooks/datos_temprales";
+import { temporalData } from "../../interfaces/actividad.interface.ts";
+const socket = io(SERVER_BACK_URL);
 const Formulario11: React.FC = () => {
+  const { startAutoSave, saveFinalState } = useSaveTempState(socket);
   const { obtenerUsuarioAutenticado, obtenerDatosBonita } = useBonitaService();
   const [file, setFile] = useState<File | null>(null);
   const bonita: BonitaUtilities = new BonitaUtilities();
   const [notificaciones, setNotificaciones] = useState<string[]>([]);
+  const [json, setJson] = useState<temporalData | null>(null);
 
   // @ts-ignore
   const [isSubmitted, setIsSubmitted] = useState(false); // Nuevo estado para controlar el envío
@@ -50,8 +55,26 @@ const Formulario11: React.FC = () => {
     fetchData();
   }, [usuario, obtenerDatosBonita]);
 
+  useEffect(() => {
+    if (bonitaData && usuario) {
+      const data: temporalData = {
+        id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
+        id_tarea: parseInt(bonitaData.taskId),
+        jsonData: JSON.stringify("No Form Data"),
+        id_funcionario: parseInt(usuario.user_id),
+      };
+      setJson(data);
+      startAutoSave(data, 10000, "En Proceso");
+    }
+  }, [bonitaData, usuario, startAutoSave]);
+
   const handleNext = async () => {
     try {
+      if (json) {
+        await saveFinalState(json);
+      } else {
+        console.error("❌ Error: json is null");
+      }
       await bonita.changeTask();
       alert("Avanzando a la siguiente página...");
     } catch (error) {
