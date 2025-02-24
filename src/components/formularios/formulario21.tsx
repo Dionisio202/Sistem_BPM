@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import DocumentViewer from "../files/DocumentViewer"; // Importa tu componente de visor de documentos
 // @ts-ignore
 import BonitaUtilities from "../bonita/bonita-utilities";
@@ -6,6 +6,8 @@ import { useBonitaService } from "../../services/bonita.service";
 import io from "socket.io-client";
 import { SERVER_BACK_URL } from "../../config.ts";
 import CardContainer from "./components/CardContainer.tsx";
+import { useSaveTempState } from "../bonita/hooks/datos_temprales";
+import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { EmailInput } from "./components/EmailInput.tsx";
 
 const socket = io(SERVER_BACK_URL);
@@ -23,26 +25,36 @@ const staticDocuments: Record<string, DocumentType> = {
     nombre: "Formato_datos_informativos_autores_3-Test001.pdf",
   },
 };
+  const [json, setJson] = useState<temporalData | null>(null);
 
 export default function ConfirmationScreen() {
   // @ts-ignore
-  const { obtenerUsuarioAutenticado, obtenerDatosBonita, error } = useBonitaService();
+  const { obtenerUsuarioAutenticado, obtenerDatosBonita, error } =
+    useBonitaService();
   const urlSave = `${SERVER_BACK_URL}/api/save-document`;
   const [codigo, setCodigo] = useState(""); // Código del comprobante
   const [, setCodigoGuardado] = useState<string | null>(null);
   const [, setAlertMessage] = useState<string | null>(null);
   const bonita: BonitaUtilities = new BonitaUtilities();
   const [, setCodigoAlmacenamiento] = useState<string>("");
-  const [selectedDocument, setSelectedDocument] = useState<DocumentType>(staticDocuments.datos);
-  const [usuario, setUsuario] = useState<{ user_id: string; user_name: string } | null>(null);
+  const [selectedDocument, setSelectedDocument] = useState<DocumentType>(
+    staticDocuments.datos
+  );
+  const [usuario, setUsuario] = useState<{
+    user_id: string;
+    user_name: string;
+  } | null>(null);
   const [bonitaData, setBonitaData] = useState<{
     processId: string;
     taskId: string;
     caseId: string;
     processName: string;
   } | null>(null);
-
-  
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+    const { startAutoSave, stopAutoSave, saveFinalState } = useSaveTempState(
+      socket,
+      { intervalRef }
+    );
 
   // 🔹 Obtener el usuario autenticado
   useEffect(() => {
@@ -76,7 +88,10 @@ export default function ConfirmationScreen() {
     if (bonitaData) {
       socket.emit(
         "obtener_codigo_almacenamiento",
-        { id_registro: `${bonitaData.processId}-${bonitaData.caseId}`, id_tipo_documento: 6 },
+        {
+          id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
+          id_tipo_documento: 6,
+        },
         (response: any) => {
           if (response.success) {
             console.log("Dato recibido:", response.jsonData);
@@ -97,6 +112,19 @@ export default function ConfirmationScreen() {
     };
   }, [bonitaData]);
 
+  useEffect(() => {
+    if (bonitaData && usuario) {
+      const data: temporalData = {
+        id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
+        id_tarea: parseInt(bonitaData.taskId),
+        jsonData: JSON.stringify("no form data"),
+        id_funcionario: parseInt(usuario.user_id),
+      };
+      setJson(data);
+      startAutoSave(data, 10000, "En Proceso");
+    }
+  }, [bonitaData, usuario, startAutoSave]);
+
   const handleSiguiente = async () => {
     if (codigo.trim() !== "") {
       setCodigoGuardado(codigo);
@@ -104,8 +132,6 @@ export default function ConfirmationScreen() {
         setCodigo("");
         bonita.changeTask();
         setAlertMessage("Avanzando a la siguiente página...");
-        
-        
       } catch (err) {
         console.error("Error:", err);
       }
@@ -113,7 +139,7 @@ export default function ConfirmationScreen() {
   };
 
   return (
- <div className="w-full max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-lg">
+    <div className="w-full max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-lg">
       <CardContainer title="Certificado">
         <div className="flex flex-col space-y-6 h-full">
           {/* Sección para visualizar el documento usando DocumentViewer */}
@@ -131,7 +157,12 @@ export default function ConfirmationScreen() {
 
           {/* Sección para el EmailInput */}
           <div className="flex-1 w-full h-full">
-            <EmailInput />
+            <EmailInput
+              json={json}
+              socket={socket}
+              stopAutoSave={stopAutoSave} // ✅ Nueva prop
+              saveFinalState={saveFinalState} // ✅ Nueva prop
+            />
           </div>
 
           {/* Botón Siguiente */}
