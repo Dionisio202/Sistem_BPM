@@ -7,11 +7,14 @@ import Title from "./components/TitleProps";
 import Button from "../UI/button";
 import { SERVER_BACK_URL } from "../../config.ts";
 import { useBonitaService } from "../../services/bonita.service";
+import { useSaveTempState } from "../bonita/hooks/datos_temprales";
+import { temporalData } from "../../interfaces/actividad.interface.ts";
 
 // Crear instancia de socket
 const socket = io(SERVER_BACK_URL);
 
 export default function UploadForm() {
+    const { startAutoSave, saveFinalState } = useSaveTempState(socket);
   const { obtenerUsuarioAutenticado, obtenerDatosBonita } = useBonitaService();
   const [memoCode, setMemoCode] = useState("");
   const [notificaciones, setNotificaciones] = useState<string[]>([]);
@@ -23,6 +26,7 @@ export default function UploadForm() {
     caseId: string;
     processName: string;
   } | null>(null);
+  const [json, setJson] = useState<temporalData | null>(null);
   // Estado para controlar el envío
   const [isSubmitted, setIsSubmitted] = useState(false);
   // Estado para guardar la última certificación presupuestaria
@@ -58,6 +62,18 @@ export default function UploadForm() {
     };
     fetchData();
   }, [usuario, obtenerDatosBonita]);
+  useEffect(() => {
+    if (bonitaData && usuario) {
+      const data: temporalData = {
+        id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
+        id_tarea: parseInt(bonitaData.taskId),
+        jsonData: JSON.stringify("No Form Data"),
+        id_funcionario: parseInt(usuario.user_id),
+      };
+      setJson(data);
+      startAutoSave(data, 10000, "En Proceso");
+    }
+  }, [bonitaData, usuario, startAutoSave]);
 
   // Obtener la última certificación presupuestaria usando el endpoint /last-document
   useEffect(() => {
@@ -121,6 +137,11 @@ export default function UploadForm() {
 
   const handleNext = useCallback(async () => {
     try {
+      if (json) {
+        await saveFinalState(json);
+      } else {
+        console.error("❌ Error: json is null");
+      }
       await bonita.changeTask();
       alert("Avanzando a la siguiente página...");
     } catch (error) {
