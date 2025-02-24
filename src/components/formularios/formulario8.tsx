@@ -26,6 +26,7 @@ export default function MemoCodeForm() {
   const {
     obtenerUsuarioAutenticado,
     obtenerDatosBonita,
+    // @ts-ignore
     error: errorService,
   } = useBonitaService();
   const [usuario, setUsuario] = useState<{
