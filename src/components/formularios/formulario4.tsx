@@ -20,7 +20,7 @@ export default function UploadForm() {
     processName: string;
   } | null>(null);
   // @ts-ignore
-  const [isSubmitted, setIsSubmitted] = useState(false); // Nuevo estado para controlar el envío
+  const [isSubmitted, setIsSubmitted] = useState(false); // Estado para controlar el envío
 
   // Instancia de BonitaUtilities
   const bonita = new BonitaUtilities();
@@ -55,6 +55,50 @@ export default function UploadForm() {
     fetchData();
   }, [usuario, obtenerDatosBonita]);
 
+  // Función para manejar el cambio del archivo del memorando
+  const handleMemoFileChange = useCallback(async (file: File | null) => {
+    if (!file) return; // Si file es null, no se realiza ninguna acción
+  
+    // Convertir el archivo a base64
+    const memoBase64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const result = reader.result as string;
+        const base64String = result.split(",")[1];
+        resolve(base64String);
+      };
+      reader.onerror = (error) => reject(error);
+    });
+  
+    // Llamar al backend para obtener el código del memorando
+    try {
+      const response = await fetch(`${SERVER_BACK_URL}/api/get-memo-code`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ document: memoBase64 }),
+      });
+  
+      if (!response.ok) {
+        throw new Error(`Error en la solicitud: ${response.statusText}`);
+      }
+  
+      const data = await response.json();
+      if (data.memoCode) {
+        setMemoCode(data.memoCode);
+        setNotificaciones((prev) => [...prev, "Código del memorando obtenido correctamente."]);
+      } else {
+        alert("No se pudo obtener el código del memorando.");
+      }
+    } catch (error) {
+      console.error("Error al obtener el código del memorando:", error);
+      alert("Ocurrió un error al obtener el código del memorando.");
+    }
+  }, []);
+  
+
   const handleNext = useCallback(async () => {
     try {
       await bonita.changeTask();
@@ -74,7 +118,7 @@ export default function UploadForm() {
     }
 
     if (!file) {
-      alert("Por favor, cargue un archivo.");
+      alert("Por favor, cargue un archivo de certificación.");
       return;
     }
 
@@ -92,7 +136,7 @@ export default function UploadForm() {
         const base64String = result.split(",")[1];
         resolve(base64String);
       };
-// @ts-ignore
+      // @ts-ignore
       reader.onerror = (error) => reject(error);
     });
 
@@ -123,13 +167,13 @@ export default function UploadForm() {
 
       // Mostrar mensaje de confirmación
       setIsSubmitted(true);
-      setNotificaciones([...notificaciones, "Datos enviados correctamente."]);
-      alert("Datos enviados correctamente."); // Mensaje de confirmación
+      setNotificaciones((prev) => [...prev, "Datos enviados correctamente."]);
+      alert("Datos enviados correctamente.");
     } catch (error) {
       console.error("Error en la solicitud:", error);
       alert("Ocurrió un error al enviar los datos.");
     }
-  }, [memoCode, file, bonitaData, notificaciones]);
+  }, [memoCode, file, bonitaData]);
 
   return (
     <div className="flex flex-col items-center p-6 bg-gray-100 min-h-screen">
@@ -143,9 +187,26 @@ export default function UploadForm() {
           Subir código y documento emitido para certificación.
         </h1>
 
+    
+
+        <div className="mb-4">
+          <UploadFile
+            id="memo-file"
+            onFileChange={handleMemoFileChange}
+            label="Subir archivo del memorando"
+          />
+        </div>
+
+        <div className="mb-4">
+          <UploadFile
+            id="document-file"
+            onFileChange={(file) => setFile(file)}
+            label="Subir Certificación Presupuestaria"
+          />
+        </div>
         <div className="mb-4">
           <label htmlFor="memoCode" className="block font-semibold">
-            Ingrese el código del memorando generado para certificación
+            Código del memorando
           </label>
           <input
             id="memoCode"
@@ -153,15 +214,9 @@ export default function UploadForm() {
             className="w-full border p-2 rounded mt-1"
             value={memoCode}
             onChange={(e) => setMemoCode(e.target.value)}
+            placeholder="El código se llenará automáticamente al cargar el archivo"
           />
         </div>
-
-        <UploadFile
-          id="document-file"
-          onFileChange={(file) => setFile(file)}
-          label="Subir Certificación Presupuestaria"
-        />
-
         <Button
           type="submit"
           className="mt-5 w-full bg-blue-600 text-white px-6 rounded hover:bg-blue-700"
