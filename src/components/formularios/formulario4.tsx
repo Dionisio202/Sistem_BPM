@@ -127,7 +127,7 @@ export default function UploadForm() {
       const payload = {
         nombre: `${baseName}_${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}`,
         id_registro_per: `${bonitaData?.processId}-${bonitaData?.caseId}`,
-        id_tipo_documento: "3",
+        id_tipo_documento: "5",
         document: fileBase64,
         memorando: memoCode,
       };
