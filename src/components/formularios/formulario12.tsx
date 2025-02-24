@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
-import DocumentViewer from "../files/DocumentViewer"; // Importa tu componente de visor de documentos
+import { useEffect, useState, useCallback } from "react";
+import DocumentViewer from "../files/DocumentViewer"; // Componente para mostrar documentos
 // @ts-ignore
 import BonitaUtilities from "../bonita/bonita-utilities";
 import { useBonitaService } from "../../services/bonita.service";
 import io from "socket.io-client";
 import { SERVER_BACK_URL } from "../../config.ts";
+import UploadFile from "./components/UploadFile";
 
 const socket = io(SERVER_BACK_URL);
 
@@ -26,7 +27,7 @@ export default function WebPage() {
   // @ts-ignore
   const { obtenerUsuarioAutenticado, obtenerDatosBonita, error } = useBonitaService();
   const urlSave = `${SERVER_BACK_URL}/api/save-document`;
-  const [codigo, setCodigo] = useState(""); // Código del comprobante
+  const [codigo, setCodigo] = useState(""); // Código del memorando
   const [codigoGuardado, setCodigoGuardado] = useState<string | null>(null);
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
   const bonita: BonitaUtilities = new BonitaUtilities();
@@ -44,7 +45,7 @@ export default function WebPage() {
     setCodigo(e.target.value);
   };
 
-  // 🔹 Obtener el usuario autenticado
+  // Obtener el usuario autenticado
   useEffect(() => {
     const fetchUser = async () => {
       const userData = await obtenerUsuarioAutenticado();
@@ -55,7 +56,7 @@ export default function WebPage() {
     fetchUser();
   }, [obtenerUsuarioAutenticado]);
 
-  // 🔹 Obtener datos de Bonita cuando ya se tenga el usuario
+  // Obtener datos de Bonita cuando ya se tenga el usuario
   useEffect(() => {
     if (!usuario) return;
     const fetchData = async () => {
@@ -71,7 +72,7 @@ export default function WebPage() {
     fetchData();
   }, [usuario, obtenerDatosBonita]);
 
-  // 🔹 Emitir el evento socket para obtener el código de almacenamiento cuando la data de Bonita esté disponible
+  // Emitir el evento socket para obtener el código de almacenamiento cuando se disponga de la data de Bonita
   useEffect(() => {
     if (bonitaData) {
       socket.emit(
@@ -97,12 +98,42 @@ export default function WebPage() {
     };
   }, [bonitaData]);
 
+  // Función para subir el archivo del memorando y obtener el código mediante Socket.io
+  const handleFileUpload = useCallback(async (file: File | null) => {
+    if (!file) return;
+    try {
+      // Convertir el archivo a base64
+      const memoBase64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => {
+          const result = reader.result as string;
+          const base64String = result.split(",")[1];
+          resolve(base64String);
+        };
+        reader.onerror = (error) => reject(error);
+      });
+
+      // Emitir el evento "subir_documento" a través del socket para obtener el código del memorando
+      socket.emit("subir_documento", { documento: memoBase64 }, (response: any) => {
+        if (response.success) {
+          setCodigo(response.codigo);
+        } else {
+          console.error("Error al obtener el código del memorando:", response.message);
+        }
+      });
+    } catch (err) {
+      console.error("Error al procesar el archivo:", err);
+    }
+  }, []);
+
+  // Función para avanzar, guardando el memorando
   const handleSiguiente = async () => {
     if (codigo.trim() !== "") {
       setCodigoGuardado(codigo);
       try {
         setCodigo("");
-        bonita.changeTask();
+        await bonita.changeTask();
         setAlertMessage("Avanzando a la siguiente página...");
         const response = await fetch(
           `${SERVER_BACK_URL}/api/update-document?codigo_almacenamiento=${codigoalmacenamiento}&codigo_documento=${codigo}`
@@ -112,7 +143,6 @@ export default function WebPage() {
         }
         const data = await response.json();
         console.log("Memorando guardado:", data);
-        
       } catch (err) {
         console.error("Error:", err);
       }
@@ -125,8 +155,8 @@ export default function WebPage() {
         Comprobante de Pago Registro de Propiedad Intelectual
       </h1>
 
-      {/* DocumentViewer para mostrar el documento siempre */}
-      <div className="w-full max-w-2xl bg-white shadow-lg rounded-lg p-4 mb-8">
+      {/* DocumentViewer para mostrar el documento */}
+      <div className="w-full h-full md:w-3/4 pl-6 mt-0.5">
         <DocumentViewer
           keyDocument={selectedDocument.key}
           title={selectedDocument.title}
@@ -138,7 +168,7 @@ export default function WebPage() {
         />
       </div>
 
-      {/* Input para ingresar el código del memorando */}
+      {/* Sección para el código del memorando */}
       <div className="w-full max-w-md">
         <label htmlFor="codigo" className="block text-gray-700 font-medium mb-2">
           Ingrese el código del Memorando emitido a Vicerrectorado
@@ -151,6 +181,19 @@ export default function WebPage() {
           className="w-full p-2 border border-gray-300 rounded mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
           placeholder="Ingrese el código del Memorando"
         />
+
+        {/* Componente para subir el archivo del memorando */}
+        <div className="mb-4">
+          <label htmlFor="memoFile" className="block text-gray-700 font-medium mb-2">
+            O suba el archivo del Memorando para obtener el código
+          </label>
+          <UploadFile
+            id="memo-file"
+            onFileChange={handleFileUpload}
+            label="Subir archivo del Memorando"
+          />
+        </div>
+
         <button
           onClick={handleSiguiente}
           className="w-full bg-[#931D21] text-white py-2 rounded hover:bg-gray-400 transition duration-300"
@@ -159,9 +202,9 @@ export default function WebPage() {
         </button>
       </div>
 
-      {/* Mostrar el código guardado solo si existe */}
+      {/* Mostrar el código guardado si existe */}
       {codigoGuardado && (
-        <p className="mt-4 text-black-600 font-medium">Código guardado: {codigoGuardado}</p>
+        <p className="mt-4 text-black font-medium">Código guardado: {codigoGuardado}</p>
       )}
 
       {/* Mostrar mensaje de alerta */}

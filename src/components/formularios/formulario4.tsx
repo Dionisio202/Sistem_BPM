@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import io from "socket.io-client";
 import UploadFile from "./components/UploadFile"; // Componente para cargar archivos
 // @ts-ignore
 import BonitaUtilities from "../bonita/bonita-utilities";
@@ -6,6 +7,9 @@ import Title from "./components/TitleProps";
 import Button from "../UI/button";
 import { SERVER_BACK_URL } from "../../config.ts";
 import { useBonitaService } from "../../services/bonita.service";
+
+// Crear instancia de socket (podrías moverla a un contexto o hook personalizado)
+const socket = io(SERVER_BACK_URL);
 
 export default function UploadForm() {
   const { obtenerUsuarioAutenticado, obtenerDatosBonita } = useBonitaService();
@@ -20,9 +24,8 @@ export default function UploadForm() {
     processName: string;
   } | null>(null);
   // @ts-ignore
-  const [isSubmitted, setIsSubmitted] = useState(false); // Nuevo estado para controlar el envío
+  const [isSubmitted, setIsSubmitted] = useState(false); // Estado para controlar el envío
 
-  // Instancia de BonitaUtilities
   const bonita = new BonitaUtilities();
 
   // Obtener usuario autenticado
@@ -41,19 +44,44 @@ export default function UploadForm() {
   // Obtener datos de Bonita cuando el usuario ya esté disponible
   useEffect(() => {
     if (!usuario) return;
-
     const fetchData = async () => {
       try {
         const data = await obtenerDatosBonita(usuario.user_id);
-        if (data) {
-          setBonitaData(data);
-        }
+        if (data) setBonitaData(data);
       } catch (error) {
         console.error("❌ Error obteniendo datos de Bonita:", error);
       }
     };
     fetchData();
   }, [usuario, obtenerDatosBonita]);
+
+  // Función para manejar el cambio del archivo del memorando usando Socket.io
+  const handleMemoFileChange = useCallback(async (file: File | null) => {
+    if (!file) return;
+
+    // Convertir el archivo a base64
+    const memoBase64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const result = reader.result as string;
+        const base64String = result.split(",")[1]; // Solo la parte base64
+        resolve(base64String);
+      };
+      reader.onerror = (error) => reject(error);
+    });
+
+    // Emitir el evento "subir_documento" y procesar el callback
+    socket.emit("subir_documento", { documento: memoBase64 }, (response: any) => {
+      if (response.success) {
+        setMemoCode(response.codigo);
+        setNotificaciones((prev) => [...prev, "Documento mapeado correctamente."]);
+      } else {
+        console.error("Error al subir el documento:", response.message);
+        alert("Error al subir el documento");
+      }
+    });
+  }, []);
 
   const handleNext = useCallback(async () => {
     try {
@@ -65,71 +93,72 @@ export default function UploadForm() {
     }
   }, [bonita]);
 
-  const handleSubmit = useCallback(async (event: React.FormEvent) => {
-    event.preventDefault();
+  const handleSubmit = useCallback(
+    async (event: React.FormEvent) => {
+      event.preventDefault();
 
-    if (!memoCode) {
-      alert("Por favor, ingrese el código del memorando.");
-      return;
-    }
-
-    if (!file) {
-      alert("Por favor, cargue un archivo.");
-      return;
-    }
-
-    // Extraer el nombre del archivo sin la extensión
-    const fileName = file.name;
-    const dotIndex = fileName.lastIndexOf(".");
-    const baseName = dotIndex !== -1 ? fileName.substring(0, dotIndex) : fileName;
-
-    // Convertir el archivo a base64 usando FileReader
-    const fileBase64 = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => {
-        const result = reader.result as string;
-        const base64String = result.split(",")[1];
-        resolve(base64String);
-      };
-// @ts-ignore
-      reader.onerror = (error) => reject(error);
-    });
-
-    // Construir el payload para enviar al back-end
-    const payload = {
-      nombre: baseName + `_${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}`,
-      id_registro_per: `${bonitaData?.processId}-${bonitaData?.caseId}`,
-      id_tipo_documento: "3",
-      document: fileBase64,
-      memorando: memoCode,
-    };
-
-    try {
-      const response = await fetch(`${SERVER_BACK_URL}/api/get-document`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Error en la solicitud: ${response.statusText}`);
+      if (!memoCode) {
+        alert("Por favor, ingrese el código del memorando.");
+        return;
+      }
+      if (!file) {
+        alert("Por favor, cargue un archivo de certificación.");
+        return;
       }
 
-      const data = await response.json();
-      console.log("Respuesta del servidor:", data);
+      // Extraer el nombre del archivo sin extensión
+      const fileName = file.name;
+      const dotIndex = fileName.lastIndexOf(".");
+      const baseName = dotIndex !== -1 ? fileName.substring(0, dotIndex) : fileName;
 
-      // Mostrar mensaje de confirmación
-      setIsSubmitted(true);
-      setNotificaciones([...notificaciones, "Datos enviados correctamente."]);
-      alert("Datos enviados correctamente."); // Mensaje de confirmación
-    } catch (error) {
-      console.error("Error en la solicitud:", error);
-      alert("Ocurrió un error al enviar los datos.");
-    }
-  }, [memoCode, file, bonitaData, notificaciones]);
+      // Convertir el archivo a base64
+      const fileBase64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => {
+          const result = reader.result as string;
+          const base64String = result.split(",")[1];
+          resolve(base64String);
+        };
+        reader.onerror = (error) => reject(error);
+      });
+
+      // Construir el payload para enviar al back-end
+      const payload = {
+        nombre: `${baseName}_${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}`,
+        id_registro_per: `${bonitaData?.processId}-${bonitaData?.caseId}`,
+        id_tipo_documento: "5",
+        document: fileBase64,
+        memorando: memoCode,
+      };
+
+      try {
+        const response = await fetch(`${SERVER_BACK_URL}/api/get-document`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Error en la solicitud: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        console.log("Respuesta del servidor:", data);
+
+        // Mostrar mensaje de confirmación
+        setIsSubmitted(true);
+        setNotificaciones((prev) => [...prev, "Datos enviados correctamente."]);
+        alert("Datos enviados correctamente.");
+      } catch (error) {
+        console.error("Error en la solicitud:", error);
+        alert("Ocurrió un error al enviar los datos.");
+      }
+    },
+    [memoCode, file, bonitaData]
+  );
 
   return (
     <div className="flex flex-col items-center p-6 bg-gray-100 min-h-screen">
@@ -144,8 +173,23 @@ export default function UploadForm() {
         </h1>
 
         <div className="mb-4">
+          <UploadFile
+            id="memo-file"
+            onFileChange={handleMemoFileChange}
+            label="Subir archivo del memorando"
+          />
+        </div>
+
+        <div className="mb-4">
+          <UploadFile
+            id="document-file"
+            onFileChange={(file) => setFile(file)}
+            label="Subir Certificación Presupuestaria"
+          />
+        </div>
+        <div className="mb-4">
           <label htmlFor="memoCode" className="block font-semibold">
-            Ingrese el código del memorando generado para certificación
+            Código del memorando
           </label>
           <input
             id="memoCode"
@@ -153,15 +197,9 @@ export default function UploadForm() {
             className="w-full border p-2 rounded mt-1"
             value={memoCode}
             onChange={(e) => setMemoCode(e.target.value)}
+            placeholder="El código se llenará automáticamente al cargar el archivo"
           />
         </div>
-
-        <UploadFile
-          id="document-file"
-          onFileChange={(file) => setFile(file)}
-          label="Subir Certificación Presupuestaria"
-        />
-
         <Button
           type="submit"
           className="mt-5 w-full bg-blue-600 text-white px-6 rounded hover:bg-blue-700"
