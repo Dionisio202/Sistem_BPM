@@ -6,22 +6,32 @@ import UploadFile from "./components/UploadFile"; // Componente para cargar arch
 import BonitaUtilities from "../bonita/bonita-utilities";
 import Title from "./components/TitleProps";
 import { SERVER_BACK_URL } from "../../config.ts";
+import { useSaveTempState } from "../bonita/hooks/datos_temprales";
 import { useBonitaService } from "../../services/bonita.service";
-
+import { temporalData } from "../../interfaces/actividad.interface.ts";
 // Crear la instancia de Socket.io
 const socket = io(SERVER_BACK_URL);
 
 export default function MemoCodeForm() {
+  const { startAutoSave, saveFinalState } = useSaveTempState(socket);
   const [memoCode, setMemoCode] = useState("");
   const [loading, setLoading] = useState(false);
   // @ts-ignore
   const [error, setError] = useState("");
   const bonita: BonitaUtilities = new BonitaUtilities();
   const id_tipo_documento = 3; // Valor de ejemplo, reemplazar según corresponda
+  const [json, setJson] = useState<temporalData | null>(null);
 
   // @ts-ignore
-  const { obtenerUsuarioAutenticado, obtenerDatosBonita, error: errorService } = useBonitaService();
-  const [usuario, setUsuario] = useState<{ user_id: string; user_name: string } | null>(null);
+  const {
+    obtenerUsuarioAutenticado,
+    obtenerDatosBonita,
+    error: errorService,
+  } = useBonitaService();
+  const [usuario, setUsuario] = useState<{
+    user_id: string;
+    user_name: string;
+  } | null>(null);
   const [bonitaData, setBonitaData] = useState<{
     processId: string;
     taskId: string;
@@ -56,47 +66,66 @@ export default function MemoCodeForm() {
     fetchData();
   }, [usuario, obtenerDatosBonita]);
 
-  // Función para manejar la carga del archivo del memorando y obtener el código mediante Socket.io
-  const handleMemoFileChange = useCallback(async (file: File | null) => {
-    if (!file) return;
-    try {
-      setLoading(true);
-      setError("");
-      // Convertir el archivo a base64
-      const memoBase64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => {
-          const result = reader.result as string;
-          const base64String = result.split(",")[1];
-          resolve(base64String);
-        };
-        reader.onerror = (error) => reject(error);
-      });
-
-      // Emitir el evento "subir_documento" a través del socket
-      socket.emit(
-        "subir_documento",
-        {
-          documento: memoBase64,
-          id_tipo_documento,
-          id_registro: `${bonitaData?.processId}-${bonitaData?.caseId}`,
-        },
-        (response: any) => {
-          if (response.success) {
-            setMemoCode(response.codigo);
-          } else {
-            setError("No se pudo obtener el código del memorando.");
-          }
-          setLoading(false);
-        }
-      );
-    } catch (err) {
-      console.error("Error al obtener el código del memorando:", err);
-      setError("Error al obtener el código del memorando. Intente nuevamente.");
-      setLoading(false);
+  //Autorguardado
+  useEffect(() => {
+    if (bonitaData && usuario) {
+      const data: temporalData = {
+        id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
+        id_tarea: parseInt(bonitaData.taskId),
+        jsonData: JSON.stringify("No Form Data"),
+        id_funcionario: parseInt(usuario.user_id),
+      };
+      setJson(data);
+      startAutoSave(data, 10000, "En Proceso");
     }
-  }, [id_tipo_documento, bonitaData]);
+  }, [bonitaData, usuario, startAutoSave]);
+
+  // Función para manejar la carga del archivo del memorando y obtener el código mediante Socket.io
+  const handleMemoFileChange = useCallback(
+    async (file: File | null) => {
+      if (!file) return;
+      try {
+        setLoading(true);
+        setError("");
+        // Convertir el archivo a base64
+        const memoBase64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = () => {
+            const result = reader.result as string;
+            const base64String = result.split(",")[1];
+            resolve(base64String);
+          };
+          reader.onerror = (error) => reject(error);
+        });
+
+        // Emitir el evento "subir_documento" a través del socket
+        socket.emit(
+          "subir_documento",
+          {
+            documento: memoBase64,
+            id_tipo_documento,
+            id_registro: `${bonitaData?.processId}-${bonitaData?.caseId}`,
+          },
+          (response: any) => {
+            if (response.success) {
+              setMemoCode(response.codigo);
+            } else {
+              setError("No se pudo obtener el código del memorando.");
+            }
+            setLoading(false);
+          }
+        );
+      } catch (err) {
+        console.error("Error al obtener el código del memorando:", err);
+        setError(
+          "Error al obtener el código del memorando. Intente nuevamente."
+        );
+        setLoading(false);
+      }
+    },
+    [id_tipo_documento, bonitaData]
+  );
 
   // Función para continuar con el proceso usando el código obtenido
   const handleSubmit = async () => {
@@ -104,21 +133,28 @@ export default function MemoCodeForm() {
       setError("");
       alert("Avanzando a la siguiente página...");
       // Invocar el cambio de tarea
+      if (json) {
+        await saveFinalState(json);
+      } else {
+        console.error("❌ Error: json is null");
+      }
       await bonita.changeTask();
 
       // Enviar el código del memorando al endpoint de guardado
       const response = await fetch(
         `${SERVER_BACK_URL}/api/save-memorando?key=${memoCode}&id_tipo_documento=${id_tipo_documento}&id_registro=${bonitaData?.processId}-${bonitaData?.caseId}`
       );
-      
+
       if (!response.ok) {
         throw new Error("Error al guardar el memorando");
       }
-      
+
       const data = await response.json();
       console.log("Memorando guardado:", data);
     } catch (err) {
-      setError("Error al guardar el memorando. Verifica el código e intenta nuevamente.");
+      setError(
+        "Error al guardar el memorando. Verifica el código e intenta nuevamente."
+      );
       console.error("Error:", err);
     }
   };

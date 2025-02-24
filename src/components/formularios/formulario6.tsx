@@ -2,9 +2,11 @@ import { useState, useEffect } from "react";
 import DropdownCard from "./components/DropdownCard";
 import DocumentViewer from "../files/DocumentViewer";
 // @ts-ignore
-import BonitaUtilities  from "../bonita/bonita-utilities";
+import BonitaUtilities from "../bonita/bonita-utilities";
 import io from "socket.io-client";
 import { useBonitaService } from "../../services/bonita.service";
+import { useSaveTempState } from "../bonita/hooks/datos_temprales";
+import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { SERVER_BACK_URL } from "../../config.ts";
 
 const socket = io(SERVER_BACK_URL);
@@ -15,30 +17,39 @@ type StaticDocument = {
 };
 
 export default function Formulario6() {
+  const { startAutoSave, saveFinalState } = useSaveTempState(socket);
   const { obtenerUsuarioAutenticado, obtenerDatosBonita } = useBonitaService();
   const urlSave = `${SERVER_BACK_URL}api/save-document`;
-  const [selectedDocument, setSelectedDocument] = useState<StaticDocument | null>(null);
+  const [selectedDocument, setSelectedDocument] =
+    useState<StaticDocument | null>(null);
   const bonita: BonitaUtilities = new BonitaUtilities();
+  const [json, setJson] = useState<temporalData | null>(null);
 
   // Modificamos la función para aceptar un string
   const handleViewDocument = async (documentType: string) => {
     const document = staticDocuments[documentType];
     if (document) {
-      // Emitir evento al servidor para verificar o generar el documento id_registro, id_tarea 
-      socket.emit('generar_documentos', { id_registro:(bonitaData?.processId + '-'+ bonitaData?.caseId), id_tarea: bonitaData?.taskId}, (response:any) => {
-        if (response.success) {
-          console.log('Respuesta del servidor:', response.message);
-          // Puedes manejar la respuesta según tus necesidades
-        } else {
-          console.error('Error del servidor:', response.message);
+      // Emitir evento al servidor para verificar o generar el documento id_registro, id_tarea
+      socket.emit(
+        "generar_documentos",
+        {
+          id_registro: bonitaData?.processId + "-" + bonitaData?.caseId,
+          id_tarea: bonitaData?.taskId,
+        },
+        (response: any) => {
+          if (response.success) {
+            console.log("Respuesta del servidor:", response.message);
+            // Puedes manejar la respuesta según tus necesidades
+          } else {
+            console.error("Error del servidor:", response.message);
+          }
         }
-      });
+      );
 
       setSelectedDocument(document);
     }
   };
 
-  
   // Obtener datos del formulario
   const [usuario, setUsuario] = useState<{
     user_id: string;
@@ -71,21 +82,40 @@ export default function Formulario6() {
     };
     fetchData();
   }, [usuario, obtenerDatosBonita]);
-  const handleNext = () => {
+  // Guardar datos del formulario
+  useEffect(() => {
+    if (bonitaData && usuario) {
+      const data: temporalData = {
+        id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
+        id_tarea: parseInt(bonitaData.taskId),
+        jsonData: JSON.stringify("No Form Data"),
+        id_funcionario: parseInt(usuario.user_id),
+      };
+      setJson(data);
+      startAutoSave(data, 10000, "En Proceso");
+    }
+  }, [bonitaData, usuario, startAutoSave]);
+  // Guardado final
+  const handleNext = async () => {
     alert("Avanzando a la siguiente página...");
+    if (json) {
+      await saveFinalState(json);
+    } else {
+      console.error("❌ Error: json is null");
+    }
     bonita.changeTask();
   };
-  const nombrePlantilla1="Contrato_Cesion_Derechos";
-  const nombrePlantilla2="Acta_Porcentaje_Participacion";
-  const codigoProceso=`${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}`;
+  const nombrePlantilla1 = "Contrato_Cesion_Derechos";
+  const nombrePlantilla2 = "Acta_Porcentaje_Participacion";
+  const codigoProceso = `${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}`;
   const staticDocuments: Record<string, StaticDocument> = {
     "Contrato Cesion de Derechos": {
-      key: `${nombrePlantilla1}_${codigoProceso}`,       
+      key: `${nombrePlantilla1}_${codigoProceso}`,
       title: "Contrato Cesión de Derechos",
       nombre: `${nombrePlantilla1}_${codigoProceso}.docx`,
     },
     "Acta de Participación": {
-      key: `${nombrePlantilla2}_${codigoProceso}`,       
+      key: `${nombrePlantilla2}_${codigoProceso}`,
       title: "Acta de Participación",
       nombre: `${nombrePlantilla2}_${codigoProceso}.docx`,
     },
@@ -112,8 +142,8 @@ export default function Formulario6() {
             keyDocument={selectedDocument.key}
             title={selectedDocument.title}
             documentName={selectedDocument.nombre}
-             mode="edit"
-            callbackUrl= {urlSave}
+            mode="edit"
+            callbackUrl={urlSave}
           />
         ) : (
           <p className="text-center text-gray-500">

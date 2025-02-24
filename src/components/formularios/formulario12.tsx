@@ -6,6 +6,8 @@ import { useBonitaService } from "../../services/bonita.service";
 import io from "socket.io-client";
 import { SERVER_BACK_URL } from "../../config.ts";
 import UploadFile from "./components/UploadFile";
+import { useSaveTempState } from "../bonita/hooks/datos_temprales";
+import { temporalData } from "../../interfaces/actividad.interface.ts";
 
 const socket = io(SERVER_BACK_URL);
 
@@ -24,6 +26,8 @@ const staticDocuments: Record<string, DocumentType> = {
 };
 
 export default function WebPage() {
+    const { startAutoSave, saveFinalState } = useSaveTempState(socket);
+      const [json, setJson] = useState<temporalData | null>(null);
   // @ts-ignore
   const { obtenerUsuarioAutenticado, obtenerDatosBonita, error } = useBonitaService();
   const urlSave = `${SERVER_BACK_URL}/api/save-document`;
@@ -98,6 +102,19 @@ export default function WebPage() {
     };
   }, [bonitaData]);
 
+    useEffect(() => {
+      if (bonitaData && usuario) {
+        const data: temporalData = {
+          id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
+          id_tarea: parseInt(bonitaData.taskId),
+          jsonData: JSON.stringify("No Form Data"),
+          id_funcionario: parseInt(usuario.user_id),
+        };
+        setJson(data);
+        startAutoSave(data, 10000, "En Proceso");
+      }
+    }, [bonitaData, usuario, startAutoSave]);
+
   // Función para subir el archivo del memorando y obtener el código mediante Socket.io
   const handleFileUpload = useCallback(async (file: File | null) => {
     if (!file) return;
@@ -133,6 +150,11 @@ export default function WebPage() {
       setCodigoGuardado(codigo);
       try {
         setCodigo("");
+        if (json) {
+          await saveFinalState(json);
+        } else {
+          console.error("❌ Error: json is null");
+        }
         await bonita.changeTask();
         setAlertMessage("Avanzando a la siguiente página...");
         const response = await fetch(
