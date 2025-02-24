@@ -2,10 +2,22 @@ import { Card } from "../../UI/card";
 import Button from "../../UI/button";
 import { Send } from "lucide-react";
 import { useState } from "react";
+import { Socket } from "socket.io-client";
 // @ts-ignore
-import BonitaUtilities  from "../../bonita/bonita-utilities";
+import BonitaUtilities from "../../bonita/bonita-utilities";
+import { temporalData } from "../../../interfaces/actividad.interface";
+export interface SaveTempStateResponse {
+  success: boolean;
+  message: string;
+}
+interface EmailInputProps {
+  json: temporalData | null;
+  socket: Socket;
+  stopAutoSave: () => void;
+  saveFinalState: (data: temporalData) => Promise<SaveTempStateResponse>;
+}
 
-export function EmailInput() {
+export function EmailInput(emailInputProps: EmailInputProps) {
   const [email, setEmail] = useState<string>(""); // Almacena el correo electrónico actual
   const [emailList, setEmailList] = useState<string[]>([]); // Almacena la lista de correos electrónicos
   const [error, setError] = useState<string>(""); // Para mostrar errores de validación
@@ -52,11 +64,13 @@ export function EmailInput() {
   // Lógica para avanzar a la siguiente página
   const handleNext = async () => {
     try {
-      await bonita.changeTask(); 
-      alert("Avanzando a la siguiente página...");
+      if (emailInputProps.json) {
+        await emailInputProps.saveFinalState(emailInputProps.json);
+        await bonita.changeTask();
+        alert("Avanzando...");
+      }
     } catch (error) {
-      console.error("Error al cambiar la tarea:", error);
-      alert("Ocurrió un error al intentar avanzar.");
+      alert(`Error: ${error}`);
     }
   };
 

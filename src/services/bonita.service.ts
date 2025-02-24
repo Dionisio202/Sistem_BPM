@@ -128,6 +128,7 @@ export const useBonitaService = () => {
   return {
     obtenerDatosBonita,
     obtenerUsuarioAutenticado,
+    obtenerTareaActual,
     error,
   };
 };
