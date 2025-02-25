@@ -47,7 +47,7 @@ export const useBonitaService = () => {
           console.log("Buscando tareas para el usuario con user_id=", userId);
         }
         const response = await fetch(
-          `${SERVER_BONITA_URL}/bonita/API/bpm/humanTask?p=0&c=10&f=user_id=${userId}`,
+          `${SERVER_BONITA_URL}/bonita/API/bpm/humanTask?p=0&c=10000&f=user_id=${userId}`,
           {
             method: "GET",
             headers: {

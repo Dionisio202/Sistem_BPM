@@ -238,12 +238,14 @@ export default function WebPage() {
 
           {/* Input de correos */}
           <div className="mt-3 md:w-8/4">
-            <EmailInput
-              json={json}
-              socket={socket}
-              stopAutoSave={stopAutoSave} // ✅ Nueva prop
-              saveFinalState={saveFinalState} // ✅ Nueva prop
-            />
+          <EmailInput
+  json={json}
+  socket={socket}
+  stopAutoSave={stopAutoSave}
+  saveFinalState={saveFinalState}
+  attachments={["jfda-001.docx", "jfsr-001.docx"]}  // Archivos a enviar (dinámico)
+  docBasePath={"/app/documents"}            // Ruta base (dinámica)
+/>
           </div>
         </div>
 
@@ -254,7 +256,7 @@ export default function WebPage() {
               keyDocument={selectedDocument.key}
               title={selectedDocument.title}
               documentName={selectedDocument.nombre}
-              mode="edit"
+              mode="view"
               callbackUrl={urlSaveDocument}
             />
           ) : (
