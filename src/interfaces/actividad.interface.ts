@@ -43,4 +43,5 @@ export interface Actividad {
     id_funcionario: number,
     jsonData: string,
     id_tarea: number,
+    nombre_tarea : string,
   }

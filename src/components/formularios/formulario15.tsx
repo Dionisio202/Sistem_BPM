@@ -9,6 +9,8 @@ import { SERVER_BACK_URL } from "../../config.ts";
 import { useBonitaService } from "../../services/bonita.service";
 import { useSaveTempState } from "../bonita/hooks/datos_temprales";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
+import { Tarea } from "../../interfaces/bonita.interface.ts";
+
 const socket = io(SERVER_BACK_URL);
 
 // Definimos un tipo para nuestros documentos
@@ -20,7 +22,8 @@ type StaticDocument = {
 
 
 export default function Formulario6() {
-  const { obtenerUsuarioAutenticado, obtenerDatosBonita } = useBonitaService();
+    const [tareaActual, setTareaActual] = useState<Tarea | null>(null);
+  const { obtenerUsuarioAutenticado, obtenerDatosBonita, obtenerTareaActual } = useBonitaService();
   const urlSave = `${SERVER_BACK_URL}/api/save-document`;
   const { startAutoSave, saveFinalState } = useSaveTempState(socket);
   // Estado para almacenar el documento seleccionado
@@ -55,10 +58,15 @@ export default function Formulario6() {
       useEffect(() => {
         const fetchUser = async () => {
           const userData = await obtenerUsuarioAutenticado();
-          if (userData) setUsuario(userData);
+          setUsuario(usuario);
+          if (usuario) {
+            setUsuario(userData);
+            const tareaData = await obtenerTareaActual(usuario.user_id);
+            setTareaActual(tareaData);
+          }
         };
         fetchUser();
-      }, []);
+      }, [obtenerUsuarioAutenticado]);
       useEffect(() => {
         if (!usuario) return;
         const fetchData = async () => {
@@ -80,6 +88,7 @@ export default function Formulario6() {
               id_tarea: parseInt(bonitaData.taskId),
               jsonData: JSON.stringify("No Form Data"),
               id_funcionario: parseInt(usuario.user_id),
+              nombre_tarea: tareaActual?.name || "",
             };
             setJson(data);
             startAutoSave(data, 10000, "En Proceso");

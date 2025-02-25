@@ -45,7 +45,7 @@ export default function WebPage() {
     { intervalRef }
   );
   // @ts-ignore
-  const [teareaActual, setTareaActual] = useState<Tarea | null>(null);
+  const [tareaActual, setTareaActual] = useState<Tarea | null>(null);
   const [usuario, setUsuario] = useState<{
     user_id: string;
     user_name: string;
@@ -113,7 +113,7 @@ export default function WebPage() {
               id_proceso: bonitaData.processId,
               nombre_proceso: bonitaData.processName,
               id_funcionario: usuario.user_id,
-              id_caso: bonitaData.caseId,
+              id_caso: bonitaData.caseId
             };
             // Enviar los datos al backend vía WebSocket
             socket.emit("iniciar_registro", data, (response: any) => {
@@ -155,6 +155,7 @@ export default function WebPage() {
         id_tarea: parseInt(bonitaData.taskId),
         jsonData: JSON.stringify(selectedDocs),
         id_funcionario: parseInt(usuario.user_id),
+        nombre_tarea: tareaActual?.name || "",
       };
       setJson(data);
       startAutoSave(data, 10000, "En Proceso");

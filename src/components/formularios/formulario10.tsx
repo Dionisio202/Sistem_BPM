@@ -6,16 +6,19 @@ import Title from "./components/TitleProps";
 import io from "socket.io-client";
 import { useBonitaService } from "../../services/bonita.service";
 import { useSaveTempState } from "../bonita/hooks/datos_temprales";
+import { Tarea } from "../../interfaces/bonita.interface.ts";
 import { SERVER_BACK_URL } from "../../config.ts";
+import { temporalData } from "../../interfaces/actividad.interface.ts";
 const socket = io(SERVER_BACK_URL);
 
 export default function ConfirmationScreen() {
+    const [tareaActual, setTareaActual] = useState<Tarea | null>(null);
   const { startAutoSave, saveFinalState } = useSaveTempState(socket);
   const [selectedDocuments, setSelectedDocuments] = useState({
     contrato: false,
     acta: false,
   });
-
+  const [json, setJson] = useState<temporalData | null>(null);
   const [usuario, setUsuario] = useState<{ user_id: string; user_name: string } | null>(null);
   const [bonitaData, setBonitaData] = useState<{
     processId: string;
@@ -25,7 +28,7 @@ export default function ConfirmationScreen() {
   } | null>(null);
 
   const bonita: BonitaUtilities = new BonitaUtilities();
-  const { obtenerUsuarioAutenticado, obtenerDatosBonita, error } = useBonitaService();
+  const { obtenerUsuarioAutenticado, obtenerDatosBonita, error, obtenerTareaActual } = useBonitaService();
 
   // 🔹 Manejo de cambios en los checkboxes
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -40,13 +43,29 @@ export default function ConfirmationScreen() {
   useEffect(() => {
     const fetchUser = async () => {
       const userData = await obtenerUsuarioAutenticado();
-      if (userData) {
+      setUsuario(usuario);
+      if (usuario) {
         setUsuario(userData);
+        const tareaData = await obtenerTareaActual(usuario.user_id);
+        setTareaActual(tareaData);
       }
     };
-
     fetchUser();
-  }, []);
+  }, [obtenerUsuarioAutenticado]);
+
+    useEffect(() => {
+      if (bonitaData && usuario) {
+        const data: temporalData = {
+          id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
+          id_tarea: parseInt(bonitaData.taskId),
+          jsonData: JSON.stringify("No Form Data"),
+          id_funcionario: parseInt(usuario.user_id),
+          nombre_tarea: tareaActual?.name || "",
+        };
+        setJson(data);
+        startAutoSave(data, 10000, "En Proceso");
+      }
+    }, [bonitaData, usuario, startAutoSave]);
 
     useEffect(() => {
       if (bonitaData) {
@@ -116,12 +135,11 @@ export default function ConfirmationScreen() {
   const handleNext = async () => {
     if (bonitaData && usuario) {
       try {
-        await saveFinalState({
-          id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
-          id_tarea: parseInt(bonitaData.taskId),
-          jsonData: JSON.stringify(selectedDocuments),
-          id_funcionario: parseInt(usuario.user_id),
-        });
+        if (json) {
+          await saveFinalState(json);
+        } else {
+          console.error("❌ Error: json is null");
+        }
         await bonita.changeTask();
         alert("Avanzando a la siguiente página...");
       } catch (error) {

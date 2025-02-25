@@ -8,6 +8,8 @@ import { useBonitaService } from "../../services/bonita.service";
 import io from "socket.io-client";
 import Title from "./components/TitleProps";
 import { SERVER_BACK_URL } from "../../config.ts";
+import { temporalData } from "../../interfaces/actividad.interface.ts";
+import { Tarea } from "../../interfaces/bonita.interface.ts";
 
 const socket = io(SERVER_BACK_URL);
 
@@ -16,11 +18,12 @@ export default function ConfirmationScreen() {
   const [selectedDocuments, setSelectedDocuments] = useState({
     oficio: false,
   });
-
+  const [json, setJson] = useState<temporalData | null>(null);
   const [usuario, setUsuario] = useState<{
     user_id: string;
     user_name: string;
   } | null>(null);
+  const [tareaActual, setTareaActual] = useState<Tarea | null>(null);
   const [bonitaData, setBonitaData] = useState<{
     processId: string;
     taskId: string;
@@ -30,7 +33,7 @@ export default function ConfirmationScreen() {
 
   const bonita: BonitaUtilities = new BonitaUtilities();
   // @ts-ignore
-  const { obtenerUsuarioAutenticado, obtenerDatosBonita, error } =
+  const { obtenerUsuarioAutenticado, obtenerDatosBonita, error,obtenerTareaActual } =
     useBonitaService();
 
   const handleChange = (name: string, checked: boolean) => {
@@ -44,13 +47,15 @@ export default function ConfirmationScreen() {
   useEffect(() => {
     const fetchUser = async () => {
       const userData = await obtenerUsuarioAutenticado();
-      if (userData) {
+      setUsuario(usuario);
+      if (usuario) {
         setUsuario(userData);
+        const tareaData = await obtenerTareaActual(usuario.user_id);
+        setTareaActual(tareaData);
       }
     };
-
     fetchUser();
-  }, []);
+  }, [obtenerUsuarioAutenticado]);
 
   useEffect(() => {
     if (bonitaData) {
@@ -97,16 +102,15 @@ export default function ConfirmationScreen() {
   // 🔹 Iniciar el guardado automático ("En Proceso")
   useEffect(() => {
     if (bonitaData && usuario) {
-      startAutoSave(
-        {
-          id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
-          id_tarea: parseInt(bonitaData.taskId),
-          jsonData: JSON.stringify(selectedDocuments),
-          id_funcionario: parseInt(usuario.user_id),
-        },
-        10000, // intervalo de 10 segundos
-        "En Proceso"
-      );
+      const data: temporalData = {
+        id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
+        id_tarea: parseInt(bonitaData.taskId),
+        jsonData: JSON.stringify(selectedDocuments),
+        id_funcionario: parseInt(usuario.user_id),
+        nombre_tarea: tareaActual?.name || "",
+      };
+      setJson(data);
+      startAutoSave(data, 10000, "En Proceso");
     }
   }, [selectedDocuments, bonitaData, usuario, startAutoSave]);
 
@@ -119,12 +123,11 @@ export default function ConfirmationScreen() {
   const handleNext = async () => {
     if (bonitaData && usuario) {
       try {
-        await saveFinalState({
-          id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
-          id_tarea: parseInt(bonitaData.taskId),
-          jsonData: JSON.stringify(selectedDocuments),
-          id_funcionario: parseInt(usuario.user_id),
-        });
+        if (json) {
+          await saveFinalState(json);
+        } else {
+          console.error("❌ Error: json is null");
+        }
         alert("Avanzando a la siguiente página...");
         bonita.changeTask();
       } catch (error) {

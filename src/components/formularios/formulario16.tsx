@@ -9,10 +9,13 @@ import { useSaveTempState } from "../bonita/hooks/datos_temprales";
 import io from "socket.io-client";
 import Title from "./components/TitleProps";
 import { SERVER_BACK_URL } from "../../config.ts";
-
+import { Tarea } from "../../interfaces/bonita.interface.ts";
+import { temporalData } from "../../interfaces/actividad.interface.ts";
 const socket = io(SERVER_BACK_URL);
 
 export default function DocumentForm() {
+  const [json, setJson] = useState<temporalData | null>(null);
+  const [tareaActual, setTareaActual] = useState<Tarea | null>(null);
   const { startAutoSave, saveFinalState } = useSaveTempState(socket);
   const [memoCode, setMemoCode] = useState("");
   const [selectedDocuments, setSelectedDocuments] = useState({
@@ -37,7 +40,7 @@ export default function DocumentForm() {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [bonitaData, setBonitaData] = useState<BonitaData | null>(null);
   const bonita = new BonitaUtilities();
-  const { obtenerUsuarioAutenticado, obtenerDatosBonita, error } = useBonitaService();
+  const { obtenerUsuarioAutenticado, obtenerDatosBonita, error, obtenerTareaActual } = useBonitaService();
 // @ts-ignore
 
   // Estados para manejo de carga y error en la subida del archivo
@@ -47,7 +50,12 @@ export default function DocumentForm() {
   useEffect(() => {
     const fetchUser = async () => {
       const userData = await obtenerUsuarioAutenticado();
-      if (userData) setUsuario(userData);
+      setUsuario(usuario);
+      if (usuario) {
+        setUsuario(userData);
+        const tareaData = await obtenerTareaActual(usuario.user_id);
+        setTareaActual(tareaData);
+      }
     };
     fetchUser();
   }, [obtenerUsuarioAutenticado]);
@@ -90,16 +98,15 @@ export default function DocumentForm() {
 
   useEffect(() => {
     if (bonitaData && usuario) {
-      startAutoSave(
-        {
-          id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
-          id_tarea: parseInt(bonitaData.taskId),
-          jsonData: JSON.stringify(selectedDocuments),
-          id_funcionario: parseInt(usuario.user_id),
-        },
-        10000,
-        "En Proceso"
-      );
+            const data: temporalData = {
+              id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
+              id_tarea: parseInt(bonitaData.taskId),
+              jsonData: JSON.stringify(selectedDocuments),
+              id_funcionario: parseInt(usuario.user_id),
+              nombre_tarea: tareaActual?.name || "",
+            };
+      setJson(data);
+      startAutoSave(data, 10000, "En Proceso");
     }
   }, [selectedDocuments, bonitaData, usuario, startAutoSave]);
 
@@ -167,13 +174,11 @@ export default function DocumentForm() {
   const handleNext = async () => {
     if (bonitaData && usuario) {
       try {
-        await saveFinalState({
-          id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
-          id_tarea: parseInt(bonitaData.taskId),
-          jsonData: JSON.stringify(selectedDocuments),
-          id_funcionario: parseInt(usuario.user_id),
-        });
-        alert("Avanzando a la siguiente página...");
+        if (json) {
+          await saveFinalState(json);
+        } else {
+          console.error("❌ Error: json is null");
+        }
         bonita.changeTask();
       } catch (error) {
         console.error("Error guardando estado final:", error);

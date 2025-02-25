@@ -5,14 +5,18 @@ import Checkbox from "./components/Checkbox"; // Importamos el componente Checkb
 import BonitaUtilities  from "../bonita/bonita-utilities";
 
 import { useSaveTempState } from "../bonita/hooks/datos_temprales";
+import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { SERVER_BACK_URL } from "../../config.ts";
 import { useBonitaService } from "../../services/bonita.service";
+import { Tarea } from "../../interfaces/bonita.interface.ts";
 import io from "socket.io-client";
 import Title from "./components/TitleProps";
 const socket = io(SERVER_BACK_URL);
 
 export default function ConfirmationScreen() {
+  const [json, setJson] = useState<temporalData | null>(null);
   const { startAutoSave, saveFinalState } = useSaveTempState(socket);
+  const [tareaActual, setTareaActual] = useState<Tarea | null>(null);
   const [selectedDocuments, setSelectedDocuments] = useState({
     certificado: false,
   });
@@ -30,7 +34,7 @@ export default function ConfirmationScreen() {
 
   const bonita: BonitaUtilities = new BonitaUtilities();
   // @ts-ignore
-  const { obtenerUsuarioAutenticado, obtenerDatosBonita, error } =
+  const { obtenerUsuarioAutenticado, obtenerDatosBonita, error, obtenerTareaActual } =
     useBonitaService();
   const handleChange = (name: string, checked: boolean) => {
     setSelectedDocuments((prevState) => ({
@@ -43,13 +47,15 @@ export default function ConfirmationScreen() {
   useEffect(() => {
     const fetchUser = async () => {
       const userData = await obtenerUsuarioAutenticado();
-      if (userData) {
+      setUsuario(usuario);
+      if (usuario) {
         setUsuario(userData);
+        const tareaData = await obtenerTareaActual(usuario.user_id);
+        setTareaActual(tareaData);
       }
     };
-
     fetchUser();
-  }, []);
+  }, [obtenerUsuarioAutenticado]);
   useEffect(() => {
     if (bonitaData) {
       const id_registro = `${bonitaData.processId}-${bonitaData.caseId}`;
@@ -94,16 +100,17 @@ export default function ConfirmationScreen() {
   // 🔹 Iniciar el guardado automático ("En Proceso")
   useEffect(() => {
     if (bonitaData && usuario) {
-      startAutoSave(
-        {
-          id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
-          id_tarea: parseInt(bonitaData.taskId),
-          jsonData: JSON.stringify(selectedDocuments),
-          id_funcionario: parseInt(usuario.user_id),
-        },
-        10000, // intervalo de 10 segundos
-        "En Proceso"
-      );
+          if (bonitaData && usuario) {
+            const data: temporalData = {
+              id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
+              id_tarea: parseInt(bonitaData.taskId),
+              jsonData: JSON.stringify(selectedDocuments),
+              id_funcionario: parseInt(usuario.user_id),
+              nombre_tarea: tareaActual?.name || "",
+            };
+            setJson(data);
+            startAutoSave(data, 10000, "En Proceso");
+          }
     }
   }, [selectedDocuments, bonitaData, usuario, startAutoSave]);
 
@@ -116,12 +123,11 @@ export default function ConfirmationScreen() {
   const handleNext = async () => {
     if (bonitaData && usuario) {
       try {
-        await saveFinalState({
-          id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
-          id_tarea: parseInt(bonitaData.taskId),
-          jsonData: JSON.stringify(selectedDocuments),
-          id_funcionario: parseInt(usuario.user_id),
-        });
+        if (json) {
+          await saveFinalState(json);
+        } else {
+          console.error("❌ Error: json is null");
+        }
         alert("Avanzando a la siguiente página...");
         bonita.changeTask();
       } catch (error) {

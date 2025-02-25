@@ -8,6 +8,7 @@ import { SERVER_BACK_URL } from "../../config.ts";
 import UploadFile from "./components/UploadFile";
 import { useSaveTempState } from "../bonita/hooks/datos_temprales";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
+import { Tarea } from "../../interfaces/bonita.interface.ts";
 
 const socket = io(SERVER_BACK_URL);
 
@@ -26,10 +27,11 @@ const staticDocuments: Record<string, DocumentType> = {
 };
 
 export default function WebPage() {
+  const [tareaActual, setTareaActual] = useState<Tarea | null>(null);
     const { startAutoSave, saveFinalState } = useSaveTempState(socket);
       const [json, setJson] = useState<temporalData | null>(null);
   // @ts-ignore
-  const { obtenerUsuarioAutenticado, obtenerDatosBonita, error } = useBonitaService();
+  const { obtenerUsuarioAutenticado, obtenerDatosBonita, error, obtenerTareaActual } = useBonitaService();
   const urlSave = `${SERVER_BACK_URL}/api/save-document`;
   const [codigo, setCodigo] = useState(""); // Código del memorando
   const [codigoGuardado, setCodigoGuardado] = useState<string | null>(null);
@@ -53,9 +55,12 @@ export default function WebPage() {
   useEffect(() => {
     const fetchUser = async () => {
       const userData = await obtenerUsuarioAutenticado();
-      if (userData) {
         setUsuario(userData);
-      }
+        if (usuario) {
+          setUsuario(userData);
+          const tareaData = await obtenerTareaActual(usuario.user_id);
+          setTareaActual(tareaData);
+        }
     };
     fetchUser();
   }, [obtenerUsuarioAutenticado]);
@@ -109,6 +114,7 @@ export default function WebPage() {
           id_tarea: parseInt(bonitaData.taskId),
           jsonData: JSON.stringify("No Form Data"),
           id_funcionario: parseInt(usuario.user_id),
+          nombre_tarea: tareaActual?.name || "",
         };
         setJson(data);
         startAutoSave(data, 10000, "En Proceso");

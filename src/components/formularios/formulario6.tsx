@@ -8,6 +8,7 @@ import { useBonitaService } from "../../services/bonita.service";
 import { useSaveTempState } from "../bonita/hooks/datos_temprales";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { SERVER_BACK_URL } from "../../config.ts";
+import { Tarea } from "../../interfaces/bonita.interface.ts";
 
 const socket = io(SERVER_BACK_URL);
 type StaticDocument = {
@@ -18,12 +19,14 @@ type StaticDocument = {
 
 export default function Formulario6() {
   const { startAutoSave, saveFinalState } = useSaveTempState(socket);
-  const { obtenerUsuarioAutenticado, obtenerDatosBonita } = useBonitaService();
+  const { obtenerDatosBonita, obtenerUsuarioAutenticado, obtenerTareaActual } =
+    useBonitaService();
   const urlSave = `${SERVER_BACK_URL}api/save-document`;
   const [selectedDocument, setSelectedDocument] =
     useState<StaticDocument | null>(null);
   const bonita: BonitaUtilities = new BonitaUtilities();
   const [json, setJson] = useState<temporalData | null>(null);
+    const [tareaActual, setTareaActual] = useState<Tarea | null>(null);
 
   // Modificamos la función para aceptar un string
   const handleViewDocument = async (documentType: string) => {
@@ -84,16 +87,22 @@ export default function Formulario6() {
   }, [usuario, obtenerDatosBonita]);
   // Guardar datos del formulario
   useEffect(() => {
-    if (bonitaData && usuario) {
-      const data: temporalData = {
-        id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
-        id_tarea: parseInt(bonitaData.taskId),
-        jsonData: JSON.stringify("No Form Data"),
-        id_funcionario: parseInt(usuario.user_id),
-      };
-      setJson(data);
-      startAutoSave(data, 10000, "En Proceso");
-    }
+    const fetchTareaData = async () => {
+      if (bonitaData && usuario) {
+        const tareaData = await obtenerTareaActual(usuario.user_id);
+        setTareaActual(tareaData);
+        const data: temporalData = {
+          id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
+          id_tarea: parseInt(bonitaData.taskId),
+          jsonData: JSON.stringify("No Form Data"),
+          id_funcionario: parseInt(usuario.user_id),
+          nombre_tarea: tareaActual?.name || ""
+        };
+        setJson(data);
+        startAutoSave(data, 10000, "En Proceso");
+      }
+    };
+    fetchTareaData();
   }, [bonitaData, usuario, startAutoSave]);
   // Guardado final
   const handleNext = async () => {

@@ -9,7 +9,7 @@ import CardContainer from "./components/CardContainer.tsx";
 import { useSaveTempState } from "../bonita/hooks/datos_temprales";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { EmailInput } from "./components/EmailInput.tsx";
-
+import { Tarea } from "../../interfaces/bonita.interface.ts";
 const socket = io(SERVER_BACK_URL);
 
 type DocumentType = {
@@ -27,9 +27,10 @@ const staticDocuments: Record<string, DocumentType> = {
 };
 
 export default function ConfirmationScreen() {
+  const [tareaActual, setTareaActual] = useState<Tarea | null>(null);
   const [json, setJson] = useState<temporalData | null>(null);
   // @ts-ignore
-  const { obtenerUsuarioAutenticado, obtenerDatosBonita, error } =
+  const { obtenerUsuarioAutenticado, obtenerDatosBonita, error, obtenerTareaActual } =
     useBonitaService();
   const urlSave = `${SERVER_BACK_URL}/api/save-document`;
   const [codigo, setCodigo] = useState(""); // Código del comprobante
@@ -60,8 +61,11 @@ export default function ConfirmationScreen() {
   useEffect(() => {
     const fetchUser = async () => {
       const userData = await obtenerUsuarioAutenticado();
-      if (userData) {
+      setUsuario(usuario);
+      if (usuario) {
         setUsuario(userData);
+        const tareaData = await obtenerTareaActual(usuario.user_id);
+        setTareaActual(tareaData);
       }
     };
     fetchUser();
@@ -119,6 +123,7 @@ export default function ConfirmationScreen() {
         id_tarea: parseInt(bonitaData.taskId),
         jsonData: JSON.stringify("no form data"),
         id_funcionario: parseInt(usuario.user_id),
+        nombre_tarea: tareaActual?.name || "",
       };
       setJson(data);
       startAutoSave(data, 10000, "En Proceso");

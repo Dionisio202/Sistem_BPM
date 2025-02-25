@@ -9,6 +9,7 @@ import { SERVER_BACK_URL } from "../../config.ts";
 import { useSaveTempState } from "../bonita/hooks/datos_temprales";
 import { useBonitaService } from "../../services/bonita.service";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
+import { Tarea } from "../../interfaces/bonita.interface.ts";
 // Crear la instancia de Socket.io
 const socket = io(SERVER_BACK_URL);
 
@@ -21,13 +22,14 @@ export default function MemoCodeForm() {
   const bonita: BonitaUtilities = new BonitaUtilities();
   const id_tipo_documento = 3; // Valor de ejemplo, reemplazar según corresponda
   const [json, setJson] = useState<temporalData | null>(null);
+    const [tareaActual, setTareaActual] = useState<Tarea | null>(null);
 
   // @ts-ignore
   const {
     obtenerUsuarioAutenticado,
     obtenerDatosBonita,
     // @ts-ignore
-    error: errorService,
+    error: errorService, obtenerTareaActual
   } = useBonitaService();
   const [usuario, setUsuario] = useState<{
     user_id: string;
@@ -44,8 +46,10 @@ export default function MemoCodeForm() {
   useEffect(() => {
     const fetchUser = async () => {
       const userData = await obtenerUsuarioAutenticado();
-      if (userData) {
+      if (usuario) {
         setUsuario(userData);
+        const tareaData = await obtenerTareaActual(usuario.user_id);
+        setTareaActual(tareaData);
       }
     };
     fetchUser();
@@ -75,6 +79,7 @@ export default function MemoCodeForm() {
         id_tarea: parseInt(bonitaData.taskId),
         jsonData: JSON.stringify("No Form Data"),
         id_funcionario: parseInt(usuario.user_id),
+        nombre_tarea: tareaActual?.name || "",
       };
       setJson(data);
       startAutoSave(data, 10000, "En Proceso");

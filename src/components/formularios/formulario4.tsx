@@ -9,13 +9,15 @@ import { SERVER_BACK_URL } from "../../config.ts";
 import { useBonitaService } from "../../services/bonita.service";
 import { useSaveTempState } from "../bonita/hooks/datos_temprales";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
+import { Tarea } from "../../interfaces/bonita.interface.ts";
 
 // Crear instancia de socket
 const socket = io(SERVER_BACK_URL);
 
 export default function UploadForm() {
     const { startAutoSave, saveFinalState } = useSaveTempState(socket);
-  const { obtenerUsuarioAutenticado, obtenerDatosBonita } = useBonitaService();
+    const { obtenerDatosBonita, obtenerUsuarioAutenticado, obtenerTareaActual } =
+    useBonitaService();
   const [memoCode, setMemoCode] = useState("");
   const [notificaciones, setNotificaciones] = useState<string[]>([]);
   const [file, setFile] = useState<File | null>(null);
@@ -27,6 +29,7 @@ export default function UploadForm() {
     processName: string;
   } | null>(null);
   const [json, setJson] = useState<temporalData | null>(null);
+    const [tareaActual, setTareaActual] = useState<Tarea | null>(null);
   // Estado para controlar el envío
   const [isSubmitted, setIsSubmitted] = useState(false);
   // Estado para guardar la última certificación presupuestaria
@@ -52,6 +55,11 @@ export default function UploadForm() {
   // Obtener datos de Bonita cuando el usuario ya esté disponible
   useEffect(() => {
     if (!usuario) return;
+    const fetchTareaData = async () => {
+      const tareaData = await obtenerTareaActual(usuario.user_id);
+      setTareaActual(tareaData);
+    };
+    fetchTareaData();
     const fetchData = async () => {
       try {
         const data = await obtenerDatosBonita(usuario.user_id);
@@ -69,6 +77,7 @@ export default function UploadForm() {
         id_tarea: parseInt(bonitaData.taskId),
         jsonData: JSON.stringify("No Form Data"),
         id_funcionario: parseInt(usuario.user_id),
+        nombre_tarea: tareaActual?.name || "",
       };
       setJson(data);
       startAutoSave(data, 10000, "En Proceso");

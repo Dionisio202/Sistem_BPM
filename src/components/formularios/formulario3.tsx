@@ -11,6 +11,7 @@ import { useSaveTempState } from "../bonita/hooks/datos_temprales";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { useBonitaService } from "../../services/bonita.service";
 import { SERVER_BACK_URL } from "../../config.ts";
+import { Tarea } from "../../interfaces/bonita.interface.ts";
 
 const socket = io(SERVER_BACK_URL); // Conecta con el backend
 
@@ -19,6 +20,7 @@ export default function UploadForm() {
   const [json, setJson] = useState<temporalData | null>(null);
   const [intellectualPropertyFileBase64, setIntellectualPropertyFileBase64] =
     useState<string | null>(null);
+  const [tareaActual, setTareaActual] = useState<Tarea | null>(null);
     const [usuario, setUsuario] = useState<{
       user_id: string;
       user_name: string;
@@ -43,15 +45,19 @@ export default function UploadForm() {
   };
 
   // Usamos el servicio modificado: únicamente obtenerDatosBonita y obtenerUsuarioAutenticado
-  const { obtenerDatosBonita, obtenerUsuarioAutenticado } = useBonitaService();
+  const { obtenerDatosBonita, obtenerUsuarioAutenticado, obtenerTareaActual } =
+    useBonitaService();
   const [jsonAutroes, setJsonAutores] = useState<any>(null);
 
   // Efecto para obtener los datos de Bonita usando las APIs sin privilegios de admin
   useEffect(() => {
     const fetchUser = async () => {
       const userData = await obtenerUsuarioAutenticado();
-      if (userData) {
+      setUsuario(usuario);
+      if (usuario) {
         setUsuario(userData);
+        const tareaData = await obtenerTareaActual(usuario.user_id);
+        setTareaActual(tareaData);
       }
     };
     fetchUser();
@@ -80,6 +86,7 @@ export default function UploadForm() {
         id_tarea: parseInt(bonitaData.taskId),
         jsonData: JSON.stringify("No Form Data"),
         id_funcionario: parseInt(usuario.user_id),
+        nombre_tarea: tareaActual?.name || "",
       };
       setJson(data);
       startAutoSave(data, 10000, "En Proceso");
