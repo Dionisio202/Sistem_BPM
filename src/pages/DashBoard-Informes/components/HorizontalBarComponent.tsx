@@ -60,13 +60,13 @@ const HorizontalBar: React.FC = () => {
         {/* Área del gráfico */}
         <div className="absolute inset-0 z-10 h-[calc(100%-var(--marginTop)-var(--marginBottom))] translate-y-[var(--marginTop)] w-[calc(100%-var(--marginLeft)-var(--marginRight))] translate-x-[var(--marginLeft)] overflow-visible">
           {/* Barras del gráfico */}
-          {data.map((d, index) => {
+          {data.map((d) => {
             const barWidth = xScale(d.value);
             const barHeight = yScale.bandwidth();
             const barColor = getBarColor(barWidth);
 
             return (
-              <React.Fragment key={index}>
+              <div key={d.key}>
                 <div
                   className={`absolute left-0 ${barColor} transition-all duration-200 ease-in-out hover:opacity-80`}
                   style={{
@@ -87,7 +87,7 @@ const HorizontalBar: React.FC = () => {
                     height: "9px",
                   }}
                 />
-              </React.Fragment>
+              </div>
             );
           })}
 
@@ -100,11 +100,11 @@ const HorizontalBar: React.FC = () => {
             {xScale
               .ticks(8)
               .map(xScale.tickFormat(8, "d"))
-              .map((active, i) => (
+              .map((active) => (
                 <g
                   transform={`translate(${xScale(+active)},0)`}
                   className="text-gray-300/80 dark:text-gray-800/80"
-                  key={i}
+                  key={active}
                 >
                   <line
                     y1={0}
@@ -119,9 +119,9 @@ const HorizontalBar: React.FC = () => {
           </svg>
 
           {/* Eje X (Valores) */}
-          {xScale.ticks(4).map((value, i) => (
+          {xScale.ticks(4).map((value) => (
             <div
-              key={i}
+              key={value}
               className="absolute text-xs -translate-x-1/2 tabular-nums text-gray-400"
               style={{
                 left: `${xScale(value)}%`,
@@ -135,9 +135,9 @@ const HorizontalBar: React.FC = () => {
 
         {/* Eje Y (Etiquetas) */}
         <div className="h-[calc(100%-var(--marginTop)-var(--marginBottom))] w-[var(--marginLeft)] translate-y-[var(--marginTop)] overflow-visible">
-          {data.map((entry, i) => (
+          {data.map((entry) => (
             <span
-              key={i}
+              key={entry.key}
               className="absolute text-xs text-gray-400 -translate-y-1/2 w-full text-right pr-2"
               style={{
                 top: `${yScale(entry.key)! + yScale.bandwidth() / 2}%`,

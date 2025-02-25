@@ -1,112 +1,237 @@
-import React, { useState } from 'react';
-import { Paper, Table, TableBody, TableCell, TableContainer, TableHead, TablePagination, TableRow } from '@mui/material';
-import FilterPanel from './PanelFiltrosReportes'; // Asegúrate de importar el componente de filtros
+import { useMemo } from "react";
+import {
+  MaterialReactTable,
+  useMaterialReactTable,
+  type MRT_ColumnDef,
+} from "material-react-table";
+import { Tarea } from "./interfaces/tableprops.interface.ts";
+import ExportCard from "./ExportCard.tsx";
 
-// Definición de interfaces
-interface Column {
-  id: string;
-  label: string;
-  minWidth: number;
-  align?: 'left' | 'right' | 'center';
-  format?: (value: number) => string;
-}
+// Datos del JSON que recibe para la tabla
+const jsonData = {
+  NombreProceso: "Gestión de Proyectos Académicos",
+  Funcionarios: [
+    {
+      Nombre: "Jimmy",
+      Caso: [
+        {
+          NumeroCaso: "2001",
+          NombreTarea: [
+            {
+              Nombre: "Revisión de Documentos",
+              Progreso: "30%",
+              EstadoDeProceso: "Iniciado",
+              TipoProductos: "R.Obras",
+              NombreProductos: "Estudio sobre Cambio Climático",
+              NombreProyecto: "Proyecto Verde",
+              Facultad: "Ciencias Ambientales",
+              MemorandoInicial: "MI-2023-001",
+            },
+            {
+              Nombre: "Aprobación de Presupuesto",
+              Progreso: "10%",
+              EstadoDeProceso: "Pendiente",
+              TipoProductos: "R.Obras",
+              NombreProductos: "Estudio sobre Cambio Climático",
+              NombreProyecto: "Proyecto Verde",
+              Facultad: "Ciencias Ambientales",
+              MemorandoInicial: "MI-2023-001",
+            },
+            {
+              Nombre: "Entrega de Informe Final",
+              Progreso: "0%",
+              EstadoDeProceso: "No Iniciado",
+              TipoProductos: "R.Obras",
+              NombreProductos: "Estudio sobre Cambio Climático",
+              NombreProyecto: "Proyecto Verde",
+              Facultad: "Ciencias Ambientales",
+              MemorandoInicial: "MI-2023-001",
+            },
+          ],
+          FechaRegistro: "2023-01-15",
+          FechaFinalizacion: "2023-06-30",
+          ProgresoGeneral: "13%",
+          EstadoProcesoGeneral: "En Progreso",
+        },
+      ],
+    },
+    {
+      Nombre: "Ana",
+      Caso: [
+        {
+          NumeroCaso: "2002",
+          NombreTarea: [
+            {
+              Nombre: "Análisis de Datos",
+              Progreso: "50%",
+              EstadoDeProceso: "En Progreso",
+              TipoProductos: "R.Artículos",
+              NombreProductos: "Impacto del Calentamiento Global",
+              NombreProyecto: "Proyecto Azul",
+              Facultad: "Ciencias Ambientales",
+              MemorandoInicial: "MI-2023-002",
+            },
+            {
+              Nombre: "Redacción del Informe Parcial",
+              Progreso: "20%",
+              EstadoDeProceso: "Iniciado",
+              TipoProductos: "R.Artículos",
+              NombreProductos: "Impacto del Calentamiento Global",
+              NombreProyecto: "Proyecto Azul",
+              Facultad: "Ciencias Ambientales",
+              MemorandoInicial: "MI-2023-002",
+            },
+            {
+              Nombre: "Presentación de Resultados",
+              Progreso: "0%",
+              EstadoDeProceso: "No Iniciado",
+              TipoProductos: "R.Artículos",
+              NombreProductos: "Impacto del Calentamiento Global",
+              NombreProyecto: "Proyecto Azul",
+              Facultad: "Ciencias Ambientales",
+              MemorandoInicial: "MI-2023-002",
+            },
+          ],
+          FechaRegistro: "2023-02-01",
+          FechaFinalizacion: "2023-07-15",
+          ProgresoGeneral: "25%",
+          EstadoProcesoGeneral: "En Progreso",
+        },
+      ],
+    },
+  ],
+};
 
-interface Row {
-  name: string;
-  code: string;
-  population: number;
-  size: number;
-  density: number;
-}
+// Convertir JSON a filas para la tabla
+const data: Tarea[] = jsonData.Funcionarios.flatMap((funcionario) =>
+  funcionario.Caso.flatMap((caso) =>
+    caso.NombreTarea.map((tarea) => ({
+      NumeroCaso: caso.NumeroCaso,
+      NombreTarea: tarea.Nombre,
+      Progreso: tarea.Progreso,
+      EstadoDeProceso: tarea.EstadoDeProceso,
+      TipoProductos: tarea.TipoProductos,
+      NombreProductos: tarea.NombreProductos,
+      NombreProyecto: tarea.NombreProyecto,
+      Facultad: tarea.Facultad,
+      MemorandoInicial: tarea.MemorandoInicial,
+      FechaRegistro: caso.FechaRegistro,
+      FechaFinalizacion: caso.FechaFinalizacion,
+      ProgresoGeneral: caso.ProgresoGeneral,
+      EstadoProcesoGeneral: caso.EstadoProcesoGeneral,
+    }))
+  )
+);
 
-const StickyHeadTable: React.FC = () => {
-  const [page, setPage] = useState<number>(0);
-  const [rowsPerPage, setRowsPerPage] = useState<number>(10);
-  const [filteredRows, setFilteredRows] = useState<Row[]>([]);
-
-  // Datos originales de la tabla
-  const rows: Row[] = [
-    { name: 'Asesoramiento', code: 'memorando01', population: 1324171354, size: 3287263, density: 403 },
-    { name: 'Reporte', code: 'memorando01', population: 1403500365, size: 9596961, density: 146 },
-    { name: 'Caso', code: 'memorando02', population: 332915074, size: 9372610, density: 36 },
-    { name: 'Dinnova', code: 'memorando02', population: 213993437, size: 8515767, density: 25 },
-    { name: 'minecraft', code: 'memorando03', population: 145912025, size: 17098242, density: 9 },
-  ];
-
-  // Columnas de la tabla
-  const columns: Column[] = [
-    { id: 'Nombre', label: 'Name', minWidth: 170 },
-    { id: 'Memorando', label: 'ISO\u00a0Code', minWidth: 100 },
-    { id: 'numero', label: 'Population', minWidth: 100, align: 'right' },
-    { id: 'etc', label: 'Size\u00a0(km\u00b2)', minWidth: 100, align: 'right' },
-    { id: 'etc', label: 'Density', minWidth: 100, align: 'right' },
-  ];
-
-  // Maneja cambios de página
-  const handleChangePage = (event: unknown, newPage: number) => {
-    setPage(newPage);
-  };
-
-  // Maneja cambios en el número de filas por página
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRowsPerPage(+event.target.value);
-    setPage(0);
-  };
+const Example = () => {
+  // Definir las columnas de la tabla
+  const columns = useMemo<MRT_ColumnDef<Tarea>[]>(
+    () => [
+      {
+        accessorKey: "NumeroCaso",
+        header: "Número de Caso",
+        size: 100,
+      },
+      {
+        accessorKey: "NombreTarea",
+        header: "Nombre de la Tarea",
+        size: 100,
+      },
+      {
+        accessorKey: "Progreso",
+        header: "Progreso",
+        size: 100,
+      },
+      {
+        accessorKey: "EstadoDeProceso",
+        header: "Estado de Proceso",
+        size: 120,
+      },
+      {
+        accessorKey: "TipoProductos",
+        header: "Tipo de Productos",
+        size: 120,
+      },
+      {
+        accessorKey: "NombreProductos",
+        header: "Nombre de Productos",
+        size: 150,
+      },
+      {
+        accessorKey: "NombreProyecto",
+        header: "Nombre del Proyecto",
+        size: 150,
+      },
+      {
+        accessorKey: "Facultad",
+        header: "Facultad",
+        size: 120,
+      },
+      {
+        accessorKey: "MemorandoInicial",
+        header: "Memorando Inicial",
+        size: 120,
+      },
+      {
+        accessorKey: "FechaRegistro",
+        header: "Fecha de Registro",
+        size: 120,
+      },
+      {
+        accessorKey: "FechaFinalizacion",
+        header: "Fecha de Finalización",
+        size: 120,
+      },
+      {
+        accessorKey: "ProgresoGeneral",
+        header: "Progreso General",
+        size: 100,
+      },
+      {
+        accessorKey: "EstadoProcesoGeneral",
+        header: "Estado General",
+        size: 120,
+      },
+    ],
+    []
+  );
+  const table = useMaterialReactTable({
+    columns,
+    data,
+    // Personalizar el encabezado
+    muiTableHeadCellProps: {
+      style: {
+        backgroundColor: "#1F2937", // Color de fondo del encabezado
+        color: "#ffffff", // Color del texto del encabezado
+      },
+    },
+    // Personalizar la paginación
+    muiPaginationProps: {
+      style: {
+        backgroundColor: "#1F2937", // Color de fondo de la paginación
+        color: "#ffffff",
+      },
+    },
+    muiFilterTextFieldProps: {
+      style: {
+        backgroundColor: "#1F2937", // Color de fondo de los filtros
+        color: "#ffffff", // Color del texto de los filtros
+      },
+    },
+  });
+  // Obtener los datos filtrados
+  const filteredData = table
+    .getFilteredRowModel()
+    .rows.map((row) => row.original);
 
   return (
-    <Paper sx={{ width: '100%', overflow: 'hidden' }}>
-      {/* Panel de Filtros */}
-      <FilterPanel columns={columns} rows={rows} onFilter={setFilteredRows} />
-
-      {/* Tabla */}
-      <TableContainer sx={{ maxHeight: 440 }}>
-        <Table stickyHeader aria-label="sticky table">
-          <TableHead>
-            <TableRow>
-              {columns.map((column) => (
-                <TableCell
-                  key={column.id}
-                  align={column.align || 'left'}
-                  style={{ minWidth: column.minWidth }}
-                >
-                  {column.label}
-                </TableCell>
-              ))}
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {filteredRows
-              .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-              .map((row) => {
-                return (
-                  <TableRow hover role="checkbox" tabIndex={-1} key={row.code}>
-                    {columns.map((column) => {
-                      const value = row[column.id as keyof Row];
-                      return (
-                        <TableCell key={column.id} align={column.align || 'left'}>
-                          {column.format && typeof value === 'number'
-                            ? column.format(value)
-                            : value}
-                        </TableCell>
-                      );
-                    })}
-                  </TableRow>
-                );
-              })}
-          </TableBody>
-        </Table>
-      </TableContainer>
-      <TablePagination
-        rowsPerPageOptions={[10, 25, 100]}
-        component="div"
-        count={filteredRows.length}
-        rowsPerPage={rowsPerPage}
-        page={page}
-        onPageChange={handleChangePage}
-        onRowsPerPageChange={handleChangeRowsPerPage}
-      />
-    </Paper>
+    <div>
+      <ExportCard filteredData={filteredData} />
+      <div className="h-[95vh] w-full max-w-5xl overflow-y-auto mx-auto p-1 border border-gray-200 shadow-lg rounded-lg">
+        <MaterialReactTable table={table} />
+      </div>
+    </div>
   );
 };
 
-export default StickyHeadTable;
+export default Example;

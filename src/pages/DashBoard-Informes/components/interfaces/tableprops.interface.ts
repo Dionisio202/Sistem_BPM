@@ -1,15 +1,15 @@
-export interface Column {
-  id: string;
-  label: string;
-  minWidth: number;
-  align?: "left" | "right" | "center";
-  format?: (value: number) => string;
-}
-
-export interface Row {
-  name: string;
-  code: string;
-  population: number;
-  size: number;
-  density: number;
-}
+export type Tarea = {
+  NumeroCaso: string;
+  NombreTarea: string;
+  Progreso: string;
+  EstadoDeProceso: string;
+  TipoProductos: string;
+  NombreProductos: string;
+  NombreProyecto: string;
+  Facultad: string;
+  MemorandoInicial: string;
+  FechaRegistro: string;
+  FechaFinalizacion: string;
+  ProgresoGeneral: string;
+  EstadoProcesoGeneral: string;
+};

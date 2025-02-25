@@ -29,7 +29,7 @@ const Card: React.FC<CardProps> = ({
         {barChartData && (
           <div className="mt-1">
             <h3 className="text-lg font-semibold mb-1 text-center">
-              Solicitudes por Facultad
+              Solicitudes por Productos
             </h3>
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={barChartData}>

@@ -6,8 +6,11 @@ const Reports: React.FC = () => {
     <div className="flex flex-col min-h-screen">
       <div className="flex">
         <Sidebar /> {/* Sidebar donde se navegan las rutas */}
-        <main className="flex-grow p-6 space-y-4 ml-0 md:ml-64">
-        <Table/>
+        <main className="flex-grow p-1 space-y-2 ml-0 md:ml-60 ">
+          <div className="flex justify-end bg-gray-100 p-2 rounded-lg w-full h-full">
+
+            <Table />
+          </div>
         </main>
       </div>
     </div>
