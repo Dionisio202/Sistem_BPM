@@ -4,15 +4,13 @@ import { ProcesoDatos } from "./interfaces/proceso.interface";
 
 // Definimos el tipo para los datos
 const data: ProcesoDatos[] = [
-  { key: "France", value: 100 },
-  { key: "Spain", value: 70 },
-  { key: "Italy", value: 60 },
-  { key: "Portugal", value: 10 },
-  { key: "Germany", value: 10 },
-  { key: "Netherlands", value: 30 },
-  { key: "Belgium", value: 50 },
-  { key: "Austria", value: 20 },
-  { key: "Greeece", value: 30 },
+  { key: "Caso2001", value: 100 },
+  { key: "Casso2002", value: 70 },
+  { key: "Caso2003", value: 60 },
+  { key: "Caso2004", value: 10 },
+  { key: "Caso2005", value: 10 },
+  { key: "Caso2006", value: 30 },
+  { key: "Caso2007", value: 50 },
 ].sort((a, b) => b.value - a.value); // Ordenamos los datos
 
 const HorizontalBar: React.FC = () => {

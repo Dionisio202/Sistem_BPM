@@ -152,10 +152,10 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks }) => {
         display="flex"
         alignItems="center"
         height="40px"
-        bgcolor="grey.300"
+        bgcolor="#1F2937"
         px={2}
       >
-        <Box flex={2} minWidth="150px">
+        <Box flex={2} minWidth="150px" color="white">
           <Typography variant="subtitle1">Casos</Typography>
         </Box>
         <Box flex={1} minWidth="100px">
