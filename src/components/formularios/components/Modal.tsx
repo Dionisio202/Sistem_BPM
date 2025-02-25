@@ -18,7 +18,24 @@ const Modal: React.FC<ModalProps> = ({
   const [tiposProductos, setTiposProductos] = useState<TipoProducto[]>([]); // Estado para los tipos de productos
   const [loading, setLoading] = useState(true); // Estado para el indicador de carga
   const [error, setError] = useState<string | null>(null); // Estado para manejar errores
-
+  const [facultadSeleccionada, setFacultadSeleccionada] = useState("");
+  const facultades = [
+    { id: 1, nombre: "Facultad de Ingeniería" },
+    { id: 2, nombre: "Facultad de Medicina" },
+    { id: 3, nombre: "Facultad de Derecho" },
+    { id: 4, nombre: "Facultad de Ciencias Económicas" },
+    { id: 5, nombre: "Facultad de Arquitectura" },
+  ];
+  const handleFacultadChange = (e: any) => {
+    setFacultadSeleccionada(e.target.value);
+    setEditedData((prev:any) => ({
+      ...prev,
+      solicitante: {
+        ...prev.solicitante,
+        facultad: e.target.value,
+      },
+    }));
+  };
   // Cargar los tipos de productos al abrir el modal
   // En el useEffect donde obtienes los tipos de productos
   useEffect(() => {
@@ -242,6 +259,22 @@ const Modal: React.FC<ModalProps> = ({
                         }
                         className="mt-1 mb-5 text-xs block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-[#931D21] focus:border-[#931D21]"
                       />
+                    </div>
+                    <div>
+                      <select
+                        id="facultad"
+                        value={facultadSeleccionada}
+                        onChange={handleFacultadChange}
+                        className="mt-1 text-xs block w-full p-1 border border-gray-300 rounded-md shadow-sm focus:ring-[#931D21] focus:border-[#931D21]"
+                        disabled={loading} // Si necesitas mantener el estado de carga
+                      >
+                        <option value="">Seleccione una facultad</option>
+                        {facultades.map((facultad) => (
+                          <option key={facultad.id} value={facultad.nombre} >
+                            {facultad.nombre}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
                 </div>
