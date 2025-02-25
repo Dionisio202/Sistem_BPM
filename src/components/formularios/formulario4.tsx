@@ -234,10 +234,9 @@ export default function UploadForm() {
 
         { (lastCertification && !lastCertification.yaPasoUnAño && !forceNewUpload) ? (
           <div className="mb-4 p-4 border rounded bg-gray-50">
-            <p>
-              Certificación presupuestaria subida el:{" "}
-              {new Date(lastCertification.fecha_doc).toLocaleDateString()}
-            </p>
+           <p>
+    Certificación presupuestaria subida el: {lastCertification.fecha_doc.split("T")[0]}
+</p>
             <p>
               Faltan: {calculateRemainingTime(lastCertification.fecha_doc)} para cumplir 1 año.
             </p>
