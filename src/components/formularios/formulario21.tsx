@@ -157,12 +157,14 @@ export default function ConfirmationScreen() {
 
           {/* Sección para el EmailInput */}
           <div className="flex-1 w-full h-full">
-            <EmailInput
-              json={json}
-              socket={socket}
-              stopAutoSave={stopAutoSave} // ✅ Nueva prop
-              saveFinalState={saveFinalState} // ✅ Nueva prop
-            />
+              <EmailInput
+             json={json}
+             socket={socket}
+             stopAutoSave={stopAutoSave}
+             saveFinalState={saveFinalState}
+             attachments={[selectedDocument.nombre]}  // Archivos a enviar (dinámico)
+             docBasePath={"/app/documents"}            // Ruta base (dinámica)
+           />
           </div>
 
           {/* Botón Siguiente */}
