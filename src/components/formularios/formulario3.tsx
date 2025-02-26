@@ -53,9 +53,9 @@ export default function UploadForm() {
   useEffect(() => {
     const fetchUser = async () => {
       const userData = await obtenerUsuarioAutenticado();
-      setUsuario(usuario);
+      setUsuario(userData);
       if (usuario) {
-        setUsuario(userData);
+        
         const tareaData = await obtenerTareaActual(usuario.user_id);
         setTareaActual(tareaData);
       }
