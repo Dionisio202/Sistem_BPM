@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import io from "socket.io-client";
+import UploadFile from "../components/UploadFile"; // Componente para cargar archivos
 import {
   ModalProps,
   TipoProducto,
@@ -74,7 +75,39 @@ const Modal: React.FC<ModalProps> = ({
       });
     }
   }, [showModal]);
+  const handleMemoFileChange = async (file: File | null) => {
+    if (!file) return;
 
+    try {
+      const memoBase64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => {
+          const result = reader.result as string;
+          const base64String = result.split(",")[1];
+          resolve(base64String);
+        };
+        reader.onerror = (error) => reject(error);
+      });
+
+      // Llama a la API vía Socket.io para mapear el código del memorando
+      socket.emit("subir_documento", { documento: memoBase64 }, (response: any) => {
+        if (response.success) {
+          // Se asume que la API devuelve el código en response.codigo
+          setEditedData((prev: any) => ({
+            ...prev,
+            codigoMemorando: response.codigo,
+          }));
+        } else {
+          console.error("Error al subir el documento:", response.message);
+          alert("Error al subir el documento");
+        }
+      });
+    } catch (err) {
+      console.error("Error procesando el archivo:", err);
+      alert("Error al procesar el archivo");
+    }
+  };
   const handleChange = (path: string, value: string) => {
     const keys = path.split(".");
     const updatedData = { ...editedData };
@@ -114,6 +147,15 @@ const Modal: React.FC<ModalProps> = ({
                 </div>
               )}
               <div className="space-y-1">
+               
+              <div className="mb-4">
+                  <UploadFile
+                    id="memo-file"
+                    onFileChange={handleMemoFileChange}
+                    label="Subir archivo del memorando"
+                  />
+                </div>
+
                 {/* Código de Memorando */}
                 <label
                   htmlFor="codigoMemorando"
