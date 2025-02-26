@@ -46,60 +46,26 @@ export default function ConfirmationScreen() {
     }));
   };
 
+  
+  // 🔹 Obtener el usuario autenticado al montar el componente
   // 🔹 Obtener el usuario autenticado al montar el componente
   useEffect(() => {
     const fetchUser = async () => {
-      try {
-        const userData = await obtenerUsuarioAutenticado();
-        if (userData) setUsuario(userData);
-        if (usuario) {
-          const tareaData = await obtenerTareaActual(usuario.user_id);
-          setTareaActual(tareaData);
-        }
-      } catch (error) {
-        console.error("❌ Error obteniendo usuario autenticado:", error);
+      const userData = await obtenerUsuarioAutenticado();
+      if (userData) {
+        setUsuario(userData);
       }
     };
     fetchUser();
   }, [obtenerUsuarioAutenticado]);
 
-  useEffect(() => {
-    if (bonitaData) {
-      const id_registro = `${bonitaData.processId}-${bonitaData.caseId}`;
-      const id_tarea = bonitaData.taskId; // o parsearlo si es necesario
-
-      socket.emit(
-        "obtener_estado_temporal",
-        { id_registro, id_tarea },
-        (response: {
-          success: boolean;
-          message: string;
-          jsonData?: string;
-        }) => {
-          if (response.success && response.jsonData) {
-            try {
-              const loadedState = JSON.parse(response.jsonData);
-              setSelectedDocuments(loadedState);
-            } catch (err) {
-              console.error("Error al parsear el JSON:", err);
-            }
-          } else {
-            console.error(
-              "Error al obtener el estado temporal:",
-              response.message
-            );
-          }
-        }
-      );
-    }
-  }, [bonitaData]);
-
   // 🔹 Obtener datos de Bonita una vez que se tenga el usuario
   useEffect(() => {
     if (!usuario) return;
-
     const fetchData = async () => {
       try {
+        const tareaData = await obtenerTareaActual(usuario.user_id);
+        setTareaActual(tareaData);
         const data = await obtenerDatosBonita(usuario.user_id);
         if (data) {
           setBonitaData(data);
@@ -108,9 +74,33 @@ export default function ConfirmationScreen() {
         console.error("❌ Error obteniendo datos de Bonita:", error);
       }
     };
-
     fetchData();
-  }, [usuario]);
+  }, [usuario, obtenerDatosBonita]);
+
+  // 🔹 Recuperar el estado guardado al cargar el componente
+  useEffect(() => {
+    if (bonitaData) {
+      const id_registro = `${bonitaData.processId}-${bonitaData.caseId}`;
+      const id_tarea = bonitaData.taskId;
+
+      socket.emit(
+        "obtener_estado_temporal",
+        { id_registro, id_tarea },
+        (response: { success: boolean; message: string; jsonData?: string }) => {
+          if (response.success && response.jsonData) {
+            try {
+              const loadedState = JSON.parse(response.jsonData);
+              setSelectedDocuments(loadedState);
+            } catch (err) {
+              console.error("Error al parsear el JSON:", err);
+            }
+          } else {
+            console.error("Error al obtener el estado temporal:", response.message);
+          }
+        }
+      );
+    }
+  }, [bonitaData]);
 
   // 🔹 Iniciar el guardado automático ("En Proceso")
   useEffect(() => {

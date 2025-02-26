@@ -49,36 +49,37 @@ export default function UploadForm() {
     useBonitaService();
   const [jsonAutroes, setJsonAutores] = useState<any>(null);
 
-  // Efecto para obtener los datos de Bonita usando las APIs sin privilegios de admin
+  // Obtener usuario autenticado
   useEffect(() => {
     const fetchUser = async () => {
-      const userData = await obtenerUsuarioAutenticado();
-      setUsuario(userData);
-      if (usuario) {
-        
-        const tareaData = await obtenerTareaActual(usuario.user_id);
-        setTareaActual(tareaData);
+      try {
+        const userData = await obtenerUsuarioAutenticado();
+        if (userData) setUsuario(userData);
+      } catch (error) {
+        console.error("❌ Error obteniendo usuario autenticado:", error);
       }
     };
     fetchUser();
   }, [obtenerUsuarioAutenticado]);
 
-  // Obtener datos de Bonita una vez que se tenga el usuario
+  // Obtener datos de Bonita cuando el usuario ya esté disponible
   useEffect(() => {
     if (!usuario) return;
+    const fetchTareaData = async () => {
+      const tareaData = await obtenerTareaActual(usuario.user_id);
+      setTareaActual(tareaData);
+    };
+    fetchTareaData();
     const fetchData = async () => {
       try {
         const data = await obtenerDatosBonita(usuario.user_id);
-        if (data) {
-          setBonitaData(data);
-        }
-      } catch (err) {
-        console.error("❌ Error obteniendo datos de Bonita:", err);
+        if (data) setBonitaData(data);
+      } catch (error) {
+        console.error("❌ Error obteniendo datos de Bonita:", error);
       }
     };
     fetchData();
   }, [usuario, obtenerDatosBonita]);
-
   useEffect(() => {
     if (bonitaData && usuario) {
       const data: temporalData = {

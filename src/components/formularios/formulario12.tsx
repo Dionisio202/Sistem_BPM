@@ -60,16 +60,12 @@ export default function WebPage() {
     setCodigo(e.target.value);
   };
 
-  // Obtener el usuario autenticado
+  // Obtener usuario autenticado
   useEffect(() => {
     const fetchUser = async () => {
       try {
         const userData = await obtenerUsuarioAutenticado();
         if (userData) setUsuario(userData);
-        if (usuario) {
-          const tareaData = await obtenerTareaActual(usuario.user_id);
-          setTareaActual(tareaData);
-        }
       } catch (error) {
         console.error("❌ Error obteniendo usuario autenticado:", error);
       }
@@ -77,21 +73,37 @@ export default function WebPage() {
     fetchUser();
   }, [obtenerUsuarioAutenticado]);
 
-  // Obtener datos de Bonita cuando ya se tenga el usuario
+  // Obtener datos de Bonita cuando el usuario ya esté disponible
   useEffect(() => {
     if (!usuario) return;
+    const fetchTareaData = async () => {
+      const tareaData = await obtenerTareaActual(usuario.user_id);
+      setTareaActual(tareaData);
+    };
+    fetchTareaData();
     const fetchData = async () => {
       try {
         const data = await obtenerDatosBonita(usuario.user_id);
-        if (data) {
-          setBonitaData(data);
-        }
+        if (data) setBonitaData(data);
       } catch (error) {
         console.error("❌ Error obteniendo datos de Bonita:", error);
       }
     };
     fetchData();
   }, [usuario, obtenerDatosBonita]);
+  useEffect(() => {
+    if (bonitaData && usuario) {
+      const data: temporalData = {
+        id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
+        id_tarea: parseInt(bonitaData.taskId),
+        jsonData: JSON.stringify("No Form Data"),
+        id_funcionario: parseInt(usuario.user_id),
+        nombre_tarea: tareaActual?.name || "",
+      };
+      setJson(data);
+      startAutoSave(data, 10000, "En Proceso");
+    }
+  }, [bonitaData, usuario, startAutoSave]);
 
   // Emitir el evento socket para obtener el código de almacenamiento cuando se disponga de la data de Bonita
   useEffect(() => {
@@ -122,19 +134,7 @@ export default function WebPage() {
     };
   }, [bonitaData]);
 
-  useEffect(() => {
-    if (bonitaData && usuario) {
-      const data: temporalData = {
-        id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
-        id_tarea: parseInt(bonitaData.taskId),
-        jsonData: JSON.stringify("No Form Data"),
-        id_funcionario: parseInt(usuario.user_id),
-        nombre_tarea: tareaActual?.name || "",
-      };
-      setJson(data);
-      startAutoSave(data, 10000, "En Proceso");
-    }
-  }, [bonitaData, usuario, startAutoSave, tareaActual]);
+
 
   // Función para subir el archivo del memorando y obtener el código mediante Socket.io
   const handleFileUpload = useCallback(async (file: File | null) => {

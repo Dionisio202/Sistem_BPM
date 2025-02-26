@@ -64,46 +64,51 @@ export default function Formulario6() {
     caseId: string;
     processName: string;
   } | null>(null);
-  useEffect(() => {
-    const fetchUser = async () => {
+ // Obtener usuario autenticado
+ useEffect(() => {
+  const fetchUser = async () => {
+    try {
       const userData = await obtenerUsuarioAutenticado();
       if (userData) setUsuario(userData);
+    } catch (error) {
+      console.error("❌ Error obteniendo usuario autenticado:", error);
+    }
+  };
+  fetchUser();
+}, [obtenerUsuarioAutenticado]);
+
+// Obtener datos de Bonita cuando el usuario ya esté disponible
+useEffect(() => {
+  if (!usuario) return;
+  const fetchTareaData = async () => {
+    const tareaData = await obtenerTareaActual(usuario.user_id);
+    setTareaActual(tareaData);
+  };
+  fetchTareaData();
+  const fetchData = async () => {
+    try {
+      const data = await obtenerDatosBonita(usuario.user_id);
+      if (data) setBonitaData(data);
+    } catch (error) {
+      console.error("❌ Error obteniendo datos de Bonita:", error);
+    }
+  };
+  fetchData();
+}, [usuario, obtenerDatosBonita]);
+useEffect(() => {
+  if (bonitaData && usuario) {
+    const data: temporalData = {
+      id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
+      id_tarea: parseInt(bonitaData.taskId),
+      jsonData: JSON.stringify("No Form Data"),
+      id_funcionario: parseInt(usuario.user_id),
+      nombre_tarea: tareaActual?.name || "",
     };
-    fetchUser();
-  }, []);
-  useEffect(() => {
-    if (!usuario) return;
-    const fetchData = async () => {
-      try {
-        const data = await obtenerDatosBonita(usuario.user_id);
-        if (data) {
-          setBonitaData(data);
-        }
-      } catch (error) {
-        console.error("❌ Error obteniendo datos de Bonita:", error);
-      }
-    };
-    fetchData();
-  }, [usuario, obtenerDatosBonita]);
-  // Guardar datos del formulario
-  useEffect(() => {
-    const fetchTareaData = async () => {
-      if (bonitaData && usuario) {
-        const tareaData = await obtenerTareaActual(usuario.user_id);
-        setTareaActual(tareaData);
-        const data: temporalData = {
-          id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
-          id_tarea: parseInt(bonitaData.taskId),
-          jsonData: JSON.stringify("No Form Data"),
-          id_funcionario: parseInt(usuario.user_id),
-          nombre_tarea: tareaActual?.name || ""
-        };
-        setJson(data);
-        startAutoSave(data, 10000, "En Proceso");
-      }
-    };
-    fetchTareaData();
-  }, [bonitaData, usuario, startAutoSave]);
+    setJson(data);
+    startAutoSave(data, 10000, "En Proceso");
+  }
+}, [bonitaData, usuario, startAutoSave]);
+
   // Guardado final
   const handleNext = async () => {
     alert("Avanzando a la siguiente página...");

@@ -56,29 +56,31 @@ export default function Formulario6() {
     caseId: string;
     processName: string;
   } | null>(null);
+  // Obtener usuario autenticado
   useEffect(() => {
     const fetchUser = async () => {
       try {
         const userData = await obtenerUsuarioAutenticado();
         if (userData) setUsuario(userData);
-        if (usuario) {
-          const tareaData = await obtenerTareaActual(usuario.user_id);
-          setTareaActual(tareaData);
-        }
       } catch (error) {
         console.error("❌ Error obteniendo usuario autenticado:", error);
       }
     };
     fetchUser();
   }, [obtenerUsuarioAutenticado]);
+
+  // Obtener datos de Bonita cuando el usuario ya esté disponible
   useEffect(() => {
     if (!usuario) return;
+    const fetchTareaData = async () => {
+      const tareaData = await obtenerTareaActual(usuario.user_id);
+      setTareaActual(tareaData);
+    };
+    fetchTareaData();
     const fetchData = async () => {
       try {
         const data = await obtenerDatosBonita(usuario.user_id);
-        if (data) {
-          setBonitaData(data);
-        }
+        if (data) setBonitaData(data);
       } catch (error) {
         console.error("❌ Error obteniendo datos de Bonita:", error);
       }
@@ -97,7 +99,10 @@ export default function Formulario6() {
       setJson(data);
       startAutoSave(data, 10000, "En Proceso");
     }
-  }, [bonitaData, usuario, startAutoSave, tareaActual]);
+  }, [bonitaData, usuario, startAutoSave]);
+
+
+
   const nombrePlantilla = "fsvt-001";
   const codigoProceso = `${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}`;
   const staticDocuments: Record<string, StaticDocument> = {
