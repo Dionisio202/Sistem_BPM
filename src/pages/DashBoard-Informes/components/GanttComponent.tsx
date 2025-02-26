@@ -1,24 +1,19 @@
 import React, { useState } from "react";
-import { Box, Typography, Collapse, IconButton, Tooltip } from "@mui/material";
-import { ExpandMore, ExpandLess } from "@mui/icons-material";
+import { ExpandMore, ExpandLess } from "@mui/icons-material"; // Puedes reemplazar estos íconos con íconos de Tailwind o otra librería
 import { GanttChartProps, Task } from "./interfaces/ganttprops.interface";
 
 // Componente para la barra de progreso
 const ProgressBar: React.FC<{ progress: number }> = ({ progress }) => (
-  <Box
-    bgcolor="primary.light"
-    borderRadius="4px"
-    height="100%"
-    width={`${progress}%`}
+  <div
+    className="bg-blue-300 rounded h-full"
+    style={{ width: `${progress}%` }}
   />
 );
+
 // Función para calcular la duración de la tarea en días
 const calculateDuration = (task: Task): number => {
-  // Si la tarea está completada, asumimos una duración de 1 día
-  if (task.progress === 100) return 1;
-
-  // Si la tarea está en progreso, asumimos una duración estimada (por ejemplo, 5 días)
-  return 5;
+  if (task.progress === 100) return 1; // Si la tarea está completada, asumimos una duración de 1 día
+  return 5; // Si la tarea está en progreso, asumimos una duración estimada (por ejemplo, 5 días)
 };
 
 // Función para calcular la posición horizontal de la tarea
@@ -37,87 +32,98 @@ const TaskRow: React.FC<{
   duration: number; // Duración de la tarea en días
   position: number; // Posición de la tarea en el gráfico
   earliestDate: Date; // Nueva prop: fecha más temprana
-}> = ({ task, level, isExpanded, hasSubtasks, onToggle, duration, position, earliestDate }) => (
-  <Box>
+}> = ({
+  task,
+  level,
+  isExpanded,
+  hasSubtasks,
+  onToggle,
+  duration,
+  position,
+  earliestDate,
+}) => (
+  <div>
     {/* Fila de la tarea */}
-    <Box
-      display="flex"
-      alignItems="center"
-      height="50px"
-      bgcolor={level % 2 === 0 ? "grey.100" : "grey.200"}
-      px={2}
+    <div
+      className={`flex items-center h-12 px-2 ${
+        level % 2 === 0 ? "bg-gray-100" : "bg-gray-200"
+      }`}
     >
       {/* Ícono para expandir/colapsar */}
       {hasSubtasks && (
-        <IconButton size="small" onClick={onToggle}>
+        <button
+          className="p-1 rounded hover:bg-gray-300 transition-colors"
+          onClick={onToggle}
+        >
           {isExpanded ? <ExpandLess /> : <ExpandMore />}
-        </IconButton>
+        </button>
       )}
 
       {/* Nombre de la tarea */}
-      <Box flex={2} ml={hasSubtasks ? 0 : 4} minWidth="150px">
-        <Tooltip title={task.name}>
-          <Typography variant="body1" noWrap sx={{ textOverflow: "ellipsis", overflow: "hidden" }}>
+      <div className={`flex-2 ml-${hasSubtasks ? 0 : 4} min-w-[150px]`}>
+        <div className="group relative">
+          <p className="text-sm truncate">{task.name}</p>
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute bg-black text-white text-xs p-1 rounded mt-1">
             {task.name}
-          </Typography>
-        </Tooltip>
-      </Box>
+          </div>
+        </div>
+      </div>
 
       {/* Fecha de inicio */}
-      <Box flex={1} minWidth="100px">
-        <Typography variant="body2" noWrap>
+      <div className="flex-1 min-w-[100px]">
+        <p className="text-sm truncate">
           {task.startDate.toLocaleDateString()}
-        </Typography>
-      </Box>
+        </p>
+      </div>
 
       {/* Estado */}
-      <Box flex={1} minWidth="100px">
-        <Typography variant="body2" noWrap>
+      <div className="flex-1 min-w-[100px]">
+        <p className="text-sm truncate">
           {task.progress === 100 ? "Completada" : "En progreso"}
-        </Typography>
-      </Box>
+        </p>
+      </div>
 
       {/* Barra de progreso */}
-      <Box flex={3} position="relative" height="20px" mx={2}>
-        <Box
-          bgcolor="primary.main"
-          borderRadius="4px"
-          height="100%"
-          position="absolute"
-          left={`${position * 20}px`} // Posición basada en la fecha de inicio
-          width={`${duration * 20}px`} // Ancho basado en la duración
+      <div className="flex-3 relative h-5 mx-2">
+        <div
+          className="bg-blue-500 rounded h-full absolute"
+          style={{
+            left: `${position * 20}px`, // Posición basada en la fecha de inicio
+            width: `${duration * 20}px`, // Ancho basado en la duración
+          }}
         >
           <ProgressBar progress={task.progress} />
-        </Box>
-      </Box>
-    </Box>
+        </div>
+      </div>
+    </div>
 
     {/* Subtareas (si están expandidas) */}
-    {hasSubtasks && (
-      <Collapse in={isExpanded}>
-        <Box pl={4}>
-          {task.subtasks?.map((subtask) => {
-            const subtaskDuration = calculateDuration(subtask);
-            const subtaskPosition = calculatePosition(subtask.startDate, earliestDate);
+    {hasSubtasks && isExpanded && (
+      <div className="pl-8">
+        {task.subtasks?.map((subtask) => {
+          const subtaskDuration = calculateDuration(subtask);
+          const subtaskPosition = calculatePosition(
+            subtask.startDate,
+            earliestDate
+          );
 
-            return (
-              <TaskRow
-                key={subtask.id}
-                task={subtask}
-                level={level + 1}
-                isExpanded={false} // Las subtareas no se expanden por defecto
-                hasSubtasks={!!subtask.subtasks?.length}
-                onToggle={() => {}}
-                duration={subtaskDuration}
-                position={subtaskPosition}
-                earliestDate={earliestDate} // Pasar earliestDate a las subtareas
-              />
-            );
-          })}
-        </Box>
-      </Collapse>
+          return (
+            <TaskRow
+              key={subtask.id}
+              task={subtask}
+              level={level + 1}
+              isExpanded={false} // Las subtareas no se expanden por defecto
+              hasSubtasks={!!subtask.subtasks?.length}
+              onToggle={() => {}}
+              duration={subtaskDuration}
+              position={subtaskPosition}
+              earliestDate={earliestDate} // Pasar earliestDate a las subtareas
+            />
+          );
+        })}
+      </div>
     )}
-  </Box>
+  </div>
 );
 
 const GanttChart: React.FC<GanttChartProps> = ({ tasks }) => {
@@ -142,35 +148,32 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks }) => {
   );
 
   return (
-    <Box bgcolor="background.paper" borderRadius={2} boxShadow={3} p={3}>
-      <Typography variant="h5" mb={3} color="text.primary">
+    <div className="bg-white rounded-lg shadow-lg p-6">
+      <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">
         Gantt - Registro Propiedad Intelectual
-      </Typography>
+      </h2>
 
       {/* Cabecera de la cuadrícula */}
-      <Box
-        display="flex"
-        alignItems="center"
-        height="40px"
-        bgcolor="#1F2937"
-        px={2}
-      >
-        <Box flex={2} minWidth="150px" color="white">
-          <Typography variant="subtitle1">Casos</Typography>
-        </Box>
-        <Box flex={1} minWidth="100px">
-          <Typography variant="subtitle1">Fecha Inicio</Typography>
-        </Box>
-        <Box flex={1} minWidth="100px">
-          <Typography variant="subtitle1">Estado</Typography>
-        </Box>
-        <Box flex={3} mx={2}>
-          <Typography variant="subtitle1">Progreso</Typography>
-        </Box>
-      </Box>
+      <div className="flex items-center h-18 bg-gray-800 px-2 rounded-t-lg">
+        <div className="flex-2 min-w-[290px]">
+          <p className="text-white font-semibold">Casos</p>
+        </div>
+        <div className="flex-1 min-w-[130px]">
+          <p className="text-white font-semibold">Fecha Inicio</p>
+        </div>
+        <div className="flex-1 min-w-[170px]">
+          <p className="text-white font-semibold">Fecha Finalización</p>
+        </div>
+        <div className="flex-1 min-w-[180px]">
+          <p className="text-white font-semibold">Estado de Caso</p>
+        </div>
+        <div className="flex-3 mx-2">
+          <p className="text-white font-semibold">Progreso</p>
+        </div>
+      </div>
 
       {/* Tareas */}
-      <Box>
+      <div>
         {tasks.map((task) => {
           const hasSubtasks = !!task.subtasks?.length;
           const isExpanded = expandedTasks.has(task.id);
@@ -191,8 +194,8 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks }) => {
             />
           );
         })}
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 };
 

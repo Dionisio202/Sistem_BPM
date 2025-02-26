@@ -1,228 +1,169 @@
-import { useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
+import { io } from "socket.io-client";
 import {
   MaterialReactTable,
   useMaterialReactTable,
   type MRT_ColumnDef,
 } from "material-react-table";
-import { Tarea } from "./interfaces/tableprops.interface.ts";
 import ExportCard from "./ExportCard.tsx";
 
-// Datos del JSON que recibe para la tabla
-const jsonData = {
-  NombreProceso: "Gestión de Proyectos Académicos",
-  Funcionarios: [
-    {
-      Nombre: "Jimmy",
-      Caso: [
-        {
-          NumeroCaso: "2001",
-          NombreTarea: [
-            {
-              Nombre: "Revisión de Documentos",
-              Progreso: "30%",
-              EstadoDeProceso: "Iniciado",
-              TipoProductos: "R.Obras",
-              NombreProductos: "Estudio sobre Cambio Climático",
-              NombreProyecto: "Proyecto Verde",
-              Facultad: "Ciencias Ambientales",
-              MemorandoInicial: "MI-2023-001",
-            },
-            {
-              Nombre: "Aprobación de Presupuesto",
-              Progreso: "10%",
-              EstadoDeProceso: "Pendiente",
-              TipoProductos: "R.Obras",
-              NombreProductos: "Estudio sobre Cambio Climático",
-              NombreProyecto: "Proyecto Verde",
-              Facultad: "Ciencias Ambientales",
-              MemorandoInicial: "MI-2023-001",
-            },
-            {
-              Nombre: "Entrega de Informe Final",
-              Progreso: "0%",
-              EstadoDeProceso: "No Iniciado",
-              TipoProductos: "R.Obras",
-              NombreProductos: "Estudio sobre Cambio Climático",
-              NombreProyecto: "Proyecto Verde",
-              Facultad: "Ciencias Ambientales",
-              MemorandoInicial: "MI-2023-001",
-            },
-          ],
-          FechaRegistro: "2023-01-15",
-          FechaFinalizacion: "2023-06-30",
-          ProgresoGeneral: "13%",
-          EstadoProcesoGeneral: "En Progreso",
-        },
-      ],
-    },
-    {
-      Nombre: "Ana",
-      Caso: [
-        {
-          NumeroCaso: "2002",
-          NombreTarea: [
-            {
-              Nombre: "Análisis de Datos",
-              Progreso: "50%",
-              EstadoDeProceso: "En Progreso",
-              TipoProductos: "R.Artículos",
-              NombreProductos: "Impacto del Calentamiento Global",
-              NombreProyecto: "Proyecto Azul",
-              Facultad: "Ciencias Ambientales",
-              MemorandoInicial: "MI-2023-002",
-            },
-            {
-              Nombre: "Redacción del Informe Parcial",
-              Progreso: "20%",
-              EstadoDeProceso: "Iniciado",
-              TipoProductos: "R.Artículos",
-              NombreProductos: "Impacto del Calentamiento Global",
-              NombreProyecto: "Proyecto Azul",
-              Facultad: "Ciencias Ambientales",
-              MemorandoInicial: "MI-2023-002",
-            },
-            {
-              Nombre: "Presentación de Resultados",
-              Progreso: "0%",
-              EstadoDeProceso: "No Iniciado",
-              TipoProductos: "R.Artículos",
-              NombreProductos: "Impacto del Calentamiento Global",
-              NombreProyecto: "Proyecto Azul",
-              Facultad: "Ciencias Ambientales",
-              MemorandoInicial: "MI-2023-002",
-            },
-          ],
-          FechaRegistro: "2023-02-01",
-          FechaFinalizacion: "2023-07-15",
-          ProgresoGeneral: "25%",
-          EstadoProcesoGeneral: "En Progreso",
-        },
-      ],
-    },
-  ],
-};
+// Interfaz para la respuesta del servidor
+interface SocketResponse {
+  success: boolean;
+  message: string;
+  jsonData: string; // jsonData es una cadena JSON
+}
 
-// Convertir JSON a filas para la tabla
-const data: Tarea[] = jsonData.Funcionarios.flatMap((funcionario) =>
-  funcionario.Caso.flatMap((caso) =>
-    caso.NombreTarea.map((tarea) => ({
-      NumeroCaso: caso.NumeroCaso,
-      NombreTarea: tarea.Nombre,
-      Progreso: tarea.Progreso,
-      EstadoDeProceso: tarea.EstadoDeProceso,
-      TipoProductos: tarea.TipoProductos,
-      NombreProductos: tarea.NombreProductos,
-      NombreProyecto: tarea.NombreProyecto,
-      Facultad: tarea.Facultad,
-      MemorandoInicial: tarea.MemorandoInicial,
-      FechaRegistro: caso.FechaRegistro,
-      FechaFinalizacion: caso.FechaFinalizacion,
-      ProgresoGeneral: caso.ProgresoGeneral,
-      EstadoProcesoGeneral: caso.EstadoProcesoGeneral,
-    }))
-  )
-);
+// Interfaz para un funcionario
+interface Funcionario {
+  Nombre: string;
+  Caso: Caso[];
+}
+
+// Interfaz para un caso
+interface Caso {
+  NumeroCaso: string;
+  NombreTarea?: Tarea[]; // Campo correcto según el JSON
+  FechaRegistro: string;
+  FechaFinalizacion?: string;
+  ProgresoGeneral: number;
+  EstadoProcesoGeneral: string;
+}
+
+// Interfaz para una tarea
+interface Tarea {
+  Progreso: string;
+  EstadoDeProceso: string;
+  TipoProductos: string;
+  NombreProductos: string;
+  NombreProyecto: string;
+  Facultad: string;
+  MemorandoInicial?: string;
+}
+
+// Interfaz para los datos de la tabla
+interface TablaTarea extends Tarea {
+  NumeroCaso: string; // Agregado para la tabla
+  FechaRegistro: string; // Agregado para la tabla
+  FechaFinalizacion?: string; // Agregado para la tabla
+  ProgresoGeneral: number; // Agregado para la tabla
+  EstadoProcesoGeneral: string; // Agregado para la tabla
+  NombreProceso: string; // Agregado para la tabla
+  Funcionario: string; // Agregado para la tabla
+}
 
 const Example = () => {
+  const [data, setData] = useState<TablaTarea[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const socket = io("http://localhost:3001");
+
+    // Emitir el evento 'datos_proceso' y manejar la respuesta
+    socket.emit("datos_proceso", (response: SocketResponse) => {
+      console.log("Respuesta completa del servidor:", JSON.stringify(response, null, 2));
+
+      // Validar la respuesta
+      if (response.success && response.jsonData) {
+        try {
+          // Parsear el campo jsonData a un objeto JavaScript
+          const jsonData = JSON.parse(response.jsonData);
+
+          console.log("Datos recibidos:", jsonData);
+
+          // Convertir JSON a filas para la tabla
+          const newData: TablaTarea[] = jsonData.Funcionarios.flatMap((funcionario: Funcionario) =>
+            funcionario.Caso.flatMap((caso: Caso) =>
+              caso.NombreTarea?.map((tarea: Tarea) => ({
+                NumeroCaso: caso.NumeroCaso,
+                FechaRegistro: caso.FechaRegistro,
+                FechaFinalizacion: caso.FechaFinalizacion,
+                ProgresoGeneral: caso.ProgresoGeneral,
+                EstadoProcesoGeneral: caso.EstadoProcesoGeneral,
+                NombreProceso: jsonData.NombreProceso, // Agregar Nombre de Proceso
+                Funcionario: funcionario.Nombre, // Agregar Nombre del Funcionario
+              })) || []
+            )
+          );
+
+          setData(newData);
+          setLoading(false);
+        } catch (error) {
+          console.error("Error al parsear jsonData:", error);
+          setError("Error: Datos no válidos");
+          setLoading(false);
+        }
+      } else {
+        console.error("Error: Datos no válidos");
+        setError("Error: Datos no válidos");
+        setLoading(false);
+      }
+    });
+
+    // Manejo de errores del socket
+    socket.on("connect_error", (err) => {
+      setError("Error de conexión: " + err.message);
+      setLoading(false);
+    });
+
+    // Desconectar el socket al desmontar el componente
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
+
   // Definir las columnas de la tabla
-  const columns = useMemo<MRT_ColumnDef<Tarea>[]>(
+  const columns = useMemo<MRT_ColumnDef<TablaTarea>[]>(
     () => [
-      {
-        accessorKey: "NumeroCaso",
-        header: "Número de Caso",
-        size: 100,
-      },
-      {
-        accessorKey: "NombreTarea",
-        header: "Nombre de la Tarea",
-        size: 100,
-      },
-      {
-        accessorKey: "Progreso",
-        header: "Progreso",
-        size: 100,
-      },
-      {
-        accessorKey: "EstadoDeProceso",
-        header: "Estado de Proceso",
-        size: 120,
-      },
-      {
-        accessorKey: "TipoProductos",
-        header: "Tipo de Productos",
-        size: 120,
-      },
-      {
-        accessorKey: "NombreProductos",
-        header: "Nombre de Productos",
-        size: 150,
-      },
-      {
-        accessorKey: "NombreProyecto",
-        header: "Nombre del Proyecto",
-        size: 150,
-      },
-      {
-        accessorKey: "Facultad",
-        header: "Facultad",
-        size: 120,
-      },
-      {
-        accessorKey: "MemorandoInicial",
-        header: "Memorando Inicial",
-        size: 120,
-      },
-      {
-        accessorKey: "FechaRegistro",
-        header: "Fecha de Registro",
-        size: 120,
-      },
-      {
-        accessorKey: "FechaFinalizacion",
-        header: "Fecha de Finalización",
-        size: 120,
-      },
-      {
-        accessorKey: "ProgresoGeneral",
-        header: "Progreso General",
-        size: 100,
-      },
-      {
-        accessorKey: "EstadoProcesoGeneral",
-        header: "Estado General",
-        size: 120,
-      },
+      { accessorKey: "NombreProceso", header: "Nombre de Proceso", size: 150 },
+      { accessorKey: "Funcionario", header: "Funcionario", size: 150 },
+      { accessorKey: "NumeroCaso", header: "Número de Caso", size: 100 },
+      { accessorKey: "Progreso", header: "Progreso", size: 100 },
+      { accessorKey: "EstadoDeProceso", header: "Estado de Proceso", size: 120 },
+      { accessorKey: "TipoProductos", header: "Tipo de Productos", size: 120 },
+      { accessorKey: "NombreProductos", header: "Nombre de Productos", size: 150 },
+      { accessorKey: "NombreProyecto", header: "Nombre del Proyecto", size: 150 },
+      { accessorKey: "Facultad", header: "Facultad", size: 120 },
+      { accessorKey: "MemorandoInicial", header: "Memorando Inicial", size: 120 },
+      { accessorKey: "FechaRegistro", header: "Fecha de Registro", size: 120 },
+      { accessorKey: "FechaFinalizacion", header: "Fecha de Finalización", size: 120 },
+      { accessorKey: "ProgresoGeneral", header: "Progreso General", size: 100 },
+      { accessorKey: "EstadoProcesoGeneral", header: "Estado General", size: 120 },
     ],
     []
   );
+
   const table = useMaterialReactTable({
     columns,
     data,
-    // Personalizar el encabezado
     muiTableHeadCellProps: {
       style: {
-        backgroundColor: "#1F2937", // Color de fondo del encabezado
-        color: "#ffffff", // Color del texto del encabezado
+        backgroundColor: "#1F2937",
+        color: "#ffffff",
       },
     },
-    // Personalizar la paginación
     muiPaginationProps: {
       style: {
-        backgroundColor: "#1F2937", // Color de fondo de la paginación
+        backgroundColor: "#1F2937",
         color: "#ffffff",
       },
     },
     muiFilterTextFieldProps: {
       style: {
-        backgroundColor: "#1F2937", // Color de fondo de los filtros
-        color: "#ffffff", // Color del texto de los filtros
+        backgroundColor: "#1F2937",
+        color: "#ffffff",
       },
     },
   });
-  // Obtener los datos filtrados
-  const filteredData = table
-    .getFilteredRowModel()
-    .rows.map((row) => row.original);
+
+  const filteredData = useMemo(
+    () => table.getFilteredRowModel().rows.map((row) => row.original),
+    [table]
+  );
+
+  if (loading) return <div>Cargando...</div>;
+  if (error) return <div>Error: {error}</div>;
 
   return (
     <div>
