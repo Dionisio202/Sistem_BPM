@@ -58,14 +58,14 @@ export default function ConfirmationScreen() {
         const data: temporalData = {
           id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
           id_tarea: parseInt(bonitaData.taskId),
-          jsonData: JSON.stringify("No Form Data"),
+          jsonData: JSON.stringify(selectedDocuments),
           id_funcionario: parseInt(usuario.user_id),
           nombre_tarea: tareaActual?.name || "",
         };
         setJson(data);
         startAutoSave(data, 10000, "En Proceso");
       }
-    }, [bonitaData, usuario, startAutoSave]);
+    }, [bonitaData, usuario, startAutoSave, selectedDocuments, tareaActual]);
 
     useEffect(() => {
       if (bonitaData) {
