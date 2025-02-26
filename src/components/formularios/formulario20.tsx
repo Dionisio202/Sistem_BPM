@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import CardContainer from "./components/CardContainer";
 import Checkbox from "./components/Checkbox"; // Importamos el componente Checkbox
 // @ts-ignore
-import BonitaUtilities  from "../bonita/bonita-utilities";
+import BonitaUtilities from "../bonita/bonita-utilities";
 
 import { useSaveTempState } from "../bonita/hooks/datos_temprales";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
@@ -34,8 +34,12 @@ export default function ConfirmationScreen() {
 
   const bonita: BonitaUtilities = new BonitaUtilities();
   // @ts-ignore
-  const { obtenerUsuarioAutenticado, obtenerDatosBonita, error, obtenerTareaActual } =
-    useBonitaService();
+  const {
+    obtenerUsuarioAutenticado,
+    obtenerDatosBonita,
+    error,
+    obtenerTareaActual,
+  } = useBonitaService();
   const handleChange = (name: string, checked: boolean) => {
     setSelectedDocuments((prevState) => ({
       ...prevState,
@@ -46,12 +50,11 @@ export default function ConfirmationScreen() {
   // 🔹 Obtener el usuario autenticado al montar el componente
   useEffect(() => {
     const fetchUser = async () => {
-      const userData = await obtenerUsuarioAutenticado();
-      setUsuario(usuario);
-      if (usuario) {
-        setUsuario(userData);
-        const tareaData = await obtenerTareaActual(usuario.user_id);
-        setTareaActual(tareaData);
+      try {
+        const userData = await obtenerUsuarioAutenticado();
+        if (userData) setUsuario(userData);
+      } catch (error) {
+        console.error("❌ Error obteniendo usuario autenticado:", error);
       }
     };
     fetchUser();
@@ -64,7 +67,11 @@ export default function ConfirmationScreen() {
       socket.emit(
         "obtener_estado_temporal",
         { id_registro, id_tarea },
-        (response: { success: boolean; message: string; jsonData?: string }) => {
+        (response: {
+          success: boolean;
+          message: string;
+          jsonData?: string;
+        }) => {
           if (response.success && response.jsonData) {
             try {
               const loadedState = JSON.parse(response.jsonData);
@@ -73,7 +80,10 @@ export default function ConfirmationScreen() {
               console.error("Error al parsear el JSON:", err);
             }
           } else {
-            console.error("Error al obtener el estado temporal:", response.message);
+            console.error(
+              "Error al obtener el estado temporal:",
+              response.message
+            );
           }
         }
       );
@@ -100,17 +110,17 @@ export default function ConfirmationScreen() {
   // 🔹 Iniciar el guardado automático ("En Proceso")
   useEffect(() => {
     if (bonitaData && usuario) {
-          if (bonitaData && usuario) {
-            const data: temporalData = {
-              id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
-              id_tarea: parseInt(bonitaData.taskId),
-              jsonData: JSON.stringify(selectedDocuments),
-              id_funcionario: parseInt(usuario.user_id),
-              nombre_tarea: tareaActual?.name || "",
-            };
-            setJson(data);
-            startAutoSave(data, 10000, "En Proceso");
-          }
+      if (bonitaData && usuario) {
+        const data: temporalData = {
+          id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
+          id_tarea: parseInt(bonitaData.taskId),
+          jsonData: JSON.stringify(selectedDocuments),
+          id_funcionario: parseInt(usuario.user_id),
+          nombre_tarea: tareaActual?.name || "",
+        };
+        setJson(data);
+        startAutoSave(data, 10000, "En Proceso");
+      }
     }
   }, [bonitaData, usuario, startAutoSave, selectedDocuments, tareaActual]);
 
@@ -138,10 +148,7 @@ export default function ConfirmationScreen() {
 
   return (
     <CardContainer title="Certificado/Título de Registro">
-       <Title
-        text="Autorización de Entrega"
-        className="text-center mb-6"
-      />
+      <Title text="Autorización de Entrega" className="text-center mb-6" />
       <form onSubmit={handleSubmit} className="flex flex-col space-y-4">
         <p className="text-lg">Confirmación de entrega de certificado:</p>
 

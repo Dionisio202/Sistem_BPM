@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import CardContainer from "./components/CardContainer";
 import Checkbox from "./components/Checkbox"; // Importamos el componente Checkbox
 // @ts-ignore
-import BonitaUtilities  from "../bonita/bonita-utilities";
+import BonitaUtilities from "../bonita/bonita-utilities";
 import { useSaveTempState } from "../bonita/hooks/datos_temprales";
 import { useBonitaService } from "../../services/bonita.service";
 import io from "socket.io-client";
@@ -33,8 +33,12 @@ export default function ConfirmationScreen() {
 
   const bonita: BonitaUtilities = new BonitaUtilities();
   // @ts-ignore
-  const { obtenerUsuarioAutenticado, obtenerDatosBonita, error,obtenerTareaActual } =
-    useBonitaService();
+  const {
+    obtenerUsuarioAutenticado,
+    obtenerDatosBonita,
+    error,
+    obtenerTareaActual,
+  } = useBonitaService();
 
   const handleChange = (name: string, checked: boolean) => {
     setSelectedDocuments((prevState) => ({
@@ -46,12 +50,11 @@ export default function ConfirmationScreen() {
   // 🔹 Obtener el usuario autenticado al montar el componente
   useEffect(() => {
     const fetchUser = async () => {
-      const userData = await obtenerUsuarioAutenticado();
-      setUsuario(usuario);
-      if (usuario) {
-        setUsuario(userData);
-        const tareaData = await obtenerTareaActual(usuario.user_id);
-        setTareaActual(tareaData);
+      try {
+        const userData = await obtenerUsuarioAutenticado();
+        if (userData) setUsuario(userData);
+      } catch (error) {
+        console.error("❌ Error obteniendo usuario autenticado:", error);
       }
     };
     fetchUser();
@@ -65,7 +68,11 @@ export default function ConfirmationScreen() {
       socket.emit(
         "obtener_estado_temporal",
         { id_registro, id_tarea },
-        (response: { success: boolean; message: string; jsonData?: string }) => {
+        (response: {
+          success: boolean;
+          message: string;
+          jsonData?: string;
+        }) => {
           if (response.success && response.jsonData) {
             try {
               const loadedState = JSON.parse(response.jsonData);
@@ -74,7 +81,10 @@ export default function ConfirmationScreen() {
               console.error("Error al parsear el JSON:", err);
             }
           } else {
-            console.error("Error al obtener el estado temporal:", response.message);
+            console.error(
+              "Error al obtener el estado temporal:",
+              response.message
+            );
           }
         }
       );

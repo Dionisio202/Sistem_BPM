@@ -30,8 +30,12 @@ export default function ConfirmationScreen() {
   const [tareaActual, setTareaActual] = useState<Tarea | null>(null);
   const [json, setJson] = useState<temporalData | null>(null);
   // @ts-ignore
-  const { obtenerUsuarioAutenticado, obtenerDatosBonita, error, obtenerTareaActual } =
-    useBonitaService();
+  const {
+    obtenerUsuarioAutenticado,
+    obtenerDatosBonita,
+    error,
+    obtenerTareaActual,
+  } = useBonitaService();
   const urlSave = `${SERVER_BACK_URL}/api/save-document`;
   const [codigo, setCodigo] = useState(""); // Código del comprobante
   const [, setCodigoGuardado] = useState<string | null>(null);
@@ -52,10 +56,10 @@ export default function ConfirmationScreen() {
     processName: string;
   } | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-    const { startAutoSave, stopAutoSave, saveFinalState } = useSaveTempState(
-      socket,
-      { intervalRef }
-    );
+  const { startAutoSave, stopAutoSave, saveFinalState } = useSaveTempState(
+    socket,
+    { intervalRef }
+  );
 
   // 🔹 Obtener el usuario autenticado
   useEffect(() => {
@@ -73,19 +77,16 @@ export default function ConfirmationScreen() {
 
   // 🔹 Obtener datos de Bonita cuando ya se tenga el usuario
   useEffect(() => {
-    if (!usuario) return;
-    const fetchData = async () => {
+    const fetchUser = async () => {
       try {
-        const data = await obtenerDatosBonita(usuario.user_id);
-        if (data) {
-          setBonitaData(data);
-        }
+        const userData = await obtenerUsuarioAutenticado();
+        if (userData) setUsuario(userData);
       } catch (error) {
-        console.error("❌ Error obteniendo datos de Bonita:", error);
+        console.error("❌ Error obteniendo usuario autenticado:", error);
       }
     };
-    fetchData();
-  }, [usuario, obtenerDatosBonita]);
+    fetchUser();
+  }, [obtenerUsuarioAutenticado]);
 
   // 🔹 Emitir el evento socket para obtener el código de almacenamiento cuando la data de Bonita esté disponible
   useEffect(() => {
@@ -162,14 +163,14 @@ export default function ConfirmationScreen() {
 
           {/* Sección para el EmailInput */}
           <div className="flex-1 w-full h-full">
-              <EmailInput
-             json={json}
-             socket={socket}
-             stopAutoSave={stopAutoSave}
-             saveFinalState={saveFinalState}
-             attachments={[selectedDocument.nombre]}  // Archivos a enviar (dinámico)
-             docBasePath={"/app/documents"}            // Ruta base (dinámica)
-           />
+            <EmailInput
+              json={json}
+              socket={socket}
+              stopAutoSave={stopAutoSave}
+              saveFinalState={saveFinalState}
+              attachments={[selectedDocument.nombre]} // Archivos a enviar (dinámico)
+              docBasePath={"/app/documents"} // Ruta base (dinámica)
+            />
           </div>
 
           {/* Botón Siguiente */}

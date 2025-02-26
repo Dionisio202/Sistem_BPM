@@ -40,8 +40,13 @@ export default function DocumentForm() {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [bonitaData, setBonitaData] = useState<BonitaData | null>(null);
   const bonita = new BonitaUtilities();
-  const { obtenerUsuarioAutenticado, obtenerDatosBonita, error, obtenerTareaActual } = useBonitaService();
-// @ts-ignore
+  const {
+    obtenerUsuarioAutenticado,
+    obtenerDatosBonita,
+    error,
+    obtenerTareaActual,
+  } = useBonitaService();
+  // @ts-ignore
 
   // Estados para manejo de carga y error en la subida del archivo
   const [loading, setLoading] = useState(false);
@@ -49,12 +54,11 @@ export default function DocumentForm() {
 
   useEffect(() => {
     const fetchUser = async () => {
-      const userData = await obtenerUsuarioAutenticado();
-      setUsuario(usuario);
-      if (usuario) {
-        setUsuario(userData);
-        const tareaData = await obtenerTareaActual(usuario.user_id);
-        setTareaActual(tareaData);
+      try {
+        const userData = await obtenerUsuarioAutenticado();
+        if (userData) setUsuario(userData);
+      } catch (error) {
+        console.error("❌ Error obteniendo usuario autenticado:", error);
       }
     };
     fetchUser();
@@ -67,7 +71,11 @@ export default function DocumentForm() {
       socket.emit(
         "obtener_estado_temporal",
         { id_registro, id_tarea },
-        (response: { success: boolean; message: string; jsonData?: string }) => {
+        (response: {
+          success: boolean;
+          message: string;
+          jsonData?: string;
+        }) => {
           if (response.success && response.jsonData) {
             try {
               const loadedState = JSON.parse(response.jsonData);
@@ -76,7 +84,10 @@ export default function DocumentForm() {
               console.error("Error al parsear el JSON:", err);
             }
           } else {
-            console.error("Error al obtener el estado temporal:", response.message);
+            console.error(
+              "Error al obtener el estado temporal:",
+              response.message
+            );
           }
         }
       );
@@ -98,13 +109,13 @@ export default function DocumentForm() {
 
   useEffect(() => {
     if (bonitaData && usuario) {
-            const data: temporalData = {
-              id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
-              id_tarea: parseInt(bonitaData.taskId),
-              jsonData: JSON.stringify(selectedDocuments),
-              id_funcionario: parseInt(usuario.user_id),
-              nombre_tarea: tareaActual?.name || "",
-            };
+      const data: temporalData = {
+        id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
+        id_tarea: parseInt(bonitaData.taskId),
+        jsonData: JSON.stringify(selectedDocuments),
+        id_funcionario: parseInt(usuario.user_id),
+        nombre_tarea: tareaActual?.name || "",
+      };
       setJson(data);
       startAutoSave(data, 10000, "En Proceso");
     }
@@ -132,17 +143,26 @@ export default function DocumentForm() {
         reader.onerror = (error) => reject(error);
       });
       // Emitir el evento "subir_documento" mediante Socket.io para obtener el código
-      socket.emit("subir_documento", { documento: memoBase64 }, (response: any) => {
-        if (response.success) {
-          setMemoCode(response.codigo);
-        } else {
-          console.error("Error al obtener el código del memorando:", response.message);
-          setUploadError("Error al obtener el código del memorando.");
+      socket.emit(
+        "subir_documento",
+        { documento: memoBase64 },
+        (response: any) => {
+          if (response.success) {
+            setMemoCode(response.codigo);
+          } else {
+            console.error(
+              "Error al obtener el código del memorando:",
+              response.message
+            );
+            setUploadError("Error al obtener el código del memorando.");
+          }
         }
-      });
+      );
     } catch (error) {
       console.error("Error al subir archivo del memorando:", error);
-      setUploadError("Error al subir el archivo del memorando. Intente nuevamente.");
+      setUploadError(
+        "Error al subir el archivo del memorando. Intente nuevamente."
+      );
     } finally {
       setLoading(false);
     }
@@ -188,7 +208,10 @@ export default function DocumentForm() {
 
   return (
     <CardContainer title="Expediente de Entrega">
-      <Title text="Oficio de entrega y Expediente" className="text-center mb-1" />
+      <Title
+        text="Oficio de entrega y Expediente"
+        className="text-center mb-1"
+      />
       <form onSubmit={handleSubmit} className="flex flex-col space-y-4">
         {/* Componente para subir el archivo del memorando */}
         <div className="flex flex-col">
@@ -262,7 +285,8 @@ export default function DocumentForm() {
         </button>
         {usuario && (
           <p className="text-center text-gray-700 mt-2">
-            Usuario autenticado: <b>{usuario.user_name}</b> (ID: {usuario.user_id})
+            Usuario autenticado: <b>{usuario.user_name}</b> (ID:{" "}
+            {usuario.user_id})
           </p>
         )}
         {error && <p className="text-red-500 text-center">{error}</p>}

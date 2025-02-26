@@ -22,14 +22,15 @@ export default function MemoCodeForm() {
   const bonita: BonitaUtilities = new BonitaUtilities();
   const id_tipo_documento = 3; // Valor de ejemplo, reemplazar según corresponda
   const [json, setJson] = useState<temporalData | null>(null);
-    const [tareaActual, setTareaActual] = useState<Tarea | null>(null);
+  const [tareaActual, setTareaActual] = useState<Tarea | null>(null);
 
   // @ts-ignore
   const {
     obtenerUsuarioAutenticado,
     obtenerDatosBonita,
     // @ts-ignore
-    error: errorService, obtenerTareaActual
+    error: errorService,
+    obtenerTareaActual,
   } = useBonitaService();
   const [usuario, setUsuario] = useState<{
     user_id: string;
@@ -45,11 +46,11 @@ export default function MemoCodeForm() {
   // Obtener usuario autenticado
   useEffect(() => {
     const fetchUser = async () => {
-      const userData = await obtenerUsuarioAutenticado();
-      if (usuario) {
-        setUsuario(userData);
-        const tareaData = await obtenerTareaActual(usuario.user_id);
-        setTareaActual(tareaData);
+      try {
+        const userData = await obtenerUsuarioAutenticado();
+        if (userData) setUsuario(userData);
+      } catch (error) {
+        console.error("❌ Error obteniendo usuario autenticado:", error);
       }
     };
     fetchUser();
@@ -73,7 +74,9 @@ export default function MemoCodeForm() {
 
   //Autorguardado
   useEffect(() => {
+    console.log("Precondicion del guardado", bonitaData);
     if (bonitaData && usuario) {
+      console.log("Inicia el guardado", bonitaData);
       const data: temporalData = {
         id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
         id_tarea: parseInt(bonitaData.taskId),
@@ -84,7 +87,7 @@ export default function MemoCodeForm() {
       setJson(data);
       startAutoSave(data, 10000, "En Proceso");
     }
-  }, [bonitaData, usuario, startAutoSave, tareaActual]);
+  }, [bonitaData, usuario, startAutoSave]);
 
   // Función para manejar la carga del archivo del memorando y obtener el código mediante Socket.io
   const handleMemoFileChange = useCallback(

@@ -16,7 +16,8 @@ const socket = io(SERVER_BACK_URL);
 export default function ConfirmationScreen() {
   const { startAutoSave, saveFinalState } = useSaveTempState(socket);
   const [tareaActual, setTareaActual] = useState<Tarea | null>(null);
-  const { obtenerUsuarioAutenticado, obtenerDatosBonita, obtenerTareaActual } = useBonitaService();
+  const { obtenerUsuarioAutenticado, obtenerDatosBonita, obtenerTareaActual } =
+    useBonitaService();
   const [json, setJson] = useState<temporalData | null>(null);
 
   const [file, setFile] = useState<File | null>(null);
@@ -50,12 +51,11 @@ export default function ConfirmationScreen() {
   } | null>(null);
   useEffect(() => {
     const fetchUser = async () => {
-      const userData = await obtenerUsuarioAutenticado();
-      setUsuario(usuario);
-      if (usuario) {
-        setUsuario(userData);
-        const tareaData = await obtenerTareaActual(usuario.user_id);
-        setTareaActual(tareaData);
+      try {
+        const userData = await obtenerUsuarioAutenticado();
+        if (userData) setUsuario(userData);
+      } catch (error) {
+        console.error("❌ Error obteniendo usuario autenticado:", error);
       }
     };
     fetchUser();

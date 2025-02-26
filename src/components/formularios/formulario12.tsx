@@ -28,18 +28,28 @@ const staticDocuments: Record<string, DocumentType> = {
 
 export default function WebPage() {
   const [tareaActual, setTareaActual] = useState<Tarea | null>(null);
-    const { startAutoSave, saveFinalState } = useSaveTempState(socket);
-      const [json, setJson] = useState<temporalData | null>(null);
+  const { startAutoSave, saveFinalState } = useSaveTempState(socket);
+  const [json, setJson] = useState<temporalData | null>(null);
   // @ts-ignore
-  const { obtenerUsuarioAutenticado, obtenerDatosBonita, error, obtenerTareaActual } = useBonitaService();
+  const {
+    obtenerUsuarioAutenticado,
+    obtenerDatosBonita,
+    error,
+    obtenerTareaActual,
+  } = useBonitaService();
   const urlSave = `${SERVER_BACK_URL}/api/save-document`;
   const [codigo, setCodigo] = useState(""); // Código del memorando
   const [codigoGuardado, setCodigoGuardado] = useState<string | null>(null);
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
   const bonita: BonitaUtilities = new BonitaUtilities();
   const [codigoalmacenamiento, setCodigoAlmacenamiento] = useState<string>("");
-  const [selectedDocument, setSelectedDocument] = useState<DocumentType>(staticDocuments.datos);
-  const [usuario, setUsuario] = useState<{ user_id: string; user_name: string } | null>(null);
+  const [selectedDocument, setSelectedDocument] = useState<DocumentType>(
+    staticDocuments.datos
+  );
+  const [usuario, setUsuario] = useState<{
+    user_id: string;
+    user_name: string;
+  } | null>(null);
   const [bonitaData, setBonitaData] = useState<{
     processId: string;
     taskId: string;
@@ -54,13 +64,12 @@ export default function WebPage() {
   // Obtener el usuario autenticado
   useEffect(() => {
     const fetchUser = async () => {
-      const userData = await obtenerUsuarioAutenticado();
-        setUsuario(userData);
-        if (usuario) {
-          setUsuario(userData);
-          const tareaData = await obtenerTareaActual(usuario.user_id);
-          setTareaActual(tareaData);
-        }
+      try {
+        const userData = await obtenerUsuarioAutenticado();
+        if (userData) setUsuario(userData);
+      } catch (error) {
+        console.error("❌ Error obteniendo usuario autenticado:", error);
+      }
     };
     fetchUser();
   }, [obtenerUsuarioAutenticado]);
@@ -86,7 +95,10 @@ export default function WebPage() {
     if (bonitaData) {
       socket.emit(
         "obtener_codigo_almacenamiento",
-        { id_registro: `${bonitaData.processId}-${bonitaData.caseId}`, id_tipo_documento: 6 },
+        {
+          id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
+          id_tipo_documento: 6,
+        },
         (response: any) => {
           if (response.success) {
             console.log("Dato recibido:", response.jsonData);
@@ -107,19 +119,19 @@ export default function WebPage() {
     };
   }, [bonitaData]);
 
-    useEffect(() => {
-      if (bonitaData && usuario) {
-        const data: temporalData = {
-          id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
-          id_tarea: parseInt(bonitaData.taskId),
-          jsonData: JSON.stringify("No Form Data"),
-          id_funcionario: parseInt(usuario.user_id),
-          nombre_tarea: tareaActual?.name || "",
-        };
-        setJson(data);
-        startAutoSave(data, 10000, "En Proceso");
-      }
-    }, [bonitaData, usuario, startAutoSave, tareaActual]);
+  useEffect(() => {
+    if (bonitaData && usuario) {
+      const data: temporalData = {
+        id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
+        id_tarea: parseInt(bonitaData.taskId),
+        jsonData: JSON.stringify("No Form Data"),
+        id_funcionario: parseInt(usuario.user_id),
+        nombre_tarea: tareaActual?.name || "",
+      };
+      setJson(data);
+      startAutoSave(data, 10000, "En Proceso");
+    }
+  }, [bonitaData, usuario, startAutoSave, tareaActual]);
 
   // Función para subir el archivo del memorando y obtener el código mediante Socket.io
   const handleFileUpload = useCallback(async (file: File | null) => {
@@ -138,13 +150,20 @@ export default function WebPage() {
       });
 
       // Emitir el evento "subir_documento" a través del socket para obtener el código del memorando
-      socket.emit("subir_documento", { documento: memoBase64 }, (response: any) => {
-        if (response.success) {
-          setCodigo(response.codigo);
-        } else {
-          console.error("Error al obtener el código del memorando:", response.message);
+      socket.emit(
+        "subir_documento",
+        { documento: memoBase64 },
+        (response: any) => {
+          if (response.success) {
+            setCodigo(response.codigo);
+          } else {
+            console.error(
+              "Error al obtener el código del memorando:",
+              response.message
+            );
+          }
         }
-      });
+      );
     } catch (err) {
       console.error("Error al procesar el archivo:", err);
     }
@@ -198,7 +217,10 @@ export default function WebPage() {
 
       {/* Sección para el código del memorando */}
       <div className="w-full max-w-md">
-        <label htmlFor="codigo" className="block text-gray-700 font-medium mb-2">
+        <label
+          htmlFor="codigo"
+          className="block text-gray-700 font-medium mb-2"
+        >
           Ingrese el código del Memorando emitido a Vicerrectorado
         </label>
         <input
@@ -212,7 +234,10 @@ export default function WebPage() {
 
         {/* Componente para subir el archivo del memorando */}
         <div className="mb-4">
-          <label htmlFor="memoFile" className="block text-gray-700 font-medium mb-2">
+          <label
+            htmlFor="memoFile"
+            className="block text-gray-700 font-medium mb-2"
+          >
             O suba el archivo del Memorando para obtener el código
           </label>
           <UploadFile
@@ -232,12 +257,16 @@ export default function WebPage() {
 
       {/* Mostrar el código guardado si existe */}
       {codigoGuardado && (
-        <p className="mt-4 text-black font-medium">Código guardado: {codigoGuardado}</p>
+        <p className="mt-4 text-black font-medium">
+          Código guardado: {codigoGuardado}
+        </p>
       )}
 
       {/* Mostrar mensaje de alerta */}
       {alertMessage && (
-        <div className="mt-4 p-2 bg-yellow-200 text-black rounded">{alertMessage}</div>
+        <div className="mt-4 p-2 bg-yellow-200 text-black rounded">
+          {alertMessage}
+        </div>
       )}
     </div>
   );

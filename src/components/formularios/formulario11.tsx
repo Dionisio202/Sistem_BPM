@@ -13,7 +13,7 @@ import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { Tarea } from "../../interfaces/bonita.interface.ts";
 const socket = io(SERVER_BACK_URL);
 const Formulario11: React.FC = () => {
-    const [tareaActual, setTareaActual] = useState<Tarea | null>(null);
+  const [tareaActual, setTareaActual] = useState<Tarea | null>(null);
   const { startAutoSave, saveFinalState } = useSaveTempState(socket);
   const { obtenerDatosBonita, obtenerUsuarioAutenticado, obtenerTareaActual } =
     useBonitaService();
@@ -38,16 +38,15 @@ const Formulario11: React.FC = () => {
   } | null>(null);
   useEffect(() => {
     const fetchUser = async () => {
-      const userData = await obtenerUsuarioAutenticado();
-      setUsuario(userData);
-      if (usuario) {
-        setUsuario(userData);
-        const tareaData = await obtenerTareaActual(usuario.user_id);
-        setTareaActual(tareaData);
+      try {
+        const userData = await obtenerUsuarioAutenticado();
+        if (userData) setUsuario(userData);
+      } catch (error) {
+        console.error("❌ Error obteniendo usuario autenticado:", error);
       }
     };
     fetchUser();
-  }, []);
+  }, [obtenerUsuarioAutenticado]);
   useEffect(() => {
     if (!usuario) return;
     const fetchData = async () => {

@@ -1,7 +1,7 @@
 import { useState, useEffect, ChangeEvent } from "react";
 import CardContainer from "./components/CardContainer";
 // @ts-ignore
-import BonitaUtilities  from "../bonita/bonita-utilities";
+import BonitaUtilities from "../bonita/bonita-utilities";
 import Title from "./components/TitleProps";
 import io from "socket.io-client";
 import { useBonitaService } from "../../services/bonita.service";
@@ -12,14 +12,17 @@ import { temporalData } from "../../interfaces/actividad.interface.ts";
 const socket = io(SERVER_BACK_URL);
 
 export default function ConfirmationScreen() {
-    const [tareaActual, setTareaActual] = useState<Tarea | null>(null);
+  const [tareaActual, setTareaActual] = useState<Tarea | null>(null);
   const { startAutoSave, saveFinalState } = useSaveTempState(socket);
   const [selectedDocuments, setSelectedDocuments] = useState({
     contrato: false,
     acta: false,
   });
   const [json, setJson] = useState<temporalData | null>(null);
-  const [usuario, setUsuario] = useState<{ user_id: string; user_name: string } | null>(null);
+  const [usuario, setUsuario] = useState<{
+    user_id: string;
+    user_name: string;
+  } | null>(null);
   const [bonitaData, setBonitaData] = useState<{
     processId: string;
     taskId: string;
@@ -28,7 +31,12 @@ export default function ConfirmationScreen() {
   } | null>(null);
 
   const bonita: BonitaUtilities = new BonitaUtilities();
-  const { obtenerUsuarioAutenticado, obtenerDatosBonita, error, obtenerTareaActual } = useBonitaService();
+  const {
+    obtenerUsuarioAutenticado,
+    obtenerDatosBonita,
+    error,
+    obtenerTareaActual,
+  } = useBonitaService();
 
   // 🔹 Manejo de cambios en los checkboxes
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -42,54 +50,60 @@ export default function ConfirmationScreen() {
   // 🔹 Obtener el usuario autenticado al montar el componente
   useEffect(() => {
     const fetchUser = async () => {
-      const userData = await obtenerUsuarioAutenticado();
-      setUsuario(usuario);
-      if (usuario) {
-        setUsuario(userData);
-        const tareaData = await obtenerTareaActual(usuario.user_id);
-        setTareaActual(tareaData);
+      try {
+        const userData = await obtenerUsuarioAutenticado();
+        if (userData) setUsuario(userData);
+      } catch (error) {
+        console.error("❌ Error obteniendo usuario autenticado:", error);
       }
     };
     fetchUser();
   }, [obtenerUsuarioAutenticado]);
 
-    useEffect(() => {
-      if (bonitaData && usuario) {
-        const data: temporalData = {
-          id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
-          id_tarea: parseInt(bonitaData.taskId),
-          jsonData: JSON.stringify(selectedDocuments),
-          id_funcionario: parseInt(usuario.user_id),
-          nombre_tarea: tareaActual?.name || "",
-        };
-        setJson(data);
-        startAutoSave(data, 10000, "En Proceso");
-      }
-    }, [bonitaData, usuario, startAutoSave, selectedDocuments, tareaActual]);
+  useEffect(() => {
+    if (bonitaData && usuario) {
+      const data: temporalData = {
+        id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
+        id_tarea: parseInt(bonitaData.taskId),
+        jsonData: JSON.stringify(selectedDocuments),
+        id_funcionario: parseInt(usuario.user_id),
+        nombre_tarea: tareaActual?.name || "",
+      };
+      setJson(data);
+      startAutoSave(data, 10000, "En Proceso");
+    }
+  }, [bonitaData, usuario, startAutoSave, selectedDocuments, tareaActual]);
 
-    useEffect(() => {
-      if (bonitaData) {
-        const id_registro = `${bonitaData.processId}-${bonitaData.caseId}`;
-        const id_tarea = bonitaData.taskId; // o parsearlo si es necesario
-  
-        socket.emit(
-          "obtener_estado_temporal",
-          { id_registro, id_tarea },
-          (response: { success: boolean; message: string; jsonData?: string }) => {
-            if (response.success && response.jsonData) {
-              try {
-                const loadedState = JSON.parse(response.jsonData);
-                setSelectedDocuments(loadedState);
-              } catch (err) {
-                console.error("Error al parsear el JSON:", err);
-              }
-            } else {
-              console.error("Error al obtener el estado temporal:", response.message);
+  useEffect(() => {
+    if (bonitaData) {
+      const id_registro = `${bonitaData.processId}-${bonitaData.caseId}`;
+      const id_tarea = bonitaData.taskId; // o parsearlo si es necesario
+
+      socket.emit(
+        "obtener_estado_temporal",
+        { id_registro, id_tarea },
+        (response: {
+          success: boolean;
+          message: string;
+          jsonData?: string;
+        }) => {
+          if (response.success && response.jsonData) {
+            try {
+              const loadedState = JSON.parse(response.jsonData);
+              setSelectedDocuments(loadedState);
+            } catch (err) {
+              console.error("Error al parsear el JSON:", err);
             }
+          } else {
+            console.error(
+              "Error al obtener el estado temporal:",
+              response.message
+            );
           }
-        );
-      }
-    }, [bonitaData]);
+        }
+      );
+    }
+  }, [bonitaData]);
 
   // 🔹 Obtener datos de Bonita una vez que se tenga el usuario
   useEffect(() => {
@@ -177,7 +191,8 @@ export default function ConfirmationScreen() {
 
         {usuario && (
           <p className="text-center text-gray-700 mt-2">
-            Usuario autenticado: <b>{usuario.user_name}</b> (ID: {usuario.user_id})
+            Usuario autenticado: <b>{usuario.user_name}</b> (ID:{" "}
+            {usuario.user_id})
           </p>
         )}
 
