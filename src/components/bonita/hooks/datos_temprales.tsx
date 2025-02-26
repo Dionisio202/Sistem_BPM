@@ -13,9 +13,15 @@ interface SaveTempStateResponse {
   success: boolean;
   message: string;
 }
+interface SaveTempStateOptions {
+  intervalRef?: React.MutableRefObject<NodeJS.Timeout | null>;
+}
 
-export const useSaveTempState = (socket: Socket) => {
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+export const useSaveTempState = (
+  socket: Socket,
+  options?: SaveTempStateOptions
+) => {
+  const intervalRef = options?.intervalRef || useRef<NodeJS.Timeout | null>(null);
 
   const saveTempState = useCallback(
     (data: SaveTempStateData): Promise<SaveTempStateResponse> => {

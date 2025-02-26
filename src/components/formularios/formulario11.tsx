@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import CardContainer from "./components/CardContainer";
+import io from "socket.io-client";
 import UploadFile from "./components/UploadFile";
 // @ts-ignore
 import BonitaUtilities from "../bonita/bonita-utilities";
@@ -7,12 +8,19 @@ import Button from "../UI/button";
 import Title from "./components/TitleProps";
 import { SERVER_BACK_URL } from "../../config.ts";
 import { useBonitaService } from "../../services/bonita.service";
-
+import { useSaveTempState } from "../bonita/hooks/datos_temprales";
+import { temporalData } from "../../interfaces/actividad.interface.ts";
+import { Tarea } from "../../interfaces/bonita.interface.ts";
+const socket = io(SERVER_BACK_URL);
 const Formulario11: React.FC = () => {
-  const { obtenerUsuarioAutenticado, obtenerDatosBonita } = useBonitaService();
+  const [tareaActual, setTareaActual] = useState<Tarea | null>(null);
+  const { startAutoSave, saveFinalState } = useSaveTempState(socket);
+  const { obtenerDatosBonita, obtenerUsuarioAutenticado, obtenerTareaActual } =
+    useBonitaService();
   const [file, setFile] = useState<File | null>(null);
   const bonita: BonitaUtilities = new BonitaUtilities();
   const [notificaciones, setNotificaciones] = useState<string[]>([]);
+  const [json, setJson] = useState<temporalData | null>(null);
 
   // @ts-ignore
   const [isSubmitted, setIsSubmitted] = useState(false); // Nuevo estado para controlar el envío
@@ -28,30 +36,58 @@ const Formulario11: React.FC = () => {
     caseId: string;
     processName: string;
   } | null>(null);
-  useEffect(() => {
-    const fetchUser = async () => {
+ // Obtener usuario autenticado
+ useEffect(() => {
+  const fetchUser = async () => {
+    try {
       const userData = await obtenerUsuarioAutenticado();
       if (userData) setUsuario(userData);
+    } catch (error) {
+      console.error("❌ Error obteniendo usuario autenticado:", error);
+    }
+  };
+  fetchUser();
+}, [obtenerUsuarioAutenticado]);
+
+// Obtener datos de Bonita cuando el usuario ya esté disponible
+useEffect(() => {
+  if (!usuario) return;
+  const fetchTareaData = async () => {
+    const tareaData = await obtenerTareaActual(usuario.user_id);
+    setTareaActual(tareaData);
+  };
+  fetchTareaData();
+  const fetchData = async () => {
+    try {
+      const data = await obtenerDatosBonita(usuario.user_id);
+      if (data) setBonitaData(data);
+    } catch (error) {
+      console.error("❌ Error obteniendo datos de Bonita:", error);
+    }
+  };
+  fetchData();
+}, [usuario, obtenerDatosBonita]);
+useEffect(() => {
+  if (bonitaData && usuario) {
+    const data: temporalData = {
+      id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
+      id_tarea: parseInt(bonitaData.taskId),
+      jsonData: JSON.stringify("No Form Data"),
+      id_funcionario: parseInt(usuario.user_id),
+      nombre_tarea: tareaActual?.name || "",
     };
-    fetchUser();
-  }, []);
-  useEffect(() => {
-    if (!usuario) return;
-    const fetchData = async () => {
-      try {
-        const data = await obtenerDatosBonita(usuario.user_id);
-        if (data) {
-          setBonitaData(data);
-        }
-      } catch (error) {
-        console.error("❌ Error obteniendo datos de Bonita:", error);
-      }
-    };
-    fetchData();
-  }, [usuario, obtenerDatosBonita]);
+    setJson(data);
+    startAutoSave(data, 10000, "En Proceso");
+  }
+}, [bonitaData, usuario, startAutoSave]);
 
   const handleNext = async () => {
     try {
+      if (json) {
+        await saveFinalState(json);
+      } else {
+        console.error("❌ Error: json is null");
+      }
       await bonita.changeTask();
       alert("Avanzando a la siguiente página...");
     } catch (error) {

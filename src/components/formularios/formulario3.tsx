@@ -7,14 +7,30 @@ import UploadFile from "./components/UploadFile";
 import { ModalData } from "../../interfaces/registros.interface"; // Asegúrate de que la ruta sea correcta
 // @ts-ignore
 import BonitaUtilities from "../bonita/bonita-utilities";
+import { useSaveTempState } from "../bonita/hooks/datos_temprales";
+import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { useBonitaService } from "../../services/bonita.service";
 import { SERVER_BACK_URL } from "../../config.ts";
+import { Tarea } from "../../interfaces/bonita.interface.ts";
 
 const socket = io(SERVER_BACK_URL); // Conecta con el backend
 
 export default function UploadForm() {
+  const { startAutoSave, saveFinalState } = useSaveTempState(socket);
+  const [json, setJson] = useState<temporalData | null>(null);
   const [intellectualPropertyFileBase64, setIntellectualPropertyFileBase64] =
     useState<string | null>(null);
+  const [tareaActual, setTareaActual] = useState<Tarea | null>(null);
+    const [usuario, setUsuario] = useState<{
+      user_id: string;
+      user_name: string;
+    } | null>(null);
+    const [bonitaData, setBonitaData] = useState<{
+      processId: string;
+      taskId: string;
+      caseId: string;
+      processName: string;
+    } | null>(null);
   const [authorDataFileBase64, setAuthorDataFileBase64] = useState<
     string | null
   >(null);
@@ -29,32 +45,54 @@ export default function UploadForm() {
   };
 
   // Usamos el servicio modificado: únicamente obtenerDatosBonita y obtenerUsuarioAutenticado
-  const { obtenerDatosBonita, obtenerUsuarioAutenticado } = useBonitaService();
-
-  const [bonitaData, setBonitaData] = useState<any>(null);
+  const { obtenerDatosBonita, obtenerUsuarioAutenticado, obtenerTareaActual } =
+    useBonitaService();
   const [jsonAutroes, setJsonAutores] = useState<any>(null);
 
-  // Efecto para obtener los datos de Bonita usando las APIs sin privilegios de admin
+  // Obtener usuario autenticado
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchUser = async () => {
       try {
-        // 1. Obtener el usuario autenticado
-        const usuario = await obtenerUsuarioAutenticado();
-        if (usuario) {
-          // 2. Con el user_id, obtener la tarea actual y datos asociados
-          const bonitaData = await obtenerDatosBonita(usuario.user_id);
-          if (bonitaData) {
-            console.log("Datos de Bonita:", bonitaData);
-            setBonitaData(bonitaData);
-          }
-        }
+        const userData = await obtenerUsuarioAutenticado();
+        if (userData) setUsuario(userData);
       } catch (error) {
-        console.error("Error al obtener datos de Bonita:", error);
+        console.error("❌ Error obteniendo usuario autenticado:", error);
       }
     };
+    fetchUser();
+  }, [obtenerUsuarioAutenticado]);
 
+  // Obtener datos de Bonita cuando el usuario ya esté disponible
+  useEffect(() => {
+    if (!usuario) return;
+    const fetchTareaData = async () => {
+      const tareaData = await obtenerTareaActual(usuario.user_id);
+      setTareaActual(tareaData);
+    };
+    fetchTareaData();
+    const fetchData = async () => {
+      try {
+        const data = await obtenerDatosBonita(usuario.user_id);
+        if (data) setBonitaData(data);
+      } catch (error) {
+        console.error("❌ Error obteniendo datos de Bonita:", error);
+      }
+    };
     fetchData();
-  }, [obtenerDatosBonita, obtenerUsuarioAutenticado]);
+  }, [usuario, obtenerDatosBonita]);
+  useEffect(() => {
+    if (bonitaData && usuario) {
+      const data: temporalData = {
+        id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
+        id_tarea: parseInt(bonitaData.taskId),
+        jsonData: JSON.stringify("No Form Data"),
+        id_funcionario: parseInt(usuario.user_id),
+        nombre_tarea: tareaActual?.name || "",
+      };
+      setJson(data);
+      startAutoSave(data, 10000, "En Proceso");
+    }
+  }, [bonitaData, usuario, startAutoSave]);
 
   // Función para manejar cambios en los archivos
   const handleFileChange = useCallback(
@@ -76,6 +114,11 @@ export default function UploadForm() {
   // Función para avanzar a la siguiente tarea
   const handleNext = async () => {
     try {
+      if (json) {
+        await saveFinalState(json);
+      } else {
+        console.error("❌ Error: json is null");
+      }
       await bonita.changeTask();
       alert("Avanzando a la siguiente página...");
     } catch (error) {
@@ -177,6 +220,9 @@ export default function UploadForm() {
       console.log("Json de autores editados:", jsonAutroes);
 
       // Enviar los datos editados al backend como JSON string
+      if (!bonitaData) {
+        throw new Error("No se encontraron los datos de Bonita.");
+      }
       socket.emit(
         "agregar_producto_datos",
         {

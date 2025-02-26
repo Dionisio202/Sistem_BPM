@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import io from "socket.io-client";
+import UploadFile from "../components/UploadFile"; // Componente para cargar archivos
 import {
   ModalProps,
   TipoProducto,
@@ -18,7 +19,24 @@ const Modal: React.FC<ModalProps> = ({
   const [tiposProductos, setTiposProductos] = useState<TipoProducto[]>([]); // Estado para los tipos de productos
   const [loading, setLoading] = useState(true); // Estado para el indicador de carga
   const [error, setError] = useState<string | null>(null); // Estado para manejar errores
-
+  const [facultadSeleccionada, setFacultadSeleccionada] = useState("");
+  const facultades = [
+    { id: 1, nombre: "Facultad de Ingeniería" },
+    { id: 2, nombre: "Facultad de Medicina" },
+    { id: 3, nombre: "Facultad de Derecho" },
+    { id: 4, nombre: "Facultad de Ciencias Económicas" },
+    { id: 5, nombre: "Facultad de Arquitectura" },
+  ];
+  const handleFacultadChange = (e: any) => {
+    setFacultadSeleccionada(e.target.value);
+    setEditedData((prev:any) => ({
+      ...prev,
+      solicitante: {
+        ...prev.solicitante,
+        facultad: e.target.value,
+      },
+    }));
+  };
   // Cargar los tipos de productos al abrir el modal
   // En el useEffect donde obtienes los tipos de productos
   useEffect(() => {
@@ -57,7 +75,39 @@ const Modal: React.FC<ModalProps> = ({
       });
     }
   }, [showModal]);
+  const handleMemoFileChange = async (file: File | null) => {
+    if (!file) return;
 
+    try {
+      const memoBase64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => {
+          const result = reader.result as string;
+          const base64String = result.split(",")[1];
+          resolve(base64String);
+        };
+        reader.onerror = (error) => reject(error);
+      });
+
+      // Llama a la API vía Socket.io para mapear el código del memorando
+      socket.emit("subir_documento", { documento: memoBase64 }, (response: any) => {
+        if (response.success) {
+          // Se asume que la API devuelve el código en response.codigo
+          setEditedData((prev: any) => ({
+            ...prev,
+            codigoMemorando: response.codigo,
+          }));
+        } else {
+          console.error("Error al subir el documento:", response.message);
+          alert("Error al subir el documento");
+        }
+      });
+    } catch (err) {
+      console.error("Error procesando el archivo:", err);
+      alert("Error al procesar el archivo");
+    }
+  };
   const handleChange = (path: string, value: string) => {
     const keys = path.split(".");
     const updatedData = { ...editedData };
@@ -97,6 +147,15 @@ const Modal: React.FC<ModalProps> = ({
                 </div>
               )}
               <div className="space-y-1">
+               
+              <div className="mb-4">
+                  <UploadFile
+                    id="memo-file"
+                    onFileChange={handleMemoFileChange}
+                    label="Subir archivo del memorando"
+                  />
+                </div>
+
                 {/* Código de Memorando */}
                 <label
                   htmlFor="codigoMemorando"
@@ -242,6 +301,22 @@ const Modal: React.FC<ModalProps> = ({
                         }
                         className="mt-1 mb-5 text-xs block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-[#931D21] focus:border-[#931D21]"
                       />
+                    </div>
+                    <div>
+                      <select
+                        id="facultad"
+                        value={facultadSeleccionada}
+                        onChange={handleFacultadChange}
+                        className="mt-1 text-xs block w-full p-1 border border-gray-300 rounded-md shadow-sm focus:ring-[#931D21] focus:border-[#931D21]"
+                        disabled={loading} // Si necesitas mantener el estado de carga
+                      >
+                        <option value="">Seleccione una facultad</option>
+                        {facultades.map((facultad) => (
+                          <option key={facultad.id} value={facultad.nombre} >
+                            {facultad.nombre}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
                 </div>

@@ -1,11 +1,17 @@
 import { useState, useEffect } from "react";
+import io from "socket.io-client";
 import DropdownCard from "./components/DropdownCard"; // Componente para el dropdown
 import DocumentViewer from "../files/DocumentViewer"; // Componente para visualizar el documento
 import Button from "../UI/button"; // Componente botón
 // @ts-ignore
-import BonitaUtilities  from "../bonita/bonita-utilities";
+import BonitaUtilities from "../bonita/bonita-utilities";
 import { SERVER_BACK_URL } from "../../config.ts";
 import { useBonitaService } from "../../services/bonita.service";
+import { useSaveTempState } from "../bonita/hooks/datos_temprales";
+import { temporalData } from "../../interfaces/actividad.interface.ts";
+import { Tarea } from "../../interfaces/bonita.interface.ts";
+
+const socket = io(SERVER_BACK_URL);
 
 // Definimos un tipo para nuestros documentos
 type StaticDocument = {
@@ -14,16 +20,24 @@ type StaticDocument = {
   nombre: string;
 };
 
-
 export default function Formulario6() {
-  const { obtenerUsuarioAutenticado, obtenerDatosBonita } = useBonitaService();
+  const [tareaActual, setTareaActual] = useState<Tarea | null>(null);
+  const { obtenerUsuarioAutenticado, obtenerDatosBonita, obtenerTareaActual } =
+    useBonitaService();
   const urlSave = `${SERVER_BACK_URL}/api/save-document`;
+  const { startAutoSave, saveFinalState } = useSaveTempState(socket);
   // Estado para almacenar el documento seleccionado
-  const [selectedDocument, setSelectedDocument] = useState<StaticDocument | null>(null);
+  const [selectedDocument, setSelectedDocument] =
+    useState<StaticDocument | null>(null);
   const bonita: BonitaUtilities = new BonitaUtilities();
-
+  const [json, setJson] = useState<temporalData | null>(null);
   const handleNext = async () => {
     try {
+      if (json) {
+        await saveFinalState(json);
+      } else {
+        console.error("❌ Error: json is null");
+      }
       await bonita.changeTask();
       alert("Avanzando a la siguiente página...");
     } catch (error) {
@@ -31,56 +45,83 @@ export default function Formulario6() {
       alert("Ocurrió un error al intentar avanzar.");
     }
   };
-      // Obtener datos del formulario
-      const [usuario, setUsuario] = useState<{
-        user_id: string;
-        user_name: string;
-      } | null>(null);
-      const [bonitaData, setBonitaData] = useState<{
-        processId: string;
-        taskId: string;
-        caseId: string;
-        processName: string;
-      } | null>(null);
-      useEffect(() => {
-        const fetchUser = async () => {
-          const userData = await obtenerUsuarioAutenticado();
-          if (userData) setUsuario(userData);
-        };
-        fetchUser();
-      }, []);
-      useEffect(() => {
-        if (!usuario) return;
-        const fetchData = async () => {
-          try {
-            const data = await obtenerDatosBonita(usuario.user_id);
-            if (data) {
-              setBonitaData(data);
-            }
-          } catch (error) {
-            console.error("❌ Error obteniendo datos de Bonita:", error);
-          }
-        };
-        fetchData();
-      }, [usuario, obtenerDatosBonita]);
-      const nombrePlantilla="fsvt-001";
-      const codigoProceso=`${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}`;
-      const staticDocuments: Record<string, StaticDocument> = {
-        //valores a enviar 
-        "Validación de Transferencias": {
-          key: `${nombrePlantilla}-${codigoProceso}`,           
-          title: "Validación",
-          nombre: `${nombrePlantilla}-${codigoProceso}.docx`,   
-        },
+  // Obtener datos del formulario
+  const [usuario, setUsuario] = useState<{
+    user_id: string;
+    user_name: string;
+  } | null>(null);
+  const [bonitaData, setBonitaData] = useState<{
+    processId: string;
+    taskId: string;
+    caseId: string;
+    processName: string;
+  } | null>(null);
+  // Obtener usuario autenticado
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const userData = await obtenerUsuarioAutenticado();
+        if (userData) setUsuario(userData);
+      } catch (error) {
+        console.error("❌ Error obteniendo usuario autenticado:", error);
+      }
+    };
+    fetchUser();
+  }, [obtenerUsuarioAutenticado]);
+
+  // Obtener datos de Bonita cuando el usuario ya esté disponible
+  useEffect(() => {
+    if (!usuario) return;
+    const fetchTareaData = async () => {
+      const tareaData = await obtenerTareaActual(usuario.user_id);
+      setTareaActual(tareaData);
+    };
+    fetchTareaData();
+    const fetchData = async () => {
+      try {
+        const data = await obtenerDatosBonita(usuario.user_id);
+        if (data) setBonitaData(data);
+      } catch (error) {
+        console.error("❌ Error obteniendo datos de Bonita:", error);
+      }
+    };
+    fetchData();
+  }, [usuario, obtenerDatosBonita]);
+  useEffect(() => {
+    if (bonitaData && usuario) {
+      const data: temporalData = {
+        id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
+        id_tarea: parseInt(bonitaData.taskId),
+        jsonData: JSON.stringify("No Form Data"),
+        id_funcionario: parseInt(usuario.user_id),
+        nombre_tarea: tareaActual?.name || "",
       };
+      setJson(data);
+      startAutoSave(data, 10000, "En Proceso");
+    }
+  }, [bonitaData, usuario, startAutoSave]);
+
+
+
+  const nombrePlantilla = "fsvt-001";
+  const codigoProceso = `${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}`;
+  const staticDocuments: Record<string, StaticDocument> = {
+    //valores a enviar
+    "Validación de Transferencias": {
+      key: `${nombrePlantilla}-${codigoProceso}`,
+      title: "Validación",
+      nombre: `${nombrePlantilla}-${codigoProceso}.docx`,
+    },
+  };
 
   // Función para seleccionar el documento a visualizar y llamar a la API de verificación
-  const handleViewDocument = async (documentType: keyof typeof staticDocuments) => {
+  const handleViewDocument = async (
+    documentType: keyof typeof staticDocuments
+  ) => {
     const document = staticDocuments[documentType];
-    
+
     if (documentType === "Validación de Transferencias") {
       try {
-        
         // Llamada a la API usando los valores del documento estático
         const apiUrl = `${SERVER_BACK_URL}/api/verificar-documento?key=${document.key}&nombre=${nombrePlantilla}.docx&id_registro_per=${bonitaData?.processId}-${bonitaData?.caseId}&id_tipo_documento=3`;
         const response = await fetch(apiUrl);
@@ -118,7 +159,7 @@ export default function Formulario6() {
             title={selectedDocument.title}
             documentName={selectedDocument.nombre}
             mode="edit"
-            callbackUrl= {urlSave}
+            callbackUrl={urlSave}
           />
         ) : (
           <p className="text-center text-gray-500">

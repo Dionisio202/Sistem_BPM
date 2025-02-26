@@ -1,22 +1,28 @@
 import { useState, useEffect, ChangeEvent } from "react";
 import CardContainer from "./components/CardContainer";
 // @ts-ignore
-import BonitaUtilities  from "../bonita/bonita-utilities";
+import BonitaUtilities from "../bonita/bonita-utilities";
 import Title from "./components/TitleProps";
 import io from "socket.io-client";
 import { useBonitaService } from "../../services/bonita.service";
 import { useSaveTempState } from "../bonita/hooks/datos_temprales";
+import { Tarea } from "../../interfaces/bonita.interface.ts";
 import { SERVER_BACK_URL } from "../../config.ts";
+import { temporalData } from "../../interfaces/actividad.interface.ts";
 const socket = io(SERVER_BACK_URL);
 
 export default function ConfirmationScreen() {
+  const [tareaActual, setTareaActual] = useState<Tarea | null>(null);
   const { startAutoSave, saveFinalState } = useSaveTempState(socket);
   const [selectedDocuments, setSelectedDocuments] = useState({
     contrato: false,
     acta: false,
   });
-
-  const [usuario, setUsuario] = useState<{ user_id: string; user_name: string } | null>(null);
+  const [json, setJson] = useState<temporalData | null>(null);
+  const [usuario, setUsuario] = useState<{
+    user_id: string;
+    user_name: string;
+  } | null>(null);
   const [bonitaData, setBonitaData] = useState<{
     processId: string;
     taskId: string;
@@ -25,7 +31,12 @@ export default function ConfirmationScreen() {
   } | null>(null);
 
   const bonita: BonitaUtilities = new BonitaUtilities();
-  const { obtenerUsuarioAutenticado, obtenerDatosBonita, error } = useBonitaService();
+  const {
+    obtenerUsuarioAutenticado,
+    obtenerDatosBonita,
+    error,
+    obtenerTareaActual,
+  } = useBonitaService();
 
   // 🔹 Manejo de cambios en los checkboxes
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -37,21 +48,40 @@ export default function ConfirmationScreen() {
   };
 
   // 🔹 Obtener el usuario autenticado al montar el componente
-  useEffect(() => {
-    const fetchUser = async () => {
-      const userData = await obtenerUsuarioAutenticado();
-      if (userData) {
-        setUsuario(userData);
-      }
-    };
-
-    fetchUser();
-  }, []);
-
+  // 🔹 Obtener el usuario autenticado al montar el componente
+    useEffect(() => {
+      const fetchUser = async () => {
+        const userData = await obtenerUsuarioAutenticado();
+        if (userData) {
+          setUsuario(userData);
+        }
+      };
+      fetchUser();
+    }, [obtenerUsuarioAutenticado]);
+  
+    // 🔹 Obtener datos de Bonita una vez que se tenga el usuario
+    useEffect(() => {
+      if (!usuario) return;
+      const fetchData = async () => {
+        try {
+          const tareaData = await obtenerTareaActual(usuario.user_id);
+          setTareaActual(tareaData);
+          const data = await obtenerDatosBonita(usuario.user_id);
+          if (data) {
+            setBonitaData(data);
+          }
+        } catch (error) {
+          console.error("❌ Error obteniendo datos de Bonita:", error);
+        }
+      };
+      fetchData();
+    }, [usuario, obtenerDatosBonita]);
+  
+    // 🔹 Recuperar el estado guardado al cargar el componente
     useEffect(() => {
       if (bonitaData) {
         const id_registro = `${bonitaData.processId}-${bonitaData.caseId}`;
-        const id_tarea = bonitaData.taskId; // o parsearlo si es necesario
+        const id_tarea = bonitaData.taskId;
   
         socket.emit(
           "obtener_estado_temporal",
@@ -71,42 +101,22 @@ export default function ConfirmationScreen() {
         );
       }
     }, [bonitaData]);
-
-  // 🔹 Obtener datos de Bonita una vez que se tenga el usuario
-  useEffect(() => {
-    if (!usuario) return;
-
-    const fetchData = async () => {
-      try {
-        const data = await obtenerDatosBonita(usuario.user_id);
-        if (data) {
-          setBonitaData(data);
-        }
-      } catch (error) {
-        console.error("❌ Error obteniendo datos de Bonita:", error);
-      }
-    };
-
-    fetchData();
-  }, [usuario]);
-
-  // 🔹 Guardar estado temporal cada 10 segundos si hay datos
-  // 🔹 Iniciar el guardado automático ("En Proceso")
-  useEffect(() => {
-    if (bonitaData && usuario) {
-      startAutoSave(
-        {
+  
+    // 🔹 Iniciar el guardado automático ("En Proceso")
+    useEffect(() => {
+      if (bonitaData && usuario) {
+        const data: temporalData = {
           id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
           id_tarea: parseInt(bonitaData.taskId),
           jsonData: JSON.stringify(selectedDocuments),
           id_funcionario: parseInt(usuario.user_id),
-        },
-        10000, // intervalo de 10 segundos
-        "En Proceso"
-      );
-    }
-  }, [selectedDocuments, bonitaData, usuario, startAutoSave]);
-
+          nombre_tarea: tareaActual?.name || "",
+        };
+        setJson(data);
+        startAutoSave(data, 10000, "En Proceso");
+      }
+    }, [bonitaData, usuario, startAutoSave, selectedDocuments, tareaActual]);
+    
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     console.log("📌 Documentos confirmados:", selectedDocuments);
@@ -116,12 +126,11 @@ export default function ConfirmationScreen() {
   const handleNext = async () => {
     if (bonitaData && usuario) {
       try {
-        await saveFinalState({
-          id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
-          id_tarea: parseInt(bonitaData.taskId),
-          jsonData: JSON.stringify(selectedDocuments),
-          id_funcionario: parseInt(usuario.user_id),
-        });
+        if (json) {
+          await saveFinalState(json);
+        } else {
+          console.error("❌ Error: json is null");
+        }
         await bonita.changeTask();
         alert("Avanzando a la siguiente página...");
       } catch (error) {
@@ -176,7 +185,8 @@ export default function ConfirmationScreen() {
 
         {usuario && (
           <p className="text-center text-gray-700 mt-2">
-            Usuario autenticado: <b>{usuario.user_name}</b> (ID: {usuario.user_id})
+            Usuario autenticado: <b>{usuario.user_name}</b> (ID:{" "}
+            {usuario.user_id})
           </p>
         )}
 

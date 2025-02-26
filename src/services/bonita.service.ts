@@ -1,12 +1,14 @@
 import { useCallback, useState } from "react";
 import { Tarea } from "../interfaces/bonita.interface";
 import { SERVER_BONITA_URL } from "../config";
-
+// @ts-ignore
+import BonitaUtilities from "../components/bonita/bonita-utilities";
 // Nota: Asegúrate de que la interfaz Tarea incluya al menos estos campos:
 // id, caseId, processId, displayName, name, last_update_date
 
 export const useBonitaService = () => {
   const [error, setError] = useState<string | null>(null);
+  const bonitaUtilities = new BonitaUtilities();
 
   // 🔹 Función para obtener el usuario autenticado usando API 1
   const obtenerUsuarioAutenticado = useCallback(async (): Promise<{
@@ -46,8 +48,11 @@ export const useBonitaService = () => {
         if (process.env.NODE_ENV === "development") {
           console.log("Buscando tareas para el usuario con user_id=", userId);
         }
+        const taskInstance = await bonitaUtilities.getTaskInstance();
+        console.log("**************************************Tarea obtenida desde bonita utilities", taskInstance);
+  
         const response = await fetch(
-          `${SERVER_BONITA_URL}/bonita/API/bpm/humanTask?p=0&c=10&f=user_id=${userId}`,
+          `${SERVER_BONITA_URL}/bonita/API/bpm/humanTask?p=0&c=10000&f=user_id=${userId}`,
           {
             method: "GET",
             headers: {
@@ -62,8 +67,20 @@ export const useBonitaService = () => {
         }
         const tareas: Tarea[] = await response.json();
         if (tareas.length === 0) return null;
-
-        // Si hay varias tareas, se selecciona la que tenga la fecha de actualización más reciente.
+  
+        // Si taskInstance tiene id, se intenta encontrar la tarea con ese id.
+        if (taskInstance)  {
+          const tareaEncontrada = tareas.find(t => t.id === taskInstance);
+          if (tareaEncontrada) {
+            return tareaEncontrada;
+          } else {
+            console.warn(
+              `No se encontró la tarea con id ${taskInstance}. Se procederá a buscar la tarea con la fecha de actualización más reciente.`
+            );
+          }
+        }
+  
+        // Si no hay id o no se encontró la tarea, se ordenan las tareas por fecha de actualización.
         if (tareas.length > 1) {
           console.warn(
             "El usuario tiene más de una tarea activa. Se seleccionará la más reciente."
@@ -87,6 +104,7 @@ export const useBonitaService = () => {
     },
     []
   );
+  
 
   // 🔹 Función principal que obtiene todos los datos en un solo flujo
   // Usamos sólo las 2 APIs disponibles: la del usuario y la de tareas
@@ -128,6 +146,7 @@ export const useBonitaService = () => {
   return {
     obtenerDatosBonita,
     obtenerUsuarioAutenticado,
+    obtenerTareaActual,
     error,
   };
 };

@@ -16,7 +16,9 @@ export default class BonitaUtilities {
     this.#BONITAURL = `${SERVER_BONITA_URL}/bonita`;
     this.#APIURL = `${this.#BONITAURL}/API/bpm`;
   }
-
+  async getTaskInstance() {
+    return this.#TASKINSTANCEID;
+  }
   async #getBonitaToken() {
     try {
         const response = await fetch(`${SERVER_BONITA_URL}/bonita/API/system/session/unusedId`, {
