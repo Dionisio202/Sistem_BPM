@@ -43,55 +43,50 @@ export default function MemoCodeForm() {
     processName: string;
   } | null>(null);
 
-  // Obtener usuario autenticado
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const userData = await obtenerUsuarioAutenticado();
-        if (userData) setUsuario(userData);
-        if (usuario) {
-          const tareaData = await obtenerTareaActual(usuario.user_id);
-          setTareaActual(tareaData);
-        }
-      } catch (error) {
-        console.error("❌ Error obteniendo usuario autenticado:", error);
-      }
-    };
-    fetchUser();
-  }, [obtenerUsuarioAutenticado]);
-
-  // Obtener datos de Bonita una vez que se tenga el usuario
-  useEffect(() => {
-    if (!usuario) return;
-    const fetchData = async () => {
-      try {
-        const data = await obtenerDatosBonita(usuario.user_id);
-        if (data) {
-          setBonitaData(data);
-        }
-      } catch (err) {
-        console.error("❌ Error obteniendo datos de Bonita:", err);
-      }
-    };
-    fetchData();
-  }, [usuario, obtenerDatosBonita]);
-
-  //Autorguardado
-  useEffect(() => {
-    console.log("Precondicion del guardado", bonitaData);
-    if (bonitaData && usuario) {
-      console.log("Inicia el guardado", bonitaData);
-      const data: temporalData = {
-        id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
-        id_tarea: parseInt(bonitaData.taskId),
-        jsonData: JSON.stringify("No Form Data"),
-        id_funcionario: parseInt(usuario.user_id),
-        nombre_tarea: tareaActual?.name || "",
-      };
-      setJson(data);
-      startAutoSave(data, 10000, "En Proceso");
+ // Obtener usuario autenticado
+ useEffect(() => {
+  const fetchUser = async () => {
+    try {
+      const userData = await obtenerUsuarioAutenticado();
+      if (userData) setUsuario(userData);
+    } catch (error) {
+      console.error("❌ Error obteniendo usuario autenticado:", error);
     }
-  }, [bonitaData, usuario, startAutoSave]);
+  };
+  fetchUser();
+}, [obtenerUsuarioAutenticado]);
+
+// Obtener datos de Bonita cuando el usuario ya esté disponible
+useEffect(() => {
+  if (!usuario) return;
+  const fetchTareaData = async () => {
+    const tareaData = await obtenerTareaActual(usuario.user_id);
+    setTareaActual(tareaData);
+  };
+  fetchTareaData();
+  const fetchData = async () => {
+    try {
+      const data = await obtenerDatosBonita(usuario.user_id);
+      if (data) setBonitaData(data);
+    } catch (error) {
+      console.error("❌ Error obteniendo datos de Bonita:", error);
+    }
+  };
+  fetchData();
+}, [usuario, obtenerDatosBonita]);
+useEffect(() => {
+  if (bonitaData && usuario) {
+    const data: temporalData = {
+      id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
+      id_tarea: parseInt(bonitaData.taskId),
+      jsonData: JSON.stringify("No Form Data"),
+      id_funcionario: parseInt(usuario.user_id),
+      nombre_tarea: tareaActual?.name || "",
+    };
+    setJson(data);
+    startAutoSave(data, 10000, "En Proceso");
+  }
+}, [bonitaData, usuario, startAutoSave]);
 
   // Función para manejar la carga del archivo del memorando y obtener el código mediante Socket.io
   const handleMemoFileChange = useCallback(

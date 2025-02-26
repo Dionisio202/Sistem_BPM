@@ -157,6 +157,7 @@ export default function WebPage() {
         id_funcionario: parseInt(usuario.user_id),
         nombre_tarea: tareaActual?.name || "",
       };
+      console.log("Datos a guardar mandados desde el front :", data);
       setJson(data);
       startAutoSave(data, 10000, "En Proceso");
     }
