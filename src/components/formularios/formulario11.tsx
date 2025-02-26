@@ -75,7 +75,7 @@ const Formulario11: React.FC = () => {
       setJson(data);
       startAutoSave(data, 10000, "En Proceso");
     }
-  }, [bonitaData, usuario, startAutoSave]);
+  }, [bonitaData, usuario, startAutoSave, tareaActual]);
 
   const handleNext = async () => {
     try {

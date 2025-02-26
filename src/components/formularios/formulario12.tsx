@@ -119,7 +119,7 @@ export default function WebPage() {
         setJson(data);
         startAutoSave(data, 10000, "En Proceso");
       }
-    }, [bonitaData, usuario, startAutoSave]);
+    }, [bonitaData, usuario, startAutoSave, tareaActual]);
 
   // Función para subir el archivo del memorando y obtener el código mediante Socket.io
   const handleFileUpload = useCallback(async (file: File | null) => {

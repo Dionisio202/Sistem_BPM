@@ -86,7 +86,7 @@ export default function ConfirmationScreen() {
       setJson(data);
       startAutoSave(data, 10000, "En Proceso");
     }
-  }, [bonitaData, usuario, startAutoSave]);
+  }, [bonitaData, usuario, startAutoSave, tareaActual]);
 
   const handleSubmit = async () => {
     if (!file) {

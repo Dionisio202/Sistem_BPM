@@ -109,23 +109,6 @@ export default function ConfirmationScreen() {
     fetchData();
   }, [usuario]);
 
-  // 🔹 Guardar estado temporal cada 10 segundos si hay datos
-  // 🔹 Iniciar el guardado automático ("En Proceso")
-  useEffect(() => {
-    if (bonitaData && usuario) {
-      startAutoSave(
-        {
-          id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
-          id_tarea: parseInt(bonitaData.taskId),
-          jsonData: JSON.stringify(selectedDocuments),
-          id_funcionario: parseInt(usuario.user_id),
-        },
-        10000, // intervalo de 10 segundos
-        "En Proceso"
-      );
-    }
-  }, [bonitaData, usuario, startAutoSave, selectedDocuments, tareaActual]);
-
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     console.log("📌 Documentos confirmados:", selectedDocuments);

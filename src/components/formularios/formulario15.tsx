@@ -93,7 +93,7 @@ export default function Formulario6() {
             setJson(data);
             startAutoSave(data, 10000, "En Proceso");
           }
-        }, [bonitaData, usuario, startAutoSave]);
+        }, [bonitaData, usuario, startAutoSave, tareaActual]);
       const nombrePlantilla="fsvt-001";
       const codigoProceso=`${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}`;
       const staticDocuments: Record<string, StaticDocument> = {
