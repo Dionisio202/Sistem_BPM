@@ -124,7 +124,7 @@ export default function ConfirmationScreen() {
         "En Proceso"
       );
     }
-  }, [selectedDocuments, bonitaData, usuario, startAutoSave]);
+  }, [bonitaData, usuario, startAutoSave, selectedDocuments, tareaActual]);
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();

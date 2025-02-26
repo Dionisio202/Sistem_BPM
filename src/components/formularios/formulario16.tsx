@@ -108,7 +108,7 @@ export default function DocumentForm() {
       setJson(data);
       startAutoSave(data, 10000, "En Proceso");
     }
-  }, [selectedDocuments, bonitaData, usuario, startAutoSave]);
+  }, [bonitaData, usuario, startAutoSave, selectedDocuments, tareaActual]);
 
   const handleMemoCodeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setMemoCode(event.target.value);

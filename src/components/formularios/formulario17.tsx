@@ -112,7 +112,7 @@ export default function ConfirmationScreen() {
       setJson(data);
       startAutoSave(data, 10000, "En Proceso");
     }
-  }, [selectedDocuments, bonitaData, usuario, startAutoSave]);
+  }, [bonitaData, usuario, startAutoSave, selectedDocuments, tareaActual]);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
