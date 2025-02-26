@@ -2,11 +2,11 @@ import React from "react";
 
 const PanelFiltros: React.FC = () => {
   return (
-    <div className="w-64 bg-gray-800 text-white p-4">
+    <div className="w-55 bg-gray-800 text-white p-4">
       <h2 className="text-xl font-bold mb-4">Filtros</h2>
 
       {/* Filtro por Año */}
-      <div className="mb-4">
+      <div className="mb-2">
         <label htmlFor="year" className="block text-sm font-medium mb-1">
           Año
         </label>
@@ -22,13 +22,13 @@ const PanelFiltros: React.FC = () => {
       </div>
 
       {/* Filtro por Facultad */}
-      <div className="mb-4">
+      <div className="mb-2">
         <label htmlFor="facultad" className="block text-sm font-medium mb-1">
           Facultad
         </label>
         <select
           id="facultad"
-          className="w-full p-2 rounded-lg bg-gray-700 text-white"
+          className="w-full p-1 rounded-lg bg-gray-700 text-white"
         >
           <option value="">Selecciona una facultad</option>
           <option value="Ingeniería">Ingeniería</option>
@@ -38,7 +38,7 @@ const PanelFiltros: React.FC = () => {
       </div>
 
       {/* Filtro por Estado */}
-      <div className="mb-4">
+      <div className="mb-2">
         <label htmlFor="estado" className="block text-sm font-medium mb-1">
           Estado
         </label>
@@ -54,7 +54,7 @@ const PanelFiltros: React.FC = () => {
       </div>
 
       {/* Filtro por Rango de Fechas */}
-      <div className="mb-4">
+      <div className="mb-7">
         <label htmlFor="startDate" className="block text-sm font-medium mb-1">
           Rango de Fechas
         </label>
