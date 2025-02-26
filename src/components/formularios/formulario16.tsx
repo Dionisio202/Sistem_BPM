@@ -100,6 +100,10 @@ export default function DocumentForm() {
       try {
         const data = await obtenerDatosBonita(usuario.user_id);
         if (data) setBonitaData(data);
+        if (usuario) {
+          const tareaData = await obtenerTareaActual(usuario.user_id);
+          setTareaActual(tareaData);
+        }
       } catch (error) {
         console.error("❌ Error obteniendo datos de Bonita:", error);
       }

@@ -33,7 +33,6 @@ export default function ConfirmationScreen() {
   const {
     obtenerUsuarioAutenticado,
     obtenerDatosBonita,
-    error,
     obtenerTareaActual,
   } = useBonitaService();
   const urlSave = `${SERVER_BACK_URL}/api/save-document`;
@@ -77,16 +76,21 @@ export default function ConfirmationScreen() {
 
   // 🔹 Obtener datos de Bonita cuando ya se tenga el usuario
   useEffect(() => {
-    const fetchUser = async () => {
+    if (!usuario) return;
+
+    const fetchData = async () => {
       try {
-        const userData = await obtenerUsuarioAutenticado();
-        if (userData) setUsuario(userData);
+        const data = await obtenerDatosBonita(usuario.user_id);
+        if (data) {
+          setBonitaData(data);
+        }
       } catch (error) {
-        console.error("❌ Error obteniendo usuario autenticado:", error);
+        console.error("❌ Error obteniendo datos de Bonita:", error);
       }
     };
-    fetchUser();
-  }, [obtenerUsuarioAutenticado]);
+
+    fetchData();
+  }, [usuario]);
 
   // 🔹 Emitir el evento socket para obtener el código de almacenamiento cuando la data de Bonita esté disponible
   useEffect(() => {

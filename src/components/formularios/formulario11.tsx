@@ -41,6 +41,10 @@ const Formulario11: React.FC = () => {
       try {
         const userData = await obtenerUsuarioAutenticado();
         if (userData) setUsuario(userData);
+        if (usuario) {
+          const tareaData = await obtenerTareaActual(usuario.user_id);
+          setTareaActual(tareaData);
+        }
       } catch (error) {
         console.error("❌ Error obteniendo usuario autenticado:", error);
       }
