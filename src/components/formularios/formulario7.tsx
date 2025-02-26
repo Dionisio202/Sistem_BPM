@@ -108,7 +108,8 @@ export default function ConfirmationScreen() {
       setJson(data);
       startAutoSave(data, 10000, "En Proceso");
     }
-  }, [bonitaData, usuario, startAutoSave]);
+  }, [bonitaData, usuario, startAutoSave, selectedDocuments, tareaActual]);
+  
  
   // Función para subir un archivo firmado usando el endpoint "get-document"
   const uploadSignedDocument = async (file: File, documentType: "contrato" | "acta") => {
