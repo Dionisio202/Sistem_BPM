@@ -6,51 +6,13 @@ import {
   type MRT_ColumnDef,
 } from "material-react-table";
 import ExportCard from "./ExportCard.tsx";
-
-// Interfaz para la respuesta del servidor
-interface SocketResponse {
-  success: boolean;
-  message: string;
-  jsonData: string; // jsonData es una cadena JSON
-}
-
-// Interfaz para un funcionario
-interface Funcionario {
-  Nombre: string;
-  Caso: Caso[];
-}
-
-// Interfaz para un caso
-interface Caso {
-  NumeroCaso: string;
-  NombreTarea?: Tarea[]; // Campo correcto según el JSON
-  FechaRegistro: string;
-  FechaFinalizacion?: string;
-  ProgresoGeneral: number;
-  EstadoProcesoGeneral: string;
-}
-
-// Interfaz para una tarea
-interface Tarea {
-  Progreso: string;
-  EstadoDeProceso: string;
-  TipoProductos: string;
-  NombreProductos: string;
-  NombreProyecto: string;
-  Facultad: string;
-  MemorandoInicial?: string;
-}
-
-// Interfaz para los datos de la tabla
-interface TablaTarea extends Tarea {
-  NumeroCaso: string; // Agregado para la tabla
-  FechaRegistro: string; // Agregado para la tabla
-  FechaFinalizacion?: string; // Agregado para la tabla
-  ProgresoGeneral: number; // Agregado para la tabla
-  EstadoProcesoGeneral: string; // Agregado para la tabla
-  NombreProceso: string; // Agregado para la tabla
-  Funcionario: string; // Agregado para la tabla
-}
+import {
+  TablaTarea,
+  SocketResponse,
+  Funcionario,
+  Caso,
+  Tarea,
+} from "./interfaces/tableprops.interface.ts";
 
 const Example = () => {
   const [data, setData] = useState<TablaTarea[]>([]);
@@ -62,7 +24,10 @@ const Example = () => {
 
     // Emitir el evento 'datos_proceso' y manejar la respuesta
     socket.emit("datos_proceso", (response: SocketResponse) => {
-      console.log("Respuesta completa del servidor:", JSON.stringify(response, null, 2));
+      console.log(
+        "Respuesta completa del servidor:",
+        JSON.stringify(response, null, 2)
+      );
 
       // Validar la respuesta
       if (response.success && response.jsonData) {
@@ -73,18 +38,27 @@ const Example = () => {
           console.log("Datos recibidos:", jsonData);
 
           // Convertir JSON a filas para la tabla
-          const newData: TablaTarea[] = jsonData.Funcionarios.flatMap((funcionario: Funcionario) =>
-            funcionario.Caso.flatMap((caso: Caso) =>
-              caso.NombreTarea?.map((tarea: Tarea) => ({
-                NumeroCaso: caso.NumeroCaso,
-                FechaRegistro: caso.FechaRegistro,
-                FechaFinalizacion: caso.FechaFinalizacion,
-                ProgresoGeneral: caso.ProgresoGeneral,
-                EstadoProcesoGeneral: caso.EstadoProcesoGeneral,
-                NombreProceso: jsonData.NombreProceso, // Agregar Nombre de Proceso
-                Funcionario: funcionario.Nombre, // Agregar Nombre del Funcionario
-              })) || []
-            )
+          const newData: TablaTarea[] = jsonData.Funcionarios.flatMap(
+            (funcionario: Funcionario) =>
+              funcionario.Caso.flatMap((caso: Caso) =>
+                Array.isArray(caso.NombreTarea)
+                  ? caso.NombreTarea.map((tarea: Tarea) => ({
+                      Progreso: tarea.Progreso,
+                      EstadoDeProceso: tarea.EstadoDeProceso,
+                      TipoProductos: tarea.TipoProductos,
+                      NombreProductos: tarea.NombreProductos,
+                      NombreProyecto: tarea.NombreProyecto,
+                      Facultad: tarea.Facultad,
+                      MemorandoInicial: tarea.MemorandoInicial,
+                      NumeroCaso: caso.NumeroCaso,
+                      FechaRegistro: caso.FechaRegistro,
+                      FechaFinalizacion: caso.FechaFinalizacion || "",
+                      ProgresoGeneral: caso.ProgresoGeneral,
+                      EstadoProcesoGeneral: caso.EstadoProcesoGeneral,
+                      Funcionario: funcionario.Nombre,
+                    }))
+                  : []
+              )
           );
 
           setData(newData);
@@ -95,7 +69,7 @@ const Example = () => {
           setLoading(false);
         }
       } else {
-        console.error("Error: Datos no válidos");
+        console.error("Error: Datos no válidos o jsonData vacío");
         setError("Error: Datos no válidos");
         setLoading(false);
       }
@@ -157,10 +131,11 @@ const Example = () => {
     },
   });
 
-  const filteredData = useMemo(
-    () => table.getFilteredRowModel().rows.map((row) => row.original),
-    [table]
-  );
+  const filteredData = useMemo(() => {
+    const rows = table.getFilteredRowModel().rows.map((row) => row.original);
+    console.log("Datos filtrados en el componente principal:", rows); // Verifica los datos filtrados
+    return rows;
+  }, [table.getFilteredRowModel()]); // Dependencia del modelo de filas filtradas
 
   if (loading) return <div>Cargando...</div>;
   if (error) return <div>Error: {error}</div>;

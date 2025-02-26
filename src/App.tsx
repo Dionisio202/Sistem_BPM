@@ -32,7 +32,7 @@ import Reports from "./pages/DashBoard-Informes/screens/reports"
 const App = () => {
   return (
     <div className="flex flex-col min-h-screen">
-       {!["/Reporteria", "/Dashboard", "/Reports"].includes(location.pathname) && <Header />}
+       {!["/Dashboard", "/Reporteria", "/Reports"].includes(location.pathname) && <Header />}
       <main className="flex-grow p-6 space-y-4">
         <Router>
           <Routes>
