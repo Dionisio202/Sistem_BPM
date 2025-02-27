@@ -43,6 +43,8 @@ const Example = () => {
               funcionario.Caso.flatMap((caso: Caso) =>
                 Array.isArray(caso.NombreTarea)
                   ? caso.NombreTarea.map((tarea: Tarea) => ({
+                      NombreProceso:"Registro Propiedad Intelectual",
+                      NombreTarea:tarea.Nombre,
                       Progreso: tarea.Progreso,
                       EstadoDeProceso: tarea.EstadoDeProceso,
                       TipoProductos: tarea.TipoProductos,
@@ -93,6 +95,7 @@ const Example = () => {
       { accessorKey: "NombreProceso", header: "Nombre de Proceso", size: 150 },
       { accessorKey: "Funcionario", header: "Funcionario", size: 150 },
       { accessorKey: "NumeroCaso", header: "Número de Caso", size: 100 },
+      { accessorKey: "NombreTarea", header: "Nombre de Tarea", size: 100 },
       { accessorKey: "Progreso", header: "Progreso", size: 100 },
       { accessorKey: "EstadoDeProceso", header: "Estado de Proceso", size: 120 },
       { accessorKey: "TipoProductos", header: "Tipo de Productos", size: 120 },
