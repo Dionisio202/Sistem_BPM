@@ -24,6 +24,7 @@ export default function Formulario6() {
     useState<StaticDocument | null>(null);
   const bonita: BonitaUtilities = new BonitaUtilities();
   const [json, setJson] = useState<temporalData | null>(null);
+  const [aprobado, setAprobado] = useState<boolean>(false);
 
   // Modificamos la función para aceptar un string
   const handleViewDocument = async (documentType: string) => {
@@ -73,7 +74,16 @@ export default function Formulario6() {
     } else {
       console.error("❌ Error: json is null");
     }
-    bonita.changeTask();
+    console.log("Aprobado", aprobado);
+    bonita.changeTask({
+      formData: {
+      aprobadoInput:
+      {
+        aprobado: aprobado
+      }
+    },
+    });
+
   };
   const nombrePlantilla1 = "Contrato_Cesion_Derechos";
   const nombrePlantilla2 = "Acta_Porcentaje_Participacion";
@@ -104,6 +114,16 @@ export default function Formulario6() {
         >
           Siguiente
         </button>
+        <div className="flex items-center">
+  <input
+    type="checkbox"
+    className="h-6 w-6"
+    id="aprobado"
+    name="aprobado"
+    onChange={(e) => setAprobado(e.target.checked)}
+  />
+  <label htmlFor="aprobado" className="ml-2">Aprobado</label>
+</div>
       </div>
 
       <div className="flex-grow">

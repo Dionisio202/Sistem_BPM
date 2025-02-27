@@ -30,6 +30,7 @@ export default function DocumentForm() {
   });
   const bonita = new BonitaUtilities();
   // Estados para manejo de carga y error en la subida del archivo
+  // @ts-ignore
   const [loading, setLoading] = useState(false);
   const [uploadError, setUploadError] = useState<string>("");
 
