@@ -7,75 +7,28 @@ import BonitaUtilities from "../bonita/bonita-utilities";
 import { useSaveTempState } from "../bonita/hooks/datos_temprales";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { SERVER_BACK_URL } from "../../config.ts";
-import { useBonitaService } from "../../services/bonita.service";
-import { Tarea } from "../../interfaces/bonita.interface.ts";
 import io from "socket.io-client";
 import Title from "./components/TitleProps";
+import { useCombinedBonitaData } from "../bonita/hooks/obtener_datos_bonita.tsx";
+
 const socket = io(SERVER_BACK_URL);
 
 export default function ConfirmationScreen() {
   const [json, setJson] = useState<temporalData | null>(null);
   const { startAutoSave, saveFinalState } = useSaveTempState(socket);
-  const [tareaActual, setTareaActual] = useState<Tarea | null>(null);
+  const { usuario, bonitaData, tareaActual} = useCombinedBonitaData();
   const [selectedDocuments, setSelectedDocuments] = useState({
     certificado: false,
   });
 
-  const [usuario, setUsuario] = useState<{
-    user_id: string;
-    user_name: string;
-  } | null>(null);
-  const [bonitaData, setBonitaData] = useState<{
-    processId: string;
-    taskId: string;
-    caseId: string;
-    processName: string;
-  } | null>(null);
 
   const bonita: BonitaUtilities = new BonitaUtilities();
-  // @ts-ignore
-  const {
-    obtenerUsuarioAutenticado,
-    obtenerDatosBonita,
-    obtenerTareaActual,
-  } = useBonitaService();
   const handleChange = (name: string, checked: boolean) => {
     setSelectedDocuments((prevState) => ({
       ...prevState,
       [name]: checked,
     }));
   };
-
- 
-  // 🔹 Obtener el usuario autenticado al montar el componente
-  // 🔹 Obtener el usuario autenticado al montar el componente
-  useEffect(() => {
-    const fetchUser = async () => {
-      const userData = await obtenerUsuarioAutenticado();
-      if (userData) {
-        setUsuario(userData);
-      }
-    };
-    fetchUser();
-  }, [obtenerUsuarioAutenticado]);
-
-  // 🔹 Obtener datos de Bonita una vez que se tenga el usuario
-  useEffect(() => {
-    if (!usuario) return;
-    const fetchData = async () => {
-      try {
-        const tareaData = await obtenerTareaActual(usuario.user_id);
-        setTareaActual(tareaData);
-        const data = await obtenerDatosBonita(usuario.user_id);
-        if (data) {
-          setBonitaData(data);
-        }
-      } catch (error) {
-        console.error("❌ Error obteniendo datos de Bonita:", error);
-      }
-    };
-    fetchData();
-  }, [usuario, obtenerDatosBonita]);
 
   // 🔹 Recuperar el estado guardado al cargar el componente
   useEffect(() => {

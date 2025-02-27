@@ -5,13 +5,12 @@ import Title from "./components/TitleProps";
 import Modal from "./components/Modal";
 import UploadFile from "./components/UploadFile";
 import { ModalData } from "../../interfaces/registros.interface"; // Asegúrate de que la ruta sea correcta
+import { useCombinedBonitaData } from "../bonita/hooks/obtener_datos_bonita.tsx";
 // @ts-ignore
 import BonitaUtilities from "../bonita/bonita-utilities";
 import { useSaveTempState } from "../bonita/hooks/datos_temprales";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
-import { useBonitaService } from "../../services/bonita.service";
 import { SERVER_BACK_URL } from "../../config.ts";
-import { Tarea } from "../../interfaces/bonita.interface.ts";
 
 const socket = io(SERVER_BACK_URL); // Conecta con el backend
 
@@ -20,17 +19,6 @@ export default function UploadForm() {
   const [json, setJson] = useState<temporalData | null>(null);
   const [intellectualPropertyFileBase64, setIntellectualPropertyFileBase64] =
     useState<string | null>(null);
-  const [tareaActual, setTareaActual] = useState<Tarea | null>(null);
-    const [usuario, setUsuario] = useState<{
-      user_id: string;
-      user_name: string;
-    } | null>(null);
-    const [bonitaData, setBonitaData] = useState<{
-      processId: string;
-      taskId: string;
-      caseId: string;
-      processName: string;
-    } | null>(null);
   const [authorDataFileBase64, setAuthorDataFileBase64] = useState<
     string | null
   >(null);
@@ -40,46 +28,13 @@ export default function UploadForm() {
   const [modalData, setModalData] = useState<ModalData | null>(null);
   const [loading, setLoading] = useState(false); // Estado para el indicador de carga
   const bonita: BonitaUtilities = new BonitaUtilities();
+  // Usar el hook personalizado
+  const { usuario, bonitaData, tareaActual } = useCombinedBonitaData();
   const handleTipoMemorandoChange = (e: any) => {
     setTipoMemorando(e.target.value);
   };
-
-  // Usamos el servicio modificado: únicamente obtenerDatosBonita y obtenerUsuarioAutenticado
-  const { obtenerDatosBonita, obtenerUsuarioAutenticado, obtenerTareaActual } =
-    useBonitaService();
   const [jsonAutroes, setJsonAutores] = useState<any>(null);
 
-  // Obtener usuario autenticado
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const userData = await obtenerUsuarioAutenticado();
-        if (userData) setUsuario(userData);
-      } catch (error) {
-        console.error("❌ Error obteniendo usuario autenticado:", error);
-      }
-    };
-    fetchUser();
-  }, [obtenerUsuarioAutenticado]);
-
-  // Obtener datos de Bonita cuando el usuario ya esté disponible
-  useEffect(() => {
-    if (!usuario) return;
-    const fetchTareaData = async () => {
-      const tareaData = await obtenerTareaActual(usuario.user_id);
-      setTareaActual(tareaData);
-    };
-    fetchTareaData();
-    const fetchData = async () => {
-      try {
-        const data = await obtenerDatosBonita(usuario.user_id);
-        if (data) setBonitaData(data);
-      } catch (error) {
-        console.error("❌ Error obteniendo datos de Bonita:", error);
-      }
-    };
-    fetchData();
-  }, [usuario, obtenerDatosBonita]);
   useEffect(() => {
     if (bonitaData && usuario) {
       const data: temporalData = {
@@ -92,8 +47,7 @@ export default function UploadForm() {
       setJson(data);
       startAutoSave(data, 10000, "En Proceso");
     }
-  }, [bonitaData, usuario, startAutoSave]);
-
+  }, [bonitaData, usuario, startAutoSave, tareaActual]);
   // Función para manejar cambios en los archivos
   const handleFileChange = useCallback(
     (file: File | null, fileType: string) => {

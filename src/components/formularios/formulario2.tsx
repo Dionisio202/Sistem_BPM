@@ -7,7 +7,8 @@ import { SERVER_BACK_URL } from "../../config.ts";
 import { useBonitaService } from "../../services/bonita.service";
 import { useSaveTempState } from "../bonita/hooks/datos_temprales";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
-import { Tarea } from "../../interfaces/bonita.interface.ts";
+import { useCombinedBonitaData } from "../bonita/hooks/obtener_datos_bonita.tsx";
+
 
 // Fuera del componente, crea una única instancia de socket
 const socket = io(SERVER_BACK_URL);
@@ -40,22 +41,11 @@ export default function WebPage() {
     null
   );
   const [selectedDocs, setSelectedDocs] = useState<Set<string>>(new Set());
+  const { usuario, bonitaData, tareaActual } = useCombinedBonitaData();
   const { startAutoSave, stopAutoSave, saveFinalState } = useSaveTempState(
     socket,
     { intervalRef }
   );
-  // @ts-ignore
-  const [tareaActual, setTareaActual] = useState<Tarea | null>(null);
-  const [usuario, setUsuario] = useState<{
-    user_id: string;
-    user_name: string;
-  } | null>(null);
-  const [bonitaData, setBonitaData] = useState<{
-    processId: string;
-    taskId: string;
-    caseId: string;
-    processName: string;
-  } | null>(null);
   const [json, setJson] = useState<temporalData | null>(null);
   // @ts-ignore
   const [loading, setLoading] = useState<boolean>(false);
@@ -89,24 +79,14 @@ export default function WebPage() {
   }, []);
 
   // Obtener datos de Bonita (usuario y tarea actual) y enviarlos al backend
+    // Obtener usuario autenticado
   useEffect(() => {
     let isMounted = true;
-
-    const fetchBonitaData = async () => {
       try {
         setLoading(true);
         setError(null);
-
-        // 1. Obtener el usuario autenticado
-        const usuario = await obtenerUsuarioAutenticado();
-        setUsuario(usuario);
         if (usuario) {
-          // 2. Obtener la tarea actual y demás datos asociados (a través de obtenerDatosBonita)
-          const tareaData = await obtenerTareaActual(usuario.user_id);
-          setTareaActual(tareaData);
-          const bonitaData = await obtenerDatosBonita(usuario.user_id);
-          setBonitaData(bonitaData);
-          if (bonitaData && isMounted) {
+          if (bonitaData && usuario) {
             console.log("Datos de Bonita obtenidos:", bonitaData);
             //Preparar el json de envio de datos al backend
             const data = {
@@ -138,30 +118,26 @@ export default function WebPage() {
           setLoading(false);
         }
       }
-    };
-
-    fetchBonitaData();
-
     return () => {
       isMounted = false;
     };
-  }, [obtenerDatosBonita, obtenerUsuarioAutenticado]);
+  }, []);
 
   // 🔹 Iniciar el guardado automático ("En Proceso")
+  // Obtener usuario autenticado
   useEffect(() => {
     if (bonitaData && usuario) {
       const data: temporalData = {
         id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
         id_tarea: parseInt(bonitaData.taskId),
-        jsonData: JSON.stringify(selectedDocs),
+        jsonData: JSON.stringify("No Form Data"),
         id_funcionario: parseInt(usuario.user_id),
         nombre_tarea: tareaActual?.name || "",
       };
-      console.log("Datos a guardar mandados desde el front :", data);
       setJson(data);
       startAutoSave(data, 10000, "En Proceso");
     }
-  }, [bonitaData, usuario, startAutoSave]);
+  }, [bonitaData, usuario, startAutoSave, tareaActual]);
 
   // Seleccionar documento a visualizar
   const handleViewDocument = (documentType: keyof typeof staticDocuments) => {

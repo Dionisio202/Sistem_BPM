@@ -6,10 +6,9 @@ import Button from "../UI/button"; // Componente botón
 // @ts-ignore
 import BonitaUtilities from "../bonita/bonita-utilities";
 import { SERVER_BACK_URL } from "../../config.ts";
-import { useBonitaService } from "../../services/bonita.service";
 import { useSaveTempState } from "../bonita/hooks/datos_temprales";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
-import { Tarea } from "../../interfaces/bonita.interface.ts";
+import { useCombinedBonitaData } from "../bonita/hooks/obtener_datos_bonita.tsx";
 
 const socket = io(SERVER_BACK_URL);
 
@@ -21,11 +20,9 @@ type StaticDocument = {
 };
 
 export default function Formulario6() {
-  const [tareaActual, setTareaActual] = useState<Tarea | null>(null);
-  const { obtenerUsuarioAutenticado, obtenerDatosBonita, obtenerTareaActual } =
-    useBonitaService();
   const urlSave = `${SERVER_BACK_URL}/api/save-document`;
   const { startAutoSave, saveFinalState } = useSaveTempState(socket);
+  const { usuario, bonitaData, tareaActual } = useCombinedBonitaData();
   // Estado para almacenar el documento seleccionado
   const [selectedDocument, setSelectedDocument] =
     useState<StaticDocument | null>(null);
@@ -45,63 +42,20 @@ export default function Formulario6() {
       alert("Ocurrió un error al intentar avanzar.");
     }
   };
-  // Obtener datos del formulario
-  const [usuario, setUsuario] = useState<{
-    user_id: string;
-    user_name: string;
-  } | null>(null);
-  const [bonitaData, setBonitaData] = useState<{
-    processId: string;
-    taskId: string;
-    caseId: string;
-    processName: string;
-  } | null>(null);
-  // Obtener usuario autenticado
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const userData = await obtenerUsuarioAutenticado();
-        if (userData) setUsuario(userData);
-      } catch (error) {
-        console.error("❌ Error obteniendo usuario autenticado:", error);
+    // Obtener usuario autenticado
+    useEffect(() => {
+      if (bonitaData && usuario) {
+        const data: temporalData = {
+          id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
+          id_tarea: parseInt(bonitaData.taskId),
+          jsonData: JSON.stringify("No Form Data"),
+          id_funcionario: parseInt(usuario.user_id),
+          nombre_tarea: tareaActual?.name || "",
+        };
+        setJson(data);
+        startAutoSave(data, 10000, "En Proceso");
       }
-    };
-    fetchUser();
-  }, [obtenerUsuarioAutenticado]);
-
-  // Obtener datos de Bonita cuando el usuario ya esté disponible
-  useEffect(() => {
-    if (!usuario) return;
-    const fetchTareaData = async () => {
-      const tareaData = await obtenerTareaActual(usuario.user_id);
-      setTareaActual(tareaData);
-    };
-    fetchTareaData();
-    const fetchData = async () => {
-      try {
-        const data = await obtenerDatosBonita(usuario.user_id);
-        if (data) setBonitaData(data);
-      } catch (error) {
-        console.error("❌ Error obteniendo datos de Bonita:", error);
-      }
-    };
-    fetchData();
-  }, [usuario, obtenerDatosBonita]);
-  useEffect(() => {
-    if (bonitaData && usuario) {
-      const data: temporalData = {
-        id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
-        id_tarea: parseInt(bonitaData.taskId),
-        jsonData: JSON.stringify("No Form Data"),
-        id_funcionario: parseInt(usuario.user_id),
-        nombre_tarea: tareaActual?.name || "",
-      };
-      setJson(data);
-      startAutoSave(data, 10000, "En Proceso");
-    }
-  }, [bonitaData, usuario, startAutoSave]);
-
-
+    }, [bonitaData, usuario, startAutoSave, tareaActual]);
 
   const nombrePlantilla = "fsvt-001";
   const codigoProceso = `${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}`;
