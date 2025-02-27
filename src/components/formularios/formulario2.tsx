@@ -4,7 +4,6 @@ import DocumentViewer from "../files/DocumentViewer";
 import Title from "./components/TitleProps";
 import io from "socket.io-client";
 import { SERVER_BACK_URL } from "../../config.ts";
-import { useBonitaService } from "../../services/bonita.service";
 import { useSaveTempState } from "../bonita/hooks/datos_temprales";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { useCombinedBonitaData } from "../bonita/hooks/obtener_datos_bonita.tsx";
@@ -52,10 +51,8 @@ export default function WebPage() {
   // @ts-ignore
 
   const [error, setError] = useState<string | null>(null);
-  // @ts-ignore
   // Usamos el servicio actualizado de Bonita (solo con las APIs públicas)
-  const { obtenerDatosBonita, obtenerUsuarioAutenticado, obtenerTareaActual } =
-    useBonitaService();
+ 
 
   // Verificar conexión WebSocket
   useEffect(() => {
@@ -121,7 +118,7 @@ export default function WebPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [bonitaData, usuario]);
 
   // 🔹 Iniciar el guardado automático ("En Proceso")
   // Obtener usuario autenticado
