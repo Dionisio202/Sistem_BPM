@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useState } from "react";
 import * as XLSX from "xlsx";
-import { jsPDF } from "jspdf";
-import "jspdf-autotable";
 import { ExportCardProps } from "./interfaces/exportcard.interface";
+import PDFGenerator from "./PdfFormato"; // Importar el componente PDFGenerator
 
 const ExportCard: React.FC<ExportCardProps> = ({ filteredData }) => {
+  const [showModal, setShowModal] = useState(false); // Estado para controlar el modal
+
   // Exportar a Excel
   const handleExportExcel = () => {
     try {
@@ -23,25 +24,23 @@ const ExportCard: React.FC<ExportCardProps> = ({ filteredData }) => {
     }
   };
 
-  // Exportar a PDF
-  const handleExportPDF = () => {
-    try {
-      if (filteredData.length === 0) {
-        alert("No hay datos para exportar.");
-        return;
-      }
-
-      const doc = new jsPDF();
-      doc.text("Datos Filtrados", 10, 10);
-      doc.autoTable({
-        head: [Object.keys(filteredData[0])], // Encabezados de la tabla
-        body: filteredData.map((row) => Object.values(row)), // Datos de la tabla
-      });
-      doc.save("Reporte.pdf");
-    } catch (error) {
-      console.error("Error al exportar a PDF:", error);
-      alert("Hubo un error al exportar a PDF. Por favor, inténtalo de nuevo.");
+  // Mostrar datos filtrados en JSON
+  const handleShowJSON = () => {
+    if (filteredData.length === 0) {
+      alert("No hay datos para mostrar.");
+      return;
     }
+
+    // Imprimir en la consola
+    console.log("Datos filtrados en JSON:", JSON.stringify(filteredData, null, 2));
+
+    // Mostrar el modal
+    setShowModal(true);
+  };
+
+  // Cerrar el modal
+  const handleCloseModal = () => {
+    setShowModal(false);
   };
 
   return (
@@ -56,13 +55,29 @@ const ExportCard: React.FC<ExportCardProps> = ({ filteredData }) => {
         >
           Exportar a Excel
         </button>
+        <PDFGenerator filteredData={filteredData} />
         <button
-          className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-          onClick={handleExportPDF}
+          className="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+          onClick={handleShowJSON}
         >
-          Exportar a PDF
+          Mostrar JSON
         </button>
       </div>
+
+      {/* Modal para mostrar JSON */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white p-6 rounded-lg max-w-2xl w-full max-h-[80vh] overflow-auto">
+            <pre>{JSON.stringify(filteredData, null, 2)}</pre>
+            <button
+              className="mt-4 bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+              onClick={handleCloseModal}
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
