@@ -46,7 +46,7 @@ const ExportCard: React.FC<ExportCardProps> = ({ filteredData }) => {
   return (
     <div className="bg-gray-800 shadow-md rounded-lg p-4 mb-4">
       <p className="text-white">
-        REGISTRO DE PROPIEDAD INTELECTUAL - GENERACIÓN DE REPORTES
+        TAREAS DE PROPIEDAD INTELECTUAL - GENERACIÓN DE REPORTES
       </p>
       <div className="flex space-x-2 mb-4">
         <button
