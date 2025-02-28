@@ -6,6 +6,8 @@ import {
   type MRT_ColumnDef,
 } from "material-react-table";
 import ExportCard from "./ExportCard.tsx";
+import { SERVER_BACK_URL } from "../../../config.ts";
+
 import {
   TablaTarea,
   SocketResponse,
@@ -20,7 +22,7 @@ const Example = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const socket = io("http://localhost:3001");
+    const socket = io(SERVER_BACK_URL);
 
     // Emitir el evento 'datos_proceso' y manejar la respuesta
     socket.emit("datos_proceso", (response: SocketResponse) => {
