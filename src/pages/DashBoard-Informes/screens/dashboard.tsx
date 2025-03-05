@@ -6,6 +6,7 @@ import HorizontalBar from "../components/HorizontalBarComponent";
 import TaskProgressCard from "../components/TaskProgressCard";
 import GanttChart from "../components/GanttComponent";
 import NumericCards from "../components/RecordNumber";
+import PDFExport from "../components/PDFExport";
 const Dashboard: React.FC = () => {
   //Datos para los graficos
   //ojo para el back aqui se deberia cargar con la sentencia sql
@@ -95,12 +96,13 @@ const Dashboard: React.FC = () => {
   ];
 
   return (
+    <PDFExport captureIds={["taskProgress"]}>
     <div className="flex flex-col min-h-screen">
       <div className="flex">
         <Sidebar />
         <main className="flex-grow p-1 space-y-2 ml-0 md:ml-60">
           <div className="flex gap-1 items-center">
-            <div className="flex-3">
+            <div  className="flex-3">
               <TaskProgressCard
                 completedTasks={7}
                 totalTasks={10}
@@ -113,7 +115,7 @@ const Dashboard: React.FC = () => {
           </div>
 
           <div className="flex justify-end bg-gray-200 p-3 rounded-lg">
-            <div className="flex-9">
+            <div className="flex-9" id="taskProgress">
               <HorizontalBar />
             </div>
             <CardPrincipal
@@ -131,6 +133,7 @@ const Dashboard: React.FC = () => {
         </main>
       </div>
     </div>
+    </PDFExport>
   );
 };
 
