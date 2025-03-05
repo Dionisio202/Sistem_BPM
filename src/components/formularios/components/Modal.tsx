@@ -29,7 +29,7 @@ const Modal: React.FC<ModalProps> = ({
   ];
   const handleFacultadChange = (e: any) => {
     setFacultadSeleccionada(e.target.value);
-    setEditedData((prev:any) => ({
+    setEditedData((prev: any) => ({
       ...prev,
       solicitante: {
         ...prev.solicitante,
@@ -91,18 +91,22 @@ const Modal: React.FC<ModalProps> = ({
       });
 
       // Llama a la API vía Socket.io para mapear el código del memorando
-      socket.emit("subir_documento", { documento: memoBase64 }, (response: any) => {
-        if (response.success) {
-          // Se asume que la API devuelve el código en response.codigo
-          setEditedData((prev: any) => ({
-            ...prev,
-            codigoMemorando: response.codigo,
-          }));
-        } else {
-          console.error("Error al subir el documento:", response.message);
-          alert("Error al subir el documento");
+      socket.emit(
+        "subir_documento",
+        { documento: memoBase64 },
+        (response: any) => {
+          if (response.success) {
+            // Se asume que la API devuelve el código en response.codigo
+            setEditedData((prev: any) => ({
+              ...prev,
+              codigoMemorando: response.codigo,
+            }));
+          } else {
+            console.error("Error al subir el documento:", response.message);
+            alert("Error al subir el documento");
+          }
         }
-      });
+      );
     } catch (err) {
       console.error("Error procesando el archivo:", err);
       alert("Error al procesar el archivo");
@@ -147,8 +151,7 @@ const Modal: React.FC<ModalProps> = ({
                 </div>
               )}
               <div className="space-y-1">
-               
-              <div className="mb-4">
+                <div className="mb-4">
                   <UploadFile
                     id="memo-file"
                     onFileChange={handleMemoFileChange}
@@ -312,7 +315,7 @@ const Modal: React.FC<ModalProps> = ({
                       >
                         <option value="">Seleccione una facultad</option>
                         {facultades.map((facultad) => (
-                          <option key={facultad.id} value={facultad.nombre} >
+                          <option key={facultad.id} value={facultad.nombre}>
                             {facultad.nombre}
                           </option>
                         ))}
@@ -320,7 +323,22 @@ const Modal: React.FC<ModalProps> = ({
                     </div>
                   </div>
                 </div>
-
+                {/* Carrera */}
+                <div className="bg-gray-50 rounded-lg">
+                <div className="space-y-4">
+                    <label className="block text-xs font-medium text-gray-700">
+                      <h4 className="text-xss font-semibold text-orange-700 ">
+                        Carrera:
+                      </h4>
+                    </label>
+                    <input
+                      type="text"
+                      value={editedData.proyecto.carrera}
+                      onChange={(e) => handleChange("carrera", e.target.value)}
+                      className="mt-1 mb-5 text-xs block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-[#931D21] focus:border-[#931D21]"
+                    />
+                  </div>
+                </div>
                 {/* Productos */}
                 <div className="bg-gray-50 rounded-lg">
                   <h4 className="text-xss font-semibold text-orange-700 ">
