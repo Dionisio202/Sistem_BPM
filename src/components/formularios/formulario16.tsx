@@ -9,15 +9,16 @@ import { useSaveTempState } from "../bonita/hooks/datos_temprales";
 import io from "socket.io-client";
 import Title from "./components/TitleProps";
 import { SERVER_BACK_URL } from "../../config.ts";
-import { Tarea } from "../../interfaces/bonita.interface.ts";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { toast, ToastContainer } from "react-toastify";
+import { useCombinedBonitaData } from "../bonita/hooks/obtener_datos_bonita.tsx";
 const socket = io(SERVER_BACK_URL);
 
 export default function DocumentForm() {
   const [json, setJson] = useState<temporalData | null>(null);
-  const [tareaActual, setTareaActual] = useState<Tarea | null>(null);
   const { startAutoSave, saveFinalState } = useSaveTempState(socket);
+  const { usuario, bonitaData, tareaActual } = useCombinedBonitaData();
+  const {  error } = useBonitaService();
   const [memoCode, setMemoCode] = useState("");
   const [selectedDocuments, setSelectedDocuments] = useState({
     solicitud: false,
@@ -28,101 +29,59 @@ export default function DocumentForm() {
     cedulaRepresentante: false,
     rucUTA: false,
   });
-  type BonitaData = {
-    taskId: string;
-    caseId: string;
-    processId: string;
-    processName: string;
-  };
-  type Usuario = {
-    user_id: string;
-    user_name: string;
-  };
-  const [usuario, setUsuario] = useState<Usuario | null>(null);
-  const [bonitaData, setBonitaData] = useState<BonitaData | null>(null);
   const bonita = new BonitaUtilities();
-  const {
-    obtenerUsuarioAutenticado,
-    obtenerDatosBonita,
-    error,
-    obtenerTareaActual,
-  } = useBonitaService();
-  // @ts-ignore
-
   // Estados para manejo de carga y error en la subida del archivo
+  // @ts-ignore
   const [loading, setLoading] = useState(false);
   const [uploadError, setUploadError] = useState<string>("");
 
- 
-   // 🔹 Obtener el usuario autenticado al montar el componente
-   // 🔹 Obtener el usuario autenticado al montar el componente
-     useEffect(() => {
-       const fetchUser = async () => {
-         const userData = await obtenerUsuarioAutenticado();
-         if (userData) {
-           setUsuario(userData);
-         }
-       };
-       fetchUser();
-     }, [obtenerUsuarioAutenticado]);
-   
-     // 🔹 Obtener datos de Bonita una vez que se tenga el usuario
-     useEffect(() => {
-       if (!usuario) return;
-       const fetchData = async () => {
-         try {
-           const tareaData = await obtenerTareaActual(usuario.user_id);
-           setTareaActual(tareaData);
-           const data = await obtenerDatosBonita(usuario.user_id);
-           if (data) {
-             setBonitaData(data);
-           }
-         } catch (error) {
-           console.error("❌ Error obteniendo datos de Bonita:", error);
-         }
-       };
-       fetchData();
-     }, [usuario, obtenerDatosBonita]);
-   
-     // 🔹 Recuperar el estado guardado al cargar el componente
-     useEffect(() => {
-       if (bonitaData) {
-         const id_registro = `${bonitaData.processId}-${bonitaData.caseId}`;
-         const id_tarea = bonitaData.taskId;
-   
-         socket.emit(
-           "obtener_estado_temporal",
-           { id_registro, id_tarea },
-           (response: { success: boolean; message: string; jsonData?: string }) => {
-             if (response.success && response.jsonData) {
-               try {
-                 const loadedState = JSON.parse(response.jsonData);
-                 setSelectedDocuments(loadedState);
-               } catch (err) {
-                 console.error("Error al parsear el JSON:", err);
-               }
-             } else {
-               console.error("Error al obtener el estado temporal:", response.message);
-             }
-           }
-         );
-       }
-     }, [bonitaData]);
-   
-     // 🔹 Iniciar el guardado automático ("En Proceso")
-     useEffect(() => {
-       if (bonitaData && usuario) {
-         const data: temporalData = {
-           id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
-           id_tarea: parseInt(bonitaData.taskId),
-           jsonData: JSON.stringify(selectedDocuments),
-           id_funcionario: parseInt(usuario.user_id),
-           nombre_tarea: tareaActual?.name || "",
-         };
-         setJson(data);
-         startAutoSave(data, 10000, "En Proceso");
-       }
-     }, [bonitaData, usuario, startAutoSave, selectedDocuments, tareaActual]);
+  // 🔹 Obtener el usuario autenticado al montar el componente
+
+  // 🔹 Recuperar el estado guardado al cargar el componente
+  useEffect(() => {
+    if (bonitaData) {
+      const id_registro = `${bonitaData.processId}-${bonitaData.caseId}`;
+      const id_tarea = bonitaData.taskId;
+
+      socket.emit(
+        "obtener_estado_temporal",
+        { id_registro, id_tarea },
+        (response: {
+          success: boolean;
+          message: string;
+          jsonData?: string;
+        }) => {
+          if (response.success && response.jsonData) {
+            try {
+              const loadedState = JSON.parse(response.jsonData);
+              setSelectedDocuments(loadedState);
+            } catch (err) {
+              console.error("Error al parsear el JSON:", err);
+            }
+          } else {
+            console.error(
+              "Error al obtener el estado temporal:",
+              response.message
+            );
+          }
+        }
+      );
+    }
+  }, [bonitaData]);
+
+  useEffect(() => {
+    if (bonitaData && usuario) {
+      const data: temporalData = {
+        id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
+        id_tarea: parseInt(bonitaData.taskId),
+        jsonData: JSON.stringify(selectedDocuments),
+        id_funcionario: parseInt(usuario.user_id),
+        nombre_tarea: tareaActual?.name || "",
+      };
+      setJson(data);
+      startAutoSave(data, 10000, "En Proceso");
+    }
+  }, [bonitaData, usuario, startAutoSave, selectedDocuments, tareaActual]);
 
   const handleMemoCodeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setMemoCode(event.target.value);

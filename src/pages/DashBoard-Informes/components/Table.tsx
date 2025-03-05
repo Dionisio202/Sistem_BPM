@@ -6,6 +6,8 @@ import {
   type MRT_ColumnDef,
 } from "material-react-table";
 import ExportCard from "./ExportCard.tsx";
+import { SERVER_BACK_URL } from "../../../config.ts";
+
 import {
   TablaTarea,
   SocketResponse,
@@ -20,7 +22,7 @@ const Example = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const socket = io("http://localhost:3001");
+    const socket = io(SERVER_BACK_URL);
 
     // Emitir el evento 'datos_proceso' y manejar la respuesta
     socket.emit("datos_proceso", (response: SocketResponse) => {
@@ -43,6 +45,8 @@ const Example = () => {
               funcionario.Caso.flatMap((caso: Caso) =>
                 Array.isArray(caso.NombreTarea)
                   ? caso.NombreTarea.map((tarea: Tarea) => ({
+                      NombreProceso:"Registro Propiedad Intelectual",
+                      NombreTarea:tarea.Nombre,
                       Progreso: tarea.Progreso,
                       EstadoDeProceso: tarea.EstadoDeProceso,
                       TipoProductos: tarea.TipoProductos,
@@ -93,6 +97,7 @@ const Example = () => {
       { accessorKey: "NombreProceso", header: "Nombre de Proceso", size: 150 },
       { accessorKey: "Funcionario", header: "Funcionario", size: 150 },
       { accessorKey: "NumeroCaso", header: "Número de Caso", size: 100 },
+      { accessorKey: "NombreTarea", header: "Nombre de Tarea", size: 100 },
       { accessorKey: "Progreso", header: "Progreso", size: 100 },
       { accessorKey: "EstadoDeProceso", header: "Estado de Proceso", size: 120 },
       { accessorKey: "TipoProductos", header: "Tipo de Productos", size: 120 },

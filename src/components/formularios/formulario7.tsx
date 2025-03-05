@@ -7,32 +7,25 @@ import Checkbox from "./components/Checkbox";
 import Title from "./components/TitleProps";
 import io from "socket.io-client";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
-import { useBonitaService } from "../../services/bonita.service";
 import { useSaveTempState } from "../bonita/hooks/datos_temprales";
-import { Tarea } from "../../interfaces/bonita.interface.ts";
 import { SERVER_BACK_URL } from "../../config.ts";
 import { ToastContainer, toast } from "react-toastify";
-
+import { useCombinedBonitaData } from "../bonita/hooks/obtener_datos_bonita.tsx";
+import { useBonitaService } from "../../services/bonita.service.ts";
 const socket = io(SERVER_BACK_URL);
 
 export default function ConfirmationScreen() {
   const { startAutoSave, saveFinalState } = useSaveTempState(socket);
+// Usar el hook personalizado
+const { usuario, bonitaData, tareaActual} = useCombinedBonitaData();
+const {  error } = useBonitaService();
   const [selectedDocuments, setSelectedDocuments] = useState({
     contrato: false,
     acta: false,
   });
-  const [usuario, setUsuario] = useState<{ user_id: string; user_name: string } | null>(null);
-  const [bonitaData, setBonitaData] = useState<{
-    processId: string;
-    taskId: string;
-    caseId: string;
-    processName: string;
-  } | null>(null);
-  const [tareaActual, setTareaActual] = useState<Tarea | null>(null);
     const [json, setJson] = useState<temporalData | null>(null);
   const [contratoFile, setContratoFile] = useState<File | null>(null);
   const [actaFile, setActaFile] = useState<File | null>(null);
-  const { obtenerUsuarioAutenticado, obtenerDatosBonita, error, obtenerTareaActual } = useBonitaService();
   const bonita: BonitaUtilities = new BonitaUtilities();
 
   const handleChange = (name: string, checked: boolean) => {
@@ -41,35 +34,6 @@ export default function ConfirmationScreen() {
       [name]: checked,
     }));
   };
-
-  // 🔹 Obtener el usuario autenticado al montar el componente
-  useEffect(() => {
-    const fetchUser = async () => {
-      const userData = await obtenerUsuarioAutenticado();
-      if (userData) {
-        setUsuario(userData);
-      }
-    };
-    fetchUser();
-  }, [obtenerUsuarioAutenticado]);
-
-  // 🔹 Obtener datos de Bonita una vez que se tenga el usuario
-  useEffect(() => {
-    if (!usuario) return;
-    const fetchData = async () => {
-      try {
-        const tareaData = await obtenerTareaActual(usuario.user_id);
-        setTareaActual(tareaData);
-        const data = await obtenerDatosBonita(usuario.user_id);
-        if (data) {
-          setBonitaData(data);
-        }
-      } catch (error) {
-        console.error("❌ Error obteniendo datos de Bonita:", error);
-      }
-    };
-    fetchData();
-  }, [usuario, obtenerDatosBonita]);
 
   // 🔹 Recuperar el estado guardado al cargar el componente
   useEffect(() => {
@@ -82,6 +46,7 @@ export default function ConfirmationScreen() {
         { id_registro, id_tarea },
         (response: { success: boolean; message: string; jsonData?: string }) => {
           if (response.success && response.jsonData) {
+            console.log("📦 Estado temporal cargado:", response.jsonData);
             try {
               const loadedState = JSON.parse(response.jsonData);
               setSelectedDocuments(loadedState);
@@ -95,22 +60,20 @@ export default function ConfirmationScreen() {
       );
     }
   }, [bonitaData]);
-
-  // 🔹 Iniciar el guardado automático ("En Proceso")
-  useEffect(() => {
-    if (bonitaData && usuario) {
-      const data: temporalData = {
-        id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
-        id_tarea: parseInt(bonitaData.taskId),
-        jsonData: JSON.stringify(selectedDocuments),
-        id_funcionario: parseInt(usuario.user_id),
-        nombre_tarea: tareaActual?.name || "",
-      };
-      setJson(data);
-      startAutoSave(data, 10000, "En Proceso");
-    }
-  }, [bonitaData, usuario, startAutoSave, selectedDocuments, tareaActual]);
   
+    useEffect(() => {
+      if (bonitaData && usuario) {
+        const data: temporalData = {
+          id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
+          id_tarea: parseInt(bonitaData.taskId),
+          jsonData: JSON.stringify(selectedDocuments),
+          id_funcionario: parseInt(usuario.user_id),
+          nombre_tarea: tareaActual?.name || "",
+        };
+        setJson(data);
+        startAutoSave(data, 10000, "En Proceso");
+      }
+    }, [bonitaData, usuario, startAutoSave, selectedDocuments, tareaActual]);
  
   // Función para subir un archivo firmado usando el endpoint "get-document"
   const uploadSignedDocument = async (file: File, documentType: "contrato" | "acta") => {

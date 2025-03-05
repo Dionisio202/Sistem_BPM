@@ -2,7 +2,6 @@ import { useEffect, useState, useCallback } from "react";
 import DocumentViewer from "../files/DocumentViewer"; // Componente para mostrar documentos
 // @ts-ignore
 import BonitaUtilities from "../bonita/bonita-utilities";
-import { useBonitaService } from "../../services/bonita.service";
 import io from "socket.io-client";
 import { SERVER_BACK_URL } from "../../config.ts";
 import UploadFile from "./components/UploadFile";
@@ -10,6 +9,7 @@ import { useSaveTempState } from "../bonita/hooks/datos_temprales";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { Tarea } from "../../interfaces/bonita.interface.ts";
 import { ToastContainer, toast } from "react-toastify";
+import { useCombinedBonitaData } from "../bonita/hooks/obtener_datos_bonita.tsx";
 const socket = io(SERVER_BACK_URL);
 
 type DocumentType = {
@@ -27,15 +27,9 @@ const staticDocuments: Record<string, DocumentType> = {
 };
 
 export default function WebPage() {
-  const [tareaActual, setTareaActual] = useState<Tarea | null>(null);
   const { startAutoSave, saveFinalState } = useSaveTempState(socket);
+  const { usuario, bonitaData, tareaActual } = useCombinedBonitaData();
   const [json, setJson] = useState<temporalData | null>(null);
-  // @ts-ignore
-  const {
-    obtenerUsuarioAutenticado,
-    obtenerDatosBonita,
-    obtenerTareaActual,
-  } = useBonitaService();
   const urlSave = `${SERVER_BACK_URL}/api/save-document`;
   const [codigo, setCodigo] = useState(""); // Código del memorando
   const [codigoGuardado, setCodigoGuardado] = useState<string | null>(null);
@@ -45,52 +39,11 @@ export default function WebPage() {
   const [selectedDocument, setSelectedDocument] = useState<DocumentType>(
     staticDocuments.datos
   );
-  const [usuario, setUsuario] = useState<{
-    user_id: string;
-    user_name: string;
-  } | null>(null);
-  const [bonitaData, setBonitaData] = useState<{
-    processId: string;
-    taskId: string;
-    caseId: string;
-    processName: string;
-  } | null>(null);
-
   const handleCodigoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setCodigo(e.target.value);
   };
 
   // Obtener usuario autenticado
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const userData = await obtenerUsuarioAutenticado();
-        if (userData) setUsuario(userData);
-      } catch (error) {
-        console.error("❌ Error obteniendo usuario autenticado:", error);
-      }
-    };
-    fetchUser();
-  }, [obtenerUsuarioAutenticado]);
-
-  // Obtener datos de Bonita cuando el usuario ya esté disponible
-  useEffect(() => {
-    if (!usuario) return;
-    const fetchTareaData = async () => {
-      const tareaData = await obtenerTareaActual(usuario.user_id);
-      setTareaActual(tareaData);
-    };
-    fetchTareaData();
-    const fetchData = async () => {
-      try {
-        const data = await obtenerDatosBonita(usuario.user_id);
-        if (data) setBonitaData(data);
-      } catch (error) {
-        console.error("❌ Error obteniendo datos de Bonita:", error);
-      }
-    };
-    fetchData();
-  }, [usuario, obtenerDatosBonita]);
   useEffect(() => {
     if (bonitaData && usuario) {
       const data: temporalData = {
@@ -103,7 +56,7 @@ export default function WebPage() {
       setJson(data);
       startAutoSave(data, 10000, "En Proceso");
     }
-  }, [bonitaData, usuario, startAutoSave]);
+  }, [bonitaData, usuario, startAutoSave, tareaActual]);
 
   // Emitir el evento socket para obtener el código de almacenamiento cuando se disponga de la data de Bonita
   useEffect(() => {

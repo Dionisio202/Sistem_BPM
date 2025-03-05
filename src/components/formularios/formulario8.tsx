@@ -11,11 +11,13 @@ import { useBonitaService } from "../../services/bonita.service";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { Tarea } from "../../interfaces/bonita.interface.ts";
 import { ToastContainer } from "react-toastify";
+import { useCombinedBonitaData } from "../bonita/hooks/obtener_datos_bonita.tsx";
 // Crear la instancia de Socket.io
 const socket = io(SERVER_BACK_URL);
 
 export default function MemoCodeForm() {
   const { startAutoSave, saveFinalState } = useSaveTempState(socket);
+  const { usuario, bonitaData, tareaActual } = useCombinedBonitaData();
   const [memoCode, setMemoCode] = useState("");
   const [loading, setLoading] = useState(false);
   // @ts-ignore
@@ -23,7 +25,6 @@ export default function MemoCodeForm() {
   const bonita: BonitaUtilities = new BonitaUtilities();
   const id_tipo_documento = 3; // Valor de ejemplo, reemplazar según corresponda
   const [json, setJson] = useState<temporalData | null>(null);
-  const [tareaActual, setTareaActual] = useState<Tarea | null>(null);
 
   // @ts-ignore
   const {
@@ -33,61 +34,21 @@ export default function MemoCodeForm() {
     error: errorService,
     obtenerTareaActual,
   } = useBonitaService();
-  const [usuario, setUsuario] = useState<{
-    user_id: string;
-    user_name: string;
-  } | null>(null);
-  const [bonitaData, setBonitaData] = useState<{
-    processId: string;
-    taskId: string;
-    caseId: string;
-    processName: string;
-  } | null>(null);
 
- // Obtener usuario autenticado
- useEffect(() => {
-  const fetchUser = async () => {
-    try {
-      const userData = await obtenerUsuarioAutenticado();
-      if (userData) setUsuario(userData);
-    } catch (error) {
-      console.error("❌ Error obteniendo usuario autenticado:", error);
+  // Obtener usuario autenticado
+  useEffect(() => {
+    if (bonitaData && usuario) {
+      const data: temporalData = {
+        id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
+        id_tarea: parseInt(bonitaData.taskId),
+        jsonData: JSON.stringify("No Form Data"),
+        id_funcionario: parseInt(usuario.user_id),
+        nombre_tarea: tareaActual?.name || "",
+      };
+      setJson(data);
+      startAutoSave(data, 10000, "En Proceso");
     }
-  };
-  fetchUser();
-}, [obtenerUsuarioAutenticado]);
-
-// Obtener datos de Bonita cuando el usuario ya esté disponible
-useEffect(() => {
-  if (!usuario) return;
-  const fetchTareaData = async () => {
-    const tareaData = await obtenerTareaActual(usuario.user_id);
-    setTareaActual(tareaData);
-  };
-  fetchTareaData();
-  const fetchData = async () => {
-    try {
-      const data = await obtenerDatosBonita(usuario.user_id);
-      if (data) setBonitaData(data);
-    } catch (error) {
-      console.error("❌ Error obteniendo datos de Bonita:", error);
-    }
-  };
-  fetchData();
-}, [usuario, obtenerDatosBonita]);
-useEffect(() => {
-  if (bonitaData && usuario) {
-    const data: temporalData = {
-      id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
-      id_tarea: parseInt(bonitaData.taskId),
-      jsonData: JSON.stringify("No Form Data"),
-      id_funcionario: parseInt(usuario.user_id),
-      nombre_tarea: tareaActual?.name || "",
-    };
-    setJson(data);
-    startAutoSave(data, 10000, "En Proceso");
-  }
-}, [bonitaData, usuario, startAutoSave]);
+  }, [bonitaData, usuario, startAutoSave, tareaActual]);
 
   // Función para manejar la carga del archivo del memorando y obtener el código mediante Socket.io
   const handleMemoFileChange = useCallback(

@@ -13,6 +13,7 @@ export interface Funcionario {
 
 // Interfaz para un caso
 export interface Caso {
+  NombreProceso:string;
   NumeroCaso: string;
   NombreTarea?: Tarea[]; // Campo correcto según el JSON
   FechaRegistro: string;
@@ -23,6 +24,7 @@ export interface Caso {
 
 // Interfaz para una tarea
 export interface Tarea {
+  Nombre:string;
   Progreso: string;
   EstadoDeProceso: string;
   TipoProductos: string;

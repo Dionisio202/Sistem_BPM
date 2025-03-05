@@ -4,12 +4,13 @@ import DocumentViewer from "../files/DocumentViewer";
 // @ts-ignore
 import BonitaUtilities from "../bonita/bonita-utilities";
 import io from "socket.io-client";
-import { useBonitaService } from "../../services/bonita.service";
 import { useSaveTempState } from "../bonita/hooks/datos_temprales";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { SERVER_BACK_URL } from "../../config.ts";
 import { Tarea } from "../../interfaces/bonita.interface.ts";
 import {ToastContainer} from "react-toastify";
+import { useCombinedBonitaData } from "../bonita/hooks/obtener_datos_bonita.tsx";
+
 const socket = io(SERVER_BACK_URL);
 type StaticDocument = {
   key: string;
@@ -19,14 +20,13 @@ type StaticDocument = {
 
 export default function Formulario6() {
   const { startAutoSave, saveFinalState } = useSaveTempState(socket);
-  const { obtenerDatosBonita, obtenerUsuarioAutenticado, obtenerTareaActual } =
-    useBonitaService();
+  const { usuario, bonitaData, tareaActual } = useCombinedBonitaData();
   const urlSave = `${SERVER_BACK_URL}api/save-document`;
-  const [selectedDocument, setSelectedDocument] =
+  const [selectedDocuments, setSelectedDocuments] =
     useState<StaticDocument | null>(null);
   const bonita: BonitaUtilities = new BonitaUtilities();
   const [json, setJson] = useState<temporalData | null>(null);
-    const [tareaActual, setTareaActual] = useState<Tarea | null>(null);
+  const [aprobado, setAprobado] = useState<boolean>(false);
 
   // Modificamos la función para aceptar un string
   const handleViewDocument = async (documentType: string) => {
@@ -49,65 +49,24 @@ export default function Formulario6() {
         }
       );
 
-      setSelectedDocument(document);
+      setSelectedDocuments(document);
     }
   };
 
-  // Obtener datos del formulario
-  const [usuario, setUsuario] = useState<{
-    user_id: string;
-    user_name: string;
-  } | null>(null);
-  const [bonitaData, setBonitaData] = useState<{
-    processId: string;
-    taskId: string;
-    caseId: string;
-    processName: string;
-  } | null>(null);
- // Obtener usuario autenticado
- useEffect(() => {
-  const fetchUser = async () => {
-    try {
-      const userData = await obtenerUsuarioAutenticado();
-      if (userData) setUsuario(userData);
-    } catch (error) {
-      console.error("❌ Error obteniendo usuario autenticado:", error);
+  // Obtener usuario autenticado
+  useEffect(() => {
+    if (bonitaData && usuario) {
+      const data: temporalData = {
+        id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
+        id_tarea: parseInt(bonitaData.taskId),
+        jsonData: JSON.stringify(selectedDocuments),
+        id_funcionario: parseInt(usuario.user_id),
+        nombre_tarea: tareaActual?.name || "",
+      };
+      setJson(data);
+      startAutoSave(data, 10000, "En Proceso");
     }
-  };
-  fetchUser();
-}, [obtenerUsuarioAutenticado]);
-
-// Obtener datos de Bonita cuando el usuario ya esté disponible
-useEffect(() => {
-  if (!usuario) return;
-  const fetchTareaData = async () => {
-    const tareaData = await obtenerTareaActual(usuario.user_id);
-    setTareaActual(tareaData);
-  };
-  fetchTareaData();
-  const fetchData = async () => {
-    try {
-      const data = await obtenerDatosBonita(usuario.user_id);
-      if (data) setBonitaData(data);
-    } catch (error) {
-      console.error("❌ Error obteniendo datos de Bonita:", error);
-    }
-  };
-  fetchData();
-}, [usuario, obtenerDatosBonita]);
-useEffect(() => {
-  if (bonitaData && usuario) {
-    const data: temporalData = {
-      id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
-      id_tarea: parseInt(bonitaData.taskId),
-      jsonData: JSON.stringify("No Form Data"),
-      id_funcionario: parseInt(usuario.user_id),
-      nombre_tarea: tareaActual?.name || "",
-    };
-    setJson(data);
-    startAutoSave(data, 10000, "En Proceso");
-  }
-}, [bonitaData, usuario, startAutoSave]);
+  }, [bonitaData, usuario, startAutoSave, tareaActual,selectedDocuments]);
 
   // Guardado final
   const handleNext = async () => {
@@ -116,7 +75,16 @@ useEffect(() => {
     } else {
       console.error("❌ Error: json is null");
     }
-    bonita.changeTask();
+    console.log("Aprobado", aprobado);
+    bonita.changeTask({
+      formData: {
+      aprobadoInput:
+      {
+        aprobado: aprobado
+      }
+    },
+    });
+
   };
   const nombrePlantilla1 = "Contrato_Cesion_Derechos";
   const nombrePlantilla2 = "Acta_Porcentaje_Participacion";
@@ -147,14 +115,24 @@ useEffect(() => {
         >
           Siguiente
         </button>
+        <div className="flex items-center">
+  <input
+    type="checkbox"
+    className="h-6 w-6"
+    id="aprobado"
+    name="aprobado"
+    onChange={(e) => setAprobado(e.target.checked)}
+  />
+  <label htmlFor="aprobado" className="ml-2">Aprobado</label>
+</div>
       </div>
 
       <div className="flex-grow">
-        {selectedDocument ? (
+        {selectedDocuments ? (
           <DocumentViewer
-            keyDocument={selectedDocument.key}
-            title={selectedDocument.title}
-            documentName={selectedDocument.nombre}
+            keyDocument={selectedDocuments.key}
+            title={selectedDocuments.title}
+            documentName={selectedDocuments.nombre}
             mode="edit"
             callbackUrl={urlSave}
           />
