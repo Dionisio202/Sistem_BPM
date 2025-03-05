@@ -10,7 +10,7 @@ import { useBonitaService } from "../../services/bonita.service";
 import { useSaveTempState } from "../bonita/hooks/datos_temprales";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { Tarea } from "../../interfaces/bonita.interface.ts";
-
+import { ToastContainer } from "react-toastify";
 const socket = io(SERVER_BACK_URL);
 
 // Definimos un tipo para nuestros documentos
@@ -39,10 +39,8 @@ export default function Formulario6() {
         console.error("❌ Error: json is null");
       }
       await bonita.changeTask();
-      alert("Avanzando a la siguiente página...");
     } catch (error) {
       console.error("Error al cambiar la tarea:", error);
-      alert("Ocurrió un error al intentar avanzar.");
     }
   };
   // Obtener datos del formulario
@@ -167,6 +165,7 @@ export default function Formulario6() {
           </p>
         )}
       </div>
+      <ToastContainer/>
     </div>
   );
 }

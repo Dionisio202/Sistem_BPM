@@ -6,6 +6,7 @@ import {
   TipoProducto,
 } from "../../../interfaces/registros.interface";
 import { SERVER_BACK_URL } from "../../../config.ts";
+import { toast, ToastContainer } from "react-toastify";
 const socket = io(SERVER_BACK_URL); // Conecta con el backend
 const Modal: React.FC<ModalProps> = ({
   showModal,
@@ -100,12 +101,12 @@ const Modal: React.FC<ModalProps> = ({
           }));
         } else {
           console.error("Error al subir el documento:", response.message);
-          alert("Error al subir el documento");
+          toast.error("Error al subir el documento");
         }
       });
     } catch (err) {
       console.error("Error procesando el archivo:", err);
-      alert("Error al procesar el archivo");
+      toast.error("Error al procesar el archivo");
     }
   };
   const handleChange = (path: string, value: string) => {
@@ -435,6 +436,7 @@ const Modal: React.FC<ModalProps> = ({
           </button>
         </div>
       </div>
+      <ToastContainer/>
     </div>
   );
 };

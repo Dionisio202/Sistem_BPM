@@ -11,6 +11,7 @@ import { useBonitaService } from "../../services/bonita.service";
 import { useSaveTempState } from "../bonita/hooks/datos_temprales";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { Tarea } from "../../interfaces/bonita.interface.ts";
+import { toast, ToastContainer } from "react-toastify";
 const socket = io(SERVER_BACK_URL);
 
 export default function ConfirmationScreen() {
@@ -31,10 +32,8 @@ export default function ConfirmationScreen() {
         console.error("❌ Error: json is null");
       }
       await bonita.changeTask();
-      alert("Avanzando a la siguiente página...");
     } catch (error) {
       console.error("Error al cambiar la tarea:", error);
-      alert("Ocurrió un error al intentar avanzar.");
     }
   };
 
@@ -97,7 +96,7 @@ useEffect(() => {
 
   const handleSubmit = async () => {
     if (!file) {
-      alert("Por favor, cargue un archivo.");
+      toast.warning("Por favor, cargue un archivo.");
       return;
     }
 
@@ -130,7 +129,6 @@ useEffect(() => {
     };
 
     try {
-      alert("Enviando datos al servidor...");
       const response = await fetch(`${SERVER_BACK_URL}/api/get-document`, {
         method: "POST",
         headers: {
@@ -176,6 +174,7 @@ useEffect(() => {
           Siguiente Proceso
         </Button>
       </div>
+      <ToastContainer/>
     </CardContainer>
   );
 }

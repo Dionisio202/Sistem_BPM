@@ -2,31 +2,25 @@ import { Card } from "../../UI/card";
 import Button from "../../UI/button";
 import { Send } from "lucide-react";
 import { useState } from "react";
-import { Socket } from "socket.io-client";
 // @ts-ignore
 import BonitaUtilities from "../../bonita/bonita-utilities";
-import { temporalData } from "../../../interfaces/actividad.interface";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { EmailInputProps } from "../../../interfaces/emailinput.interface";
 
-export interface SaveTempStateResponse {
-  success: boolean;
-  message: string;
-}
-
-interface EmailInputProps {
-  json: temporalData | null;
-  socket: Socket;
-  stopAutoSave: () => void;
-  saveFinalState: (data: temporalData) => Promise<SaveTempStateResponse>;
-  attachments?: string[];  // Nombres de archivos a enviar
-  docBasePath?: string;      // Ruta base para los adjuntos
-}
 
 export function EmailInput(emailInputProps: EmailInputProps) {
-  const [email, setEmail] = useState<string>("");         // Campo de entrada individual
+  const [email, setEmail] = useState<string>(""); // Campo de entrada individual
   const [emailList, setEmailList] = useState<string[]>([]); // Lista de correos
   const [error, setError] = useState<string>("");
-  const [subject, setSubject] = useState<string>("UNIVERSIDAD TECNICA DE AMBATO DINNOVA"); // Asunto fijo
-  const [message, setMessage] = useState<string>("Este es el contenido del correo."); // Campo para mensaje
+  const [loading, setLoading] = useState(false);
+  const [processAdvanced, setProcessAdvanced] = useState(false);
+  const [subject, setSubject] = useState<string>(
+    "UNIVERSIDAD TECNICA DE AMBATO DINNOVA"
+  ); // Asunto fijo
+  const [message, setMessage] = useState<string>(
+    "Este es el contenido del correo."
+  ); // Campo para mensaje
   const bonita: BonitaUtilities = new BonitaUtilities();
 
   // Regex para validar formato de correo
@@ -45,56 +39,79 @@ export function EmailInput(emailInputProps: EmailInputProps) {
         setEmailList([...emailList, email]);
         setEmail("");
       } else {
-        setError("Este correo ya ha sido agregado.");
+        toast.warning("Este correo ya ha sido agregado.");
       }
     } else {
-      setError("Por favor ingrese un correo válido.");
+      toast.error("Por favor ingrese un correo válido.");
     }
   };
 
   // Elimina un correo de la lista
   const handleRemoveEmail = (emailToRemove: string) => {
     setEmailList(emailList.filter((email) => email !== emailToRemove));
+    toast.info(`Correo ${emailToRemove} eliminado.`);
   };
 
   // Lógica para enviar correos a través de Socket.io
   const handleSubmit = () => {
     if (emailList.length === 0) {
-      setError("Por favor, agregue al menos un correo electrónico.");
+      toast.error("Por favor, agregue al menos un correo electrónico.");
       return;
     }
 
     // Construir el payload usando las props opcionales o valores por defecto
     const payload = {
-      to: emailList,                              // Array de destinatarios
-      subject,                                    // Asunto del correo
-      message,                                    // Cuerpo del correo (input para el mensaje)
-      attachments: emailInputProps.attachments ?? ["jfda-001.docx", "jfsr-001.docx"],
-      docBasePath: emailInputProps.docBasePath ?? "/app/documents"
+      to: emailList, // Array de destinatarios
+      subject, // Asunto del correo
+      message, // Cuerpo del correo (input para el mensaje)
+      attachments: emailInputProps.attachments ?? [
+        "jfda-001.docx",
+        "jfsr-001.docx",
+      ],
+      docBasePath: emailInputProps.docBasePath ?? "/app/documents",
     };
 
     emailInputProps.socket.emit("send_email", payload, (response: any) => {
       console.log("📩 Respuesta del servidor:", response);
       if (response.success) {
-        alert("Correo enviado exitosamente.");
+        toast.success("Correo enviado exitosamente.");
       } else {
-        alert("Error al enviar correo: " + response.message);
+        toast.error("Error al enviar correo: ");
       }
     });
   };
-
-  // Avanzar a la siguiente página / tarea
   const handleNext = async () => {
     try {
       if (emailInputProps.json) {
-        await emailInputProps.saveFinalState(emailInputProps.json);
+        setLoading(true); // Activar el loading
+        // Guardar el estado final
+        const saveResponse = await emailInputProps.saveFinalState(emailInputProps.json);
+        // Verificar si la respuesta es válida
+        if (!saveResponse || typeof saveResponse.success !== "boolean") {
+          throw new Error("Respuesta inválida al guardar el estado final");
+        }
+        // Verificar si el guardado fue exitoso
+        if (!saveResponse.success) {
+          throw new Error(
+            saveResponse.message || "No se pudo guardar el estado final. Inténtelo de nuevo."
+          );
+        }
+        // Avanzar a la siguiente tarea
         await bonita.changeTask();
-        alert("Avanzando...");
+        // Mostrar mensaje de éxito al avanzar
+        toast.success("El proceso avanzó correctamente.");
+        // Marcar que el proceso avanzó
+        setProcessAdvanced(true);
       }
     } catch (error) {
-      alert(`Error: ${error}`);
+      // Mostrar mensaje de error
+      toast.error(`Error: ${error}`);
+    } finally {
+      setLoading(false); // Desactivar el loading siempre
     }
   };
+
+  
 
   return (
     <Card className="w-full md:w-1/2 p-5 bg-white shadow-lg rounded-lg">
@@ -104,11 +121,15 @@ export function EmailInput(emailInputProps: EmailInputProps) {
 
       {/* Campo para Asunto */}
       <div className="mt-4">
-        <label className="block font-semibold text-xs text-gray-700 mb-1">
+        <label
+          htmlFor="subject"
+          className="block font-semibold text-xs text-gray-700 mb-1"
+        >
           Asunto
         </label>
         <input
           type="text"
+          id="subject"
           className="w-full text-xs mt-2 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
           value={subject}
           onChange={(e) => setSubject(e.target.value)}
@@ -118,10 +139,14 @@ export function EmailInput(emailInputProps: EmailInputProps) {
 
       {/* Campo para Mensaje */}
       <div className="mt-4">
-        <label className="block font-semibold text-xs text-gray-700 mb-1">
+        <label
+          htmlFor="message"
+          className="block font-semibold text-xs text-gray-700 mb-1"
+        >
           Mensaje
         </label>
         <textarea
+          id="message"
           className="w-full text-xs mt-2 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
@@ -198,10 +223,20 @@ export function EmailInput(emailInputProps: EmailInputProps) {
         <Button
           className="bg-[#931D21] text-white rounded-lg px-6 py-2 hover:bg-blue-700 transition-colors duration-200"
           onClick={handleNext}
+          disabled={loading || processAdvanced} // Deshabilitar el botón mientras se carga o si el proceso ya avanzó
         >
-          Siguiente Proceso
+          {loading ? (
+            <div className="flex items-center">
+              <span className="mr-2">Guardando...</span>
+              {/* Spinner de carga */}
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+            </div>
+          ) : (
+            "Siguiente Proceso"
+          )}
         </Button>
       </div>
+      <ToastContainer />
     </Card>
   );
 }

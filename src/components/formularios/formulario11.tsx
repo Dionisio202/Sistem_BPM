@@ -11,6 +11,7 @@ import { useBonitaService } from "../../services/bonita.service";
 import { useSaveTempState } from "../bonita/hooks/datos_temprales";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { Tarea } from "../../interfaces/bonita.interface.ts";
+import { toast, ToastContainer } from "react-toastify";
 const socket = io(SERVER_BACK_URL);
 const Formulario11: React.FC = () => {
   const [tareaActual, setTareaActual] = useState<Tarea | null>(null);
@@ -89,10 +90,8 @@ useEffect(() => {
         console.error("❌ Error: json is null");
       }
       await bonita.changeTask();
-      alert("Avanzando a la siguiente página...");
     } catch (error) {
       console.error("Error al cambiar la tarea:", error);
-      alert("Ocurrió un error al intentar avanzar.");
     }
   };
 
@@ -100,7 +99,7 @@ useEffect(() => {
     event.preventDefault();
 
     if (!file) {
-      alert("Por favor, cargue un archivo.");
+      toast.warning("Por favor, cargue un archivo.");
       return;
     }
 
@@ -194,6 +193,7 @@ useEffect(() => {
           )}
         </ul>
       </div>
+      <ToastContainer/>
     </CardContainer>
   );
 };

@@ -11,6 +11,7 @@ import Title from "./components/TitleProps";
 import { SERVER_BACK_URL } from "../../config.ts";
 import { Tarea } from "../../interfaces/bonita.interface.ts";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
+import { toast, ToastContainer } from "react-toastify";
 const socket = io(SERVER_BACK_URL);
 
 export default function DocumentForm() {
@@ -156,13 +157,13 @@ export default function DocumentForm() {
               "Error al obtener el código del memorando:",
               response.message
             );
-            setUploadError("Error al obtener el código del memorando.");
+            toast.error("Error al obtener el código del memorando.");
           }
         }
       );
     } catch (error) {
       console.error("Error al subir archivo del memorando:", error);
-      setUploadError(
+      toast.error(
         "Error al subir el archivo del memorando. Intente nuevamente."
       );
     } finally {
@@ -293,6 +294,7 @@ export default function DocumentForm() {
         )}
         {error && <p className="text-red-500 text-center">{error}</p>}
       </form>
+      <ToastContainer/>
     </CardContainer>
   );
 }

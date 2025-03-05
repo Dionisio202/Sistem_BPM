@@ -10,6 +10,7 @@ import { useSaveTempState } from "../bonita/hooks/datos_temprales";
 import { useBonitaService } from "../../services/bonita.service";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { Tarea } from "../../interfaces/bonita.interface.ts";
+import { ToastContainer } from "react-toastify";
 // Crear la instancia de Socket.io
 const socket = io(SERVER_BACK_URL);
 
@@ -139,7 +140,6 @@ useEffect(() => {
   const handleSubmit = async () => {
     try {
       setError("");
-      alert("Avanzando a la siguiente página...");
       // Invocar el cambio de tarea
       if (json) {
         await saveFinalState(json);
@@ -212,6 +212,7 @@ useEffect(() => {
           {loading ? "Enviando..." : "Siguiente"}
         </button>
       </div>
+      <ToastContainer/>
     </CardContainer>
   );
 }

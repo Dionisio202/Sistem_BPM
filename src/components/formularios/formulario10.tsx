@@ -9,6 +9,7 @@ import { useSaveTempState } from "../bonita/hooks/datos_temprales";
 import { Tarea } from "../../interfaces/bonita.interface.ts";
 import { SERVER_BACK_URL } from "../../config.ts";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
+import { ToastContainer } from "react-toastify";
 const socket = io(SERVER_BACK_URL);
 
 export default function ConfirmationScreen() {
@@ -132,7 +133,6 @@ export default function ConfirmationScreen() {
           console.error("❌ Error: json is null");
         }
         await bonita.changeTask();
-        alert("Avanzando a la siguiente página...");
       } catch (error) {
         console.error("Error guardando estado final:", error);
       }
@@ -192,6 +192,7 @@ export default function ConfirmationScreen() {
 
         {error && <p className="text-red-500 text-center">{error}</p>}
       </form>
+      <ToastContainer/>
     </CardContainer>
   );
 }

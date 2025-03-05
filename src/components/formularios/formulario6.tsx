@@ -9,7 +9,7 @@ import { useSaveTempState } from "../bonita/hooks/datos_temprales";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { SERVER_BACK_URL } from "../../config.ts";
 import { Tarea } from "../../interfaces/bonita.interface.ts";
-
+import {ToastContainer} from "react-toastify";
 const socket = io(SERVER_BACK_URL);
 type StaticDocument = {
   key: string;
@@ -111,7 +111,6 @@ useEffect(() => {
 
   // Guardado final
   const handleNext = async () => {
-    alert("Avanzando a la siguiente página...");
     if (json) {
       await saveFinalState(json);
     } else {
@@ -165,6 +164,7 @@ useEffect(() => {
           </p>
         )}
       </div>
+      <ToastContainer/>
     </div>
   );
 }

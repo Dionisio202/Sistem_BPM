@@ -11,6 +11,7 @@ import { useBonitaService } from "../../services/bonita.service";
 import { useSaveTempState } from "../bonita/hooks/datos_temprales";
 import { Tarea } from "../../interfaces/bonita.interface.ts";
 import { SERVER_BACK_URL } from "../../config.ts";
+import { ToastContainer, toast } from "react-toastify";
 
 const socket = io(SERVER_BACK_URL);
 
@@ -156,7 +157,7 @@ export default function ConfirmationScreen() {
       console.log(`Respuesta del servidor para ${documentType}:`, data);
     } catch (error) {
       console.error(`Error al subir archivo firmado de ${documentType}:`, error);
-      alert(`Ocurrió un error al subir el archivo firmado de ${documentType}.`);
+      toast.error(`Ocurrió un error al subir el archivo firmado de ${documentType}.`);
     }
   };
 
@@ -178,8 +179,6 @@ export default function ConfirmationScreen() {
         if (selectedDocuments.acta && actaFile) {
           await uploadSignedDocument(actaFile, "acta");
         }
-
-        alert("Avanzando a la siguiente página...");
         await bonita.changeTask();
       } catch (error) {
         console.error("Error guardando estado final o subiendo archivos:", error);
@@ -243,6 +242,7 @@ export default function ConfirmationScreen() {
         )}
         {error && <p className="text-red-500 text-center">{error}</p>}
       </form>
+      <ToastContainer/>
     </CardContainer>
   );
 }

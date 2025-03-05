@@ -3,7 +3,6 @@ import CardContainer from "./components/CardContainer";
 import Checkbox from "./components/Checkbox"; // Importamos el componente Checkbox
 // @ts-ignore
 import BonitaUtilities from "../bonita/bonita-utilities";
-
 import { useSaveTempState } from "../bonita/hooks/datos_temprales";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { SERVER_BACK_URL } from "../../config.ts";
@@ -11,6 +10,7 @@ import { useBonitaService } from "../../services/bonita.service";
 import { Tarea } from "../../interfaces/bonita.interface.ts";
 import io from "socket.io-client";
 import Title from "./components/TitleProps";
+import { ToastContainer } from "react-toastify";
 const socket = io(SERVER_BACK_URL);
 
 export default function ConfirmationScreen() {
@@ -46,8 +46,6 @@ export default function ConfirmationScreen() {
     }));
   };
 
- 
-  // 🔹 Obtener el usuario autenticado al montar el componente
   // 🔹 Obtener el usuario autenticado al montar el componente
   useEffect(() => {
     const fetchUser = async () => {
@@ -131,7 +129,6 @@ export default function ConfirmationScreen() {
         } else {
           console.error("❌ Error: json is null");
         }
-        alert("Avanzando a la siguiente página...");
         bonita.changeTask();
       } catch (error) {
         console.error("Error guardando estado final:", error);
@@ -163,6 +160,7 @@ export default function ConfirmationScreen() {
           Siguiente
         </button>
       </form>
+      <ToastContainer/>
     </CardContainer>
   );
 }

@@ -1,5 +1,5 @@
 import {SERVER_BONITA_URL} from "../../config.ts";
-
+import { toast } from "react-toastify";
 
 export default class BonitaUtilities {
   //   #URLPARAMS;
@@ -116,10 +116,10 @@ export default class BonitaUtilities {
       // ! DEFINIR SI ES NECESARIO MANEJAR LA RESPUESTA PUESTO QUE NO RETORNA NADA
       const taskDetails = await this.#manageResponse(response);
 
-      alert("Tarea completada exitosamente. Avanzando a la siguiente tarea. por favor recargue la pagina ");
+      toast.success("Tarea completada exitosamente. Avanzando a la siguiente tarea. por favor recargue la pagina ");
       // this.#refreshList();
     } catch (err) {
-      alert("Error en la solicitud.");
+      toast.error("Error en la solicitud.");
       console.error("Error en la solicitud:", err);
       // ! DEFINIR SI AQUÍ ES NECESARIO UNA FUNCIÓN
     }

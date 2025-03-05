@@ -8,6 +8,7 @@ import { useSaveTempState } from "../bonita/hooks/datos_temprales";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { EmailInput } from "./components/EmailInput.tsx";
 import { Tarea } from "../../interfaces/bonita.interface.ts";
+import { ToastContainer } from "react-toastify";
 const socket = io(SERVER_BACK_URL);
 
 type DocumentType = {
@@ -100,7 +101,6 @@ export default function ConfirmationScreen() {
     }
   }, [bonitaData, usuario, startAutoSave]);
 
-
   // 🔹 Emitir el evento socket para obtener el código de almacenamiento cuando la data de Bonita esté disponible
   useEffect(() => {
     if (bonitaData) {
@@ -165,6 +165,7 @@ export default function ConfirmationScreen() {
 
          
         </div>
+        <ToastContainer/>
       </CardContainer>
     </div>
   );

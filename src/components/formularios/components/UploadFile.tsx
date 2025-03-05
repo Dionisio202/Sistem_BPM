@@ -1,22 +1,45 @@
 import React, { useState } from "react";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { UploadFileProps } from "../../../interfaces/uploadfile.interface";
 
-interface UploadFileProps {
-  onFileChange: (file: File | null) => void;
-  label?: string; // Prop opcional para el título
-  id: string; // id único para cada input
-}
-
-const UploadFile: React.FC<UploadFileProps> = ({ onFileChange, label = "Subir archivo", id }) => {
+const UploadFile: React.FC<UploadFileProps> = ({
+  onFileChange,
+  label = "Subir archivo",
+  id,
+  className = "",
+}) => {
   const [fileName, setFileName] = useState<string>("");
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0] ?? null;
-    setFileName(selectedFile ? selectedFile.name : "");
-    onFileChange(selectedFile);
+
+    if (selectedFile) {
+      // Validar que el archivo sea PDF
+      if (selectedFile.type !== "application/pdf") {
+        toast.error("Solo se permiten archivos PDF.", {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+        setFileName("");
+        onFileChange(null);
+        return;
+      }
+
+      setFileName(selectedFile.name);
+      onFileChange(selectedFile);
+    } else {
+      setFileName("");
+      onFileChange(null);
+    }
   };
 
   return (
-    <div className="mb-4">
+    <div className={`mb-4 ${className}`}>
       <label
         htmlFor={id} // Usamos el id único aquí
         className="block font-semibold text-gray-700 text-sm"
@@ -29,7 +52,7 @@ const UploadFile: React.FC<UploadFileProps> = ({ onFileChange, label = "Subir ar
           type="file"
           className="hidden"
           onChange={handleFileChange}
-          accept=".pdf,.doc,.docx,.jpg,.png"
+          accept=".pdf" // Aceptar solo PDFs
         />
         <label
           htmlFor={id} // El mismo id para la etiqueta y el input
@@ -45,6 +68,7 @@ const UploadFile: React.FC<UploadFileProps> = ({ onFileChange, label = "Subir ar
           Archivo seleccionado: <span className="font-medium">{fileName}</span>
         </p>
       )}
+      <ToastContainer/>
     </div>
   );
 };

@@ -9,7 +9,7 @@ import UploadFile from "./components/UploadFile";
 import { useSaveTempState } from "../bonita/hooks/datos_temprales";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { Tarea } from "../../interfaces/bonita.interface.ts";
-
+import { ToastContainer, toast } from "react-toastify";
 const socket = io(SERVER_BACK_URL);
 
 type DocumentType = {
@@ -184,7 +184,6 @@ export default function WebPage() {
           console.error("❌ Error: json is null");
         }
         await bonita.changeTask();
-        setAlertMessage("Avanzando a la siguiente página...");
         const response = await fetch(
           `${SERVER_BACK_URL}/api/update-document?codigo_almacenamiento=${codigoalmacenamiento}&codigo_documento=${codigo}`
         );

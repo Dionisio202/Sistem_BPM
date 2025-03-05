@@ -1,12 +1,8 @@
 import React from "react";
-
-interface FileViewerProps {
-  file: File;
-}
+import { FileViewerProps } from "../../../interfaces/fileviewer.interface";
 
 const FileViewer: React.FC<FileViewerProps> = ({ file }) => {
   const fileType = file.type;
-
   // Función para mostrar el archivo dependiendo del tipo
   const renderFile = () => {
     if (fileType === "application/pdf") {
@@ -22,8 +18,6 @@ const FileViewer: React.FC<FileViewerProps> = ({ file }) => {
     }
     return <p>Formato no soportado para vista previa.</p>;
   };
-
   return <div>{renderFile()}</div>;
 };
-
 export default FileViewer;

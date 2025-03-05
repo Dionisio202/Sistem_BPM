@@ -12,6 +12,7 @@ import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { useBonitaService } from "../../services/bonita.service";
 import { SERVER_BACK_URL } from "../../config.ts";
 import { Tarea } from "../../interfaces/bonita.interface.ts";
+import { toast, ToastContainer } from "react-toastify";
 
 const socket = io(SERVER_BACK_URL); // Conecta con el backend
 
@@ -21,16 +22,16 @@ export default function UploadForm() {
   const [intellectualPropertyFileBase64, setIntellectualPropertyFileBase64] =
     useState<string | null>(null);
   const [tareaActual, setTareaActual] = useState<Tarea | null>(null);
-    const [usuario, setUsuario] = useState<{
-      user_id: string;
-      user_name: string;
-    } | null>(null);
-    const [bonitaData, setBonitaData] = useState<{
-      processId: string;
-      taskId: string;
-      caseId: string;
-      processName: string;
-    } | null>(null);
+  const [usuario, setUsuario] = useState<{
+    user_id: string;
+    user_name: string;
+  } | null>(null);
+  const [bonitaData, setBonitaData] = useState<{
+    processId: string;
+    taskId: string;
+    caseId: string;
+    processName: string;
+  } | null>(null);
   const [authorDataFileBase64, setAuthorDataFileBase64] = useState<
     string | null
   >(null);
@@ -120,10 +121,9 @@ export default function UploadForm() {
         console.error("❌ Error: json is null");
       }
       await bonita.changeTask();
-      alert("Avanzando a la siguiente página...");
     } catch (error) {
       console.error("Error al cambiar la tarea:", error);
-      alert("Ocurrió un error al intentar avanzar.");
+      toast.warning("Ocurrió un error al intentar avanzar.");
     }
   };
 
@@ -236,8 +236,8 @@ export default function UploadForm() {
               bonitaData.processId + "-" + bonitaData.caseId;
             console.log("📢 ID", codigoCombinado);
             console.log("📢 Datos editados guardados correctamente:", response);
-            alert("Datos editados guardados correctamente.");
-            alert("Insertando autores...");
+            toast.success("Datos editados guardados correctamente.");
+            toast.success("Insertando autores...");
             // Enviar los autores, también convertidos a cadena JSON
             socket.emit(
               "set_autores",
@@ -248,28 +248,28 @@ export default function UploadForm() {
               (response: any) => {
                 if (response.success) {
                   console.log("📢 Autores guardados correctamente:", response);
-                  alert("Datos editados guardados correctamente.");
+                  toast.success("Datos editados guardados correctamente.");
                 } else {
-                  console.error(
+                  toast.error(
                     "❌ Error al guardar los autores:",
                     response.message
                   );
-                  alert("Error al guardar los datos editados.");
+                  toast.error("Error al guardar los datos editados.");
                 }
               }
             );
           } else {
-            console.error(
+            toast.error(
               "❌ Error al guardar los datos editados:",
               response.message
             );
-            alert("Error al guardar los datos editados.");
+            toast.warning("Error al guardar los datos editados.");
           }
         }
       );
     } catch (error) {
       console.error("Error al guardar los datos editados:", error);
-      alert("Error al guardar los datos editados.");
+      toast.warning("Error al guardar los datos editados.");
     }
   };
 
@@ -359,6 +359,7 @@ export default function UploadForm() {
           />
         )}
       </div>
+      <ToastContainer />
     </div>
   );
 }

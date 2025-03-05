@@ -10,7 +10,7 @@ import Title from "./components/TitleProps";
 import { SERVER_BACK_URL } from "../../config.ts";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { Tarea } from "../../interfaces/bonita.interface.ts";
-
+import { ToastContainer } from "react-toastify";
 const socket = io(SERVER_BACK_URL);
 
 export default function ConfirmationScreen() {
@@ -45,9 +45,6 @@ export default function ConfirmationScreen() {
       [name]: checked,
     }));
   };
-
-  
-  // 🔹 Obtener el usuario autenticado al montar el componente
   // 🔹 Obtener el usuario autenticado al montar el componente
   useEffect(() => {
     const fetchUser = async () => {
@@ -131,7 +128,6 @@ export default function ConfirmationScreen() {
         } else {
           console.error("❌ Error: json is null");
         }
-        alert("Avanzando a la siguiente página...");
         bonita.changeTask();
       } catch (error) {
         console.error("Error guardando estado final:", error);
@@ -166,6 +162,7 @@ export default function ConfirmationScreen() {
           Siguiente
         </button>
       </form>
+      <ToastContainer/>
     </CardContainer>
   );
 }

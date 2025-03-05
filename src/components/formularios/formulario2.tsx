@@ -202,17 +202,16 @@ export default function WebPage() {
             <table className="min-w-full bg-white border border-gray-300 rounded-lg shadow-md">
               <thead>
                 <tr className="bg-gray-100">
-                  <th className="px-4 py-1 text-left text-xs">Documento</th>
-                  <th className="px-4 py-1 text-left text-xs">Acción</th>
+                  <th className="px-2 py-1 text-left text-xs">Documento</th>
+                  <th className="px-7 py-1 text-left text-xs">Acción</th>
                 </tr>
               </thead>
               <tbody>
                 {documentList.map((doc) => (
                   <tr key={doc.type} className="border-b hover:bg-gray-50">
-                    <td className="px-4 py-1 text-xs">{doc.label}</td>
-                    <td className="px-4 py-1 text-xs flex items-center space-x-4">
+                    <td className="px-2 py-1 text-xs">{doc.label}</td>
+                    <td className="px-2 py-2 text-xs flex items-center space-x-1">
                       <input
-                        type="checkbox"
                         checked={selectedDocs.has(doc.type)}
                         onChange={() =>
                           handleCheckboxChange(
