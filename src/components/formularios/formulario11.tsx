@@ -141,7 +141,7 @@ useEffect(() => {
       console.log("Respuesta del servidor:", data);
       setIsSubmitted(true);
       setNotificaciones([...notificaciones, "Datos enviados correctamente."]);
-      alert("Datos enviados correctamente."); // Mensaje de confirmación
+      toast.success("Datos enviados correctamente."); // Mensaje de confirmación
     } catch (error) {
       console.error("Error en la solicitud:", error);
     }

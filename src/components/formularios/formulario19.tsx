@@ -139,6 +139,7 @@ useEffect(() => {
 
       const data = await response.json();
       console.log("Respuesta del servidor:", data);
+      toast.success("Datos Enviados Correctamente");
     } catch (error) {
       console.error("Error en la solicitud:", error);
     }
