@@ -40,30 +40,32 @@ const Example = () => {
           console.log("Datos recibidos:", jsonData);
 
           // Convertir JSON a filas para la tabla
-          const newData: TablaTarea[] = jsonData.Funcionarios.flatMap(
-            (funcionario: Funcionario) =>
-              funcionario.Caso.flatMap((caso: Caso) =>
-                Array.isArray(caso.NombreTarea)
-                  ? caso.NombreTarea.map((tarea: Tarea) => ({
-                      NombreProceso:"Registro Propiedad Intelectual",
-                      NombreTarea:tarea.Nombre,
-                      Progreso: tarea.Progreso,
-                      EstadoDeProceso: tarea.EstadoDeProceso,
-                      TipoProductos: tarea.TipoProductos,
-                      NombreProductos: tarea.NombreProductos,
-                      NombreProyecto: tarea.NombreProyecto,
-                      Facultad: tarea.Facultad,
-                      MemorandoInicial: tarea.MemorandoInicial,
-                      NumeroCaso: caso.NumeroCaso,
-                      FechaRegistro: caso.FechaRegistro,
-                      FechaFinalizacion: caso.FechaFinalizacion || "",
-                      ProgresoGeneral: caso.ProgresoGeneral,
-                      EstadoProcesoGeneral: caso.EstadoProcesoGeneral,
-                      Funcionario: funcionario.Nombre,
-                    }))
-                  : []
-              )
-          );
+const newData: TablaTarea[] = jsonData.Funcionarios.flatMap(
+  (funcionario: Funcionario) =>
+    funcionario.Caso.flatMap((caso: Caso) =>
+      Array.isArray(caso.NombreTarea)
+        ? caso.NombreTarea.map((tarea: Tarea) => ({
+            NombreProceso: "Registro Propiedad Intelectual",
+            NombreTarea: tarea.Nombre,
+            Progreso: tarea.Progreso,
+            EstadoDeProceso: tarea.EstadoDeProceso,
+            TipoProductos: tarea.TipoProductos,
+            NombreProductos: tarea.NombreProductos,
+            NombreProyecto: tarea.NombreProyecto,
+            Facultad: tarea.Facultad,
+            MemorandoInicial: tarea.MemorandoInicial,
+            NumeroCaso: caso.NumeroCaso,
+            FechaRegistro: caso.FechaRegistro,
+            FechaFinalizacion: caso.FechaFinalizacion || "",
+            ProgresoGeneral: caso.ProgresoGeneral,
+            EstadoProcesoGeneral: caso.EstadoProcesoGeneral,
+            Funcionario: funcionario.Nombre,
+            Autores: tarea.Autores || "", // nueva propiedad agregada
+          }))
+        : []
+    )
+);
+
 
           setData(newData);
           setLoading(false);
@@ -109,9 +111,11 @@ const Example = () => {
       { accessorKey: "FechaFinalizacion", header: "Fecha de Finalización", size: 120 },
       { accessorKey: "ProgresoGeneral", header: "Progreso General", size: 100 },
       { accessorKey: "EstadoProcesoGeneral", header: "Estado General", size: 120 },
+      { accessorKey: "Autores", header: "Autores", size: 200 }, // nueva columna agregada
     ],
     []
   );
+  
 
   const table = useMaterialReactTable({
     columns,
