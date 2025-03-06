@@ -24,6 +24,7 @@ export interface Caso {
 
 // Interfaz para una tarea
 export interface Tarea {
+  Autores: string;
   Nombre:string;
   Progreso: string;
   EstadoDeProceso: string;
@@ -43,4 +44,5 @@ export interface TablaTarea extends Tarea {
   EstadoProcesoGeneral: string; // Agregado para la tabla
   NombreProceso: string; // Agregado para la tabla
   Funcionario: string; // Agregado para la tabla
+  Autores: string; // Agregado para la tabla
 }

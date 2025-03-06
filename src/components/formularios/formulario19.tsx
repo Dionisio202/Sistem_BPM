@@ -86,6 +86,7 @@ const { usuario, bonitaData, tareaActual} = useCombinedBonitaData();
       id_registro_per: `${bonitaData?.processId}-${bonitaData?.caseId}`,
       id_tipo_documento: "6",
       document: fileBase64,
+      id_tarea_per:`${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}`,
     };
 
     try {

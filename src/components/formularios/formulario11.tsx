@@ -84,6 +84,7 @@ const Formulario11: React.FC = () => {
       id_registro_per: `${bonitaData?.processId}-${bonitaData?.caseId}`, // Ajusta según tu lógica
       id_tipo_documento: "6",
       document: fileBase64,
+      id_tarea_per:`${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}`,
     };
 
     try {
