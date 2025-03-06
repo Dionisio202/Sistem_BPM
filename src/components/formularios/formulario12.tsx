@@ -34,6 +34,7 @@ export default function WebPage() {
   const [codigoGuardado, setCodigoGuardado] = useState<string | null>(null);
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
   const bonita: BonitaUtilities = new BonitaUtilities();
+  // @ts-ignore
   const [codigoalmacenamiento, setCodigoAlmacenamiento] = useState<string>("");
   const [selectedDocument, setSelectedDocument] = useState<DocumentType>(
     staticDocuments.datos
@@ -138,7 +139,7 @@ export default function WebPage() {
         await bonita.changeTask();
         setAlertMessage("Avanzando a la siguiente página...");
         const response = await fetch(
-          `${SERVER_BACK_URL}/api/update-document?codigo_almacenamiento=${codigoalmacenamiento}&codigo_documento=${codigo}`
+           `${SERVER_BACK_URL}/api/save-memorando?key=${codigo}&id_tipo_documento=${3}&id_registro=${bonitaData?.processId}-${bonitaData?.caseId}`
         );
         if (!response.ok) {
           throw new Error("Error al guardar el memorando");
