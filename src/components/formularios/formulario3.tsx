@@ -11,6 +11,7 @@ import BonitaUtilities from "../bonita/bonita-utilities";
 import { useSaveTempState } from "../bonita/hooks/datos_temprales";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { SERVER_BACK_URL } from "../../config.ts";
+import { ToastContainer, toast } from "react-toastify";
 
 const socket = io(SERVER_BACK_URL); // Conecta con el backend
 
@@ -34,6 +35,15 @@ export default function UploadForm() {
     setTipoMemorando(e.target.value);
   };
   const [jsonAutroes, setJsonAutores] = useState<any>(null);
+  useEffect(() => {
+    // Si ambos archivos están cargados, habilita el botón "Siguiente"
+    if (intellectualPropertyFileBase64 && authorDataFileBase64) {
+      setIsNextDisabled(false);
+    } else {
+      setIsNextDisabled(true);
+      toast.warning("Ingrese los documentos y verifique su información al guardar")
+    }
+  }, [intellectualPropertyFileBase64, authorDataFileBase64]);
 
   useEffect(() => {
     if (bonitaData && usuario) {
@@ -74,10 +84,9 @@ export default function UploadForm() {
         console.error("❌ Error: json is null");
       }
       await bonita.changeTask();
-      alert("Avanzando a la siguiente página...");
     } catch (error) {
       console.error("Error al cambiar la tarea:", error);
-      alert("Ocurrió un error al intentar avanzar.");
+      toast.error("Ocurrió un error al intentar avanzar.");
     }
   };
 
@@ -202,13 +211,13 @@ export default function UploadForm() {
               (response: any) => {
                 if (response.success) {
                   console.log("📢 Autores guardados correctamente:", response);
-                  alert("Datos editados guardados correctamente.");
+                  toast.success("Datos editados guardados correctamente.");
                 } else {
                   console.error(
                     "❌ Error al guardar los autores:",
                     response.message
                   );
-                  alert("Error al guardar los datos editados.");
+                  toast.error("Error al guardar los datos editados.");
                 }
               }
             );
@@ -217,7 +226,7 @@ export default function UploadForm() {
               "❌ Error al guardar los datos editados:",
               response.message
             );
-            alert("Error al guardar los datos editados.");
+            toast.error("Error al guardar los datos editados.");
           }
         }
       );
@@ -313,6 +322,7 @@ export default function UploadForm() {
           />
         )}
       </div>
+      <ToastContainer />
     </div>
   );
 }

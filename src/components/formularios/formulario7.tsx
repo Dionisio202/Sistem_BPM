@@ -11,6 +11,8 @@ import { useSaveTempState } from "../bonita/hooks/datos_temprales";
 import { SERVER_BACK_URL } from "../../config.ts";
 import { useCombinedBonitaData } from "../bonita/hooks/obtener_datos_bonita.tsx";
 import { useBonitaService } from "../../services/bonita.service.ts";
+import { ToastContainer } from "react-toastify";
+
 const socket = io(SERVER_BACK_URL);
 
 export default function ConfirmationScreen() {
@@ -206,6 +208,7 @@ const {  error } = useBonitaService();
         )}
         {error && <p className="text-red-500 text-center">{error}</p>}
       </form>
+      <ToastContainer/>
     </CardContainer>
   );
 }

@@ -1,5 +1,5 @@
-import {SERVER_BONITA_URL} from "../../config.ts";
-
+import { SERVER_BONITA_URL } from "../../config.ts";
+import { toast } from "react-toastify";
 
 export default class BonitaUtilities {
   //   #URLPARAMS;
@@ -21,38 +21,39 @@ export default class BonitaUtilities {
   }
   async #getBonitaToken() {
     try {
-        const response = await fetch(`${SERVER_BONITA_URL}/bonita/API/system/session/unusedId`, {
-            method: "GET",
-            credentials: "include", // Asegura que las cookies se envíen con la solicitud
-            headers: {
-                "Content-Type": "application/json"
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error(`Error ${response.status}: ${response.statusText}`);
+      const response = await fetch(
+        `${SERVER_BONITA_URL}/bonita/API/system/session/unusedId`,
+        {
+          method: "GET",
+          credentials: "include", // Asegura que las cookies se envíen con la solicitud
+          headers: {
+            "Content-Type": "application/json",
+          },
         }
+      );
 
-        const sessionData = await response.json();
-        console.log("Datos de sesión:", sessionData);
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
 
-        // Si Bonita devuelve el token en las cookies, debería ser enviado automáticamente.
-        // Pero si no, puedes verificar si el servidor devuelve un token en los headers de la respuesta.
-        const token = response.headers.get("X-Bonita-API-Token");
-        if (token) {
-            console.log("Token obtenido desde API:", token);
-            return token;
-        } else {
-            console.error("No se encontró el token en la respuesta de la API.");
-            return null;
-        }
-    } catch (error) {
-        console.error("Error obteniendo el token de Bonita:", error);
+      const sessionData = await response.json();
+      console.log("Datos de sesión:", sessionData);
+
+      // Si Bonita devuelve el token en las cookies, debería ser enviado automáticamente.
+      // Pero si no, puedes verificar si el servidor devuelve un token en los headers de la respuesta.
+      const token = response.headers.get("X-Bonita-API-Token");
+      if (token) {
+        console.log("Token obtenido desde API:", token);
+        return token;
+      } else {
+        console.error("No se encontró el token en la respuesta de la API.");
         return null;
+      }
+    } catch (error) {
+      console.error("Error obteniendo el token de Bonita:", error);
+      return null;
     }
-}
-
-
+  }
 
   async getCaseId() {
     try {
@@ -96,7 +97,8 @@ export default class BonitaUtilities {
   /**
    * @param {Object<string, Object<string, string>>} formData - Datos que se van a enviar al contratos
    */
-  async changeTask({ formData = null} = {}) {
+  
+  async changeTask({ formData = null } = {}) {
     const body = formData ? JSON.stringify(formData) : "{}";
 
     try {
@@ -112,28 +114,26 @@ export default class BonitaUtilities {
           credentials: "include",
         }
       );
-
-      // ! DEFINIR SI ES NECESARIO MANEJAR LA RESPUESTA PUESTO QUE NO RETORNA NADA
       const taskDetails = await this.#manageResponse(response);
 
-      alert("Tarea completada exitosamente. Avanzando a la siguiente tarea. por favor recargue la pagina ");
-      // this.#refreshList();
+      toast.success(
+        "Tarea completada exitosamente. Avanzando a la siguiente tarea. por favor recargue la pagina "
+      );
     } catch (err) {
-      alert("Error en la solicitud.");
+      toast.error("Error en la solicitud.");
       console.error("Error en la solicitud:", err);
       // ! DEFINIR SI AQUÍ ES NECESARIO UNA FUNCIÓN
     }
   }
-  
+
   // #refreshList() {
   //   const taskList = parent.document.querySelector(
   //     "button.TaskList-refresh"
   //   );
   //   if (taskList) {
   //     taskList.click();
-  //   } 
+  //   }
   // }
-  
 
   /**
    * @param {...string} businessVariableName - Cadenas de texto que tienen el nombre de cada una de las variables de negocio a ser invocadas
@@ -144,14 +144,14 @@ export default class BonitaUtilities {
     const result = [];
     for (const businessVariableName of businessVariableNames) {
       const data = await this.#loadData(context, businessVariableName);
-      result.push(data);      
+      result.push(data);
     }
 
     return result;
   }
 
   async #loadData(context, businessVariableName) {
-    try { 
+    try {
       const ref = context[`${businessVariableName}_ref`];
 
       if (!ref || !ref.link) {
@@ -166,7 +166,7 @@ export default class BonitaUtilities {
         },
       });
 
-      const data = await this.#manageResponse(response); 
+      const data = await this.#manageResponse(response);
       return data;
     } catch (error) {
       alert("No se encontró la referencia al solicitante.");
@@ -195,8 +195,8 @@ export default class BonitaUtilities {
     }
   }
 
-   /**
-    * Esto solo funciona para variables de negocio, y no para contract (tomar en cuenta que las variables de negocio son temporales por lo que su comportamiento varía)
+  /**
+   * Esto solo funciona para variables de negocio, y no para contract (tomar en cuenta que las variables de negocio son temporales por lo que su comportamiento varía)
    * @param {...string} businessVariableName - Cadenas de texto que tienen el nombre de cada una de las variables de negocio a ser invocadas
    */
   async setValueVariable(variableName, value) {
@@ -220,7 +220,7 @@ export default class BonitaUtilities {
         }
       );
 
-      const context =  this.#manageResponse(response);
+      const context = this.#manageResponse(response);
 
       return context;
       // ! DEFINIR EN CASO DE QUE SEA NECESARIO UNA FUNCIÓN

@@ -8,6 +8,7 @@ import UploadFile from "./components/UploadFile";
 import { useSaveTempState } from "../bonita/hooks/datos_temprales";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { useCombinedBonitaData } from "../bonita/hooks/obtener_datos_bonita.tsx";
+import { ToastContainer } from "react-toastify";
 
 const socket = io(SERVER_BACK_URL);
 
@@ -223,6 +224,7 @@ export default function WebPage() {
           {alertMessage}
         </div>
       )}
+      <ToastContainer/>
     </div>
   );
 }

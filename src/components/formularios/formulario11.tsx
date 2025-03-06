@@ -10,6 +10,7 @@ import { SERVER_BACK_URL } from "../../config.ts";
 import { useSaveTempState } from "../bonita/hooks/datos_temprales";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { useCombinedBonitaData } from "../bonita/hooks/obtener_datos_bonita.tsx";
+import { ToastContainer } from "react-toastify";
 
 const socket = io(SERVER_BACK_URL);
 const Formulario11: React.FC = () => {
@@ -150,6 +151,7 @@ const Formulario11: React.FC = () => {
           )}
         </ul>
       </div>
+      <ToastContainer/>
     </CardContainer>
   );
 };

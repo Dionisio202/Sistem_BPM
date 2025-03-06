@@ -1,9 +1,5 @@
 import React from "react";
-
-interface CardContainerProps {
-  title: string;
-  children: React.ReactNode;
-}
+import { CardContainerProps } from "../../../interfaces/cardcontainer.interface";
 
 const CardContainer: React.FC<CardContainerProps> = ({ title, children }) => {
   return (

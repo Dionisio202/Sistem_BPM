@@ -325,7 +325,7 @@ const Modal: React.FC<ModalProps> = ({
                 </div>
                 {/* Carrera */}
                 <div className="bg-gray-50 rounded-lg">
-                <div className="space-y-4">
+                  <div className="space-y-4">
                     <label className="block text-xs font-medium text-gray-700">
                       <h4 className="text-xss font-semibold text-orange-700 ">
                         Carrera:

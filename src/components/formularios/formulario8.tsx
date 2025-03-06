@@ -10,6 +10,8 @@ import { useSaveTempState } from "../bonita/hooks/datos_temprales";
 import { useBonitaService } from "../../services/bonita.service";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { useCombinedBonitaData } from "../bonita/hooks/obtener_datos_bonita.tsx";
+import { ToastContainer } from "react-toastify";
+
 // Crear la instancia de Socket.io
 const socket = io(SERVER_BACK_URL);
 
@@ -172,6 +174,7 @@ export default function MemoCodeForm() {
           {loading ? "Enviando..." : "Siguiente"}
         </button>
       </div>
+      <ToastContainer/>
     </CardContainer>
   );
 }
