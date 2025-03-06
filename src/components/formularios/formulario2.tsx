@@ -7,7 +7,7 @@ import { SERVER_BACK_URL } from "../../config.ts";
 import { useSaveTempState } from "../bonita/hooks/datos_temprales";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { useCombinedBonitaData } from "../bonita/hooks/obtener_datos_bonita.tsx";
-
+import { ToastContainer } from "react-toastify";
 
 // Fuera del componente, crea una única instancia de socket
 const socket = io(SERVER_BACK_URL);
@@ -129,7 +129,7 @@ export default function WebPage() {
         id_tarea: parseInt(bonitaData.taskId),
         jsonData: JSON.stringify("No Form Data"),
         id_funcionario: parseInt(usuario.user_id),
-        nombre_tarea: tareaActual?.name || "",
+        nombre_tarea: tareaActual?.name ?? "",
       };
       setJson(data);
       startAutoSave(data, 10000, "En Proceso");
@@ -241,6 +241,7 @@ export default function WebPage() {
           )}
         </div>
       </div>
+      <ToastContainer/>
     </div>
   );
 }

@@ -1,18 +1,38 @@
 import React, { useState } from "react";
-
-interface UploadFileProps {
-  onFileChange: (file: File | null) => void;
-  label?: string; // Prop opcional para el título
-  id: string; // id único para cada input
-}
-
-const UploadFile: React.FC<UploadFileProps> = ({ onFileChange, label = "Subir archivo", id }) => {
+import { UploadFileProps } from "../../../interfaces/uploadfile.interface";
+import {toast} from "react-toastify"; 
+const UploadFile: React.FC<UploadFileProps> = ({
+  onFileChange,
+  label = "Subir archivo",
+  id,
+}) => {
   const [fileName, setFileName] = useState<string>("");
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0] ?? null;
-    setFileName(selectedFile ? selectedFile.name : "");
-    onFileChange(selectedFile);
+
+    if (selectedFile) {
+      // Validar que el archivo sea PDF
+      if (selectedFile.type !== "application/pdf") {
+        toast.error("Solo se permiten archivos PDF.", {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+        setFileName("");
+        onFileChange(null);
+        return;
+      }
+
+      setFileName(selectedFile.name);
+      onFileChange(selectedFile);
+    } else {
+      setFileName("");
+      onFileChange(null);
+    }
   };
 
   return (
@@ -29,7 +49,7 @@ const UploadFile: React.FC<UploadFileProps> = ({ onFileChange, label = "Subir ar
           type="file"
           className="hidden"
           onChange={handleFileChange}
-          accept=".pdf,.doc,.docx,.jpg,.png"
+          accept=".pdf"
         />
         <label
           htmlFor={id} // El mismo id para la etiqueta y el input

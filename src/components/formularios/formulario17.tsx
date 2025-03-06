@@ -10,7 +10,7 @@ import Title from "./components/TitleProps";
 import { SERVER_BACK_URL } from "../../config.ts";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { useCombinedBonitaData } from "../bonita/hooks/obtener_datos_bonita.tsx";
-
+import { ToastContainer } from "react-toastify"; 
 const socket = io(SERVER_BACK_URL);
 
 export default function ConfirmationScreen() {
@@ -124,6 +124,7 @@ export default function ConfirmationScreen() {
           Siguiente
         </button>
       </form>
+      <ToastContainer/>
     </CardContainer>
   );
 }

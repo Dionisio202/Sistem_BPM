@@ -1,10 +1,5 @@
 import React from "react";
-
-interface TitleProps {
-  text: string;
-  size?: "sm" | "md" | "lg" | "xl" | "2xl";
-  className?: string;
-}
+import { TitleProps } from "../../../interfaces/title.interface";
 
 const Title: React.FC<TitleProps> = ({ text, size = "xl", className = "" }) => {
   return <h2 className={`font-bold text-${size} ${className}`}>{text}</h2>;

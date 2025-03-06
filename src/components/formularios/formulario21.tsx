@@ -7,6 +7,8 @@ import { useSaveTempState } from "../bonita/hooks/datos_temprales";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { EmailInput } from "./components/EmailInput.tsx";
 import { useCombinedBonitaData } from "../bonita/hooks/obtener_datos_bonita.tsx";
+import { ToastContainer } from "react-toastify";
+
 const socket = io(SERVER_BACK_URL);
 
 type DocumentType = {
@@ -82,10 +84,6 @@ export default function ConfirmationScreen() {
     };
   }, [bonitaData]);
 
-
-
-
-
   return (
     <div className="w-full max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-lg">
       <CardContainer title="Certificado">
@@ -114,9 +112,8 @@ export default function ConfirmationScreen() {
               docBasePath={"/app/documents"} // Ruta base (dinámica)
             />
           </div>
-
-         
         </div>
+        <ToastContainer/>
       </CardContainer>
     </div>
   );

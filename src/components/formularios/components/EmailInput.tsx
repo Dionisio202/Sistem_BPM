@@ -2,31 +2,23 @@ import { Card } from "../../UI/card";
 import Button from "../../UI/button";
 import { Send } from "lucide-react";
 import { useState } from "react";
-import { Socket } from "socket.io-client";
 // @ts-ignore
 import BonitaUtilities from "../../bonita/bonita-utilities";
-import { temporalData } from "../../../interfaces/actividad.interface";
-
-export interface SaveTempStateResponse {
-  success: boolean;
-  message: string;
-}
-
-interface EmailInputProps {
-  json: temporalData | null;
-  socket: Socket;
-  stopAutoSave: () => void;
-  saveFinalState: (data: temporalData) => Promise<SaveTempStateResponse>;
-  attachments?: string[];  // Nombres de archivos a enviar
-  docBasePath?: string;      // Ruta base para los adjuntos
-}
+import { EmailInputProps } from "../../../interfaces/email.interface";
+import { ToastContainer, toast } from "react-toastify";
 
 export function EmailInput(emailInputProps: EmailInputProps) {
-  const [email, setEmail] = useState<string>("");         // Campo de entrada individual
-  const [emailList, setEmailList] = useState<string[]>([]); // Lista de correos
+  const [email, setEmail] = useState<string>(""); // Campo de entrada individual
+  const [emailList, setEmailList] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [processAdvanced, setProcessAdvanced] = useState(false); // Lista de correos
   const [error, setError] = useState<string>("");
-  const [subject, setSubject] = useState<string>("UNIVERSIDAD TECNICA DE AMBATO DINNOVA"); // Asunto fijo
-  const [message, setMessage] = useState<string>("Este es el contenido del correo."); // Campo para mensaje
+  const [subject, setSubject] = useState<string>(
+    "UNIVERSIDAD TECNICA DE AMBATO DINNOVA"
+  ); // Asunto fijo
+  const [message, setMessage] = useState<string>(
+    "Este es el contenido del correo."
+  ); // Campo para mensaje
   const bonita: BonitaUtilities = new BonitaUtilities();
 
   // Regex para validar formato de correo
@@ -45,40 +37,44 @@ export function EmailInput(emailInputProps: EmailInputProps) {
         setEmailList([...emailList, email]);
         setEmail("");
       } else {
-        setError("Este correo ya ha sido agregado.");
+        toast.error("Este correo ya ha sido agregado.");
       }
     } else {
-      setError("Por favor ingrese un correo válido.");
+      toast.info("Por favor ingrese un correo válido.");
     }
   };
 
   // Elimina un correo de la lista
   const handleRemoveEmail = (emailToRemove: string) => {
     setEmailList(emailList.filter((email) => email !== emailToRemove));
+    toast.info(`Correo ${emailToRemove} eliminado.`);
   };
 
   // Lógica para enviar correos a través de Socket.io
   const handleSubmit = () => {
     if (emailList.length === 0) {
-      setError("Por favor, agregue al menos un correo electrónico.");
+      toast.error("Por favor, agregue al menos un correo electrónico.");
       return;
     }
 
     // Construir el payload usando las props opcionales o valores por defecto
     const payload = {
-      to: emailList,                              // Array de destinatarios
-      subject,                                    // Asunto del correo
-      message,                                    // Cuerpo del correo (input para el mensaje)
-      attachments: emailInputProps.attachments ?? ["jfda-001.docx", "jfsr-001.docx"],
-      docBasePath: emailInputProps.docBasePath ?? "/app/documents"
+      to: emailList, // Array de destinatarios
+      subject, // Asunto del correo
+      message, // Cuerpo del correo (input para el mensaje)
+      attachments: emailInputProps.attachments ?? [
+        "jfda-001.docx",
+        "jfsr-001.docx",
+      ],
+      docBasePath: emailInputProps.docBasePath ?? "/app/documents",
     };
 
     emailInputProps.socket.emit("send_email", payload, (response: any) => {
       console.log("📩 Respuesta del servidor:", response);
       if (response.success) {
-        alert("Correo enviado exitosamente.");
+        toast.success("Correo enviado exitosamente.");
       } else {
-        alert("Error al enviar correo: " + response.message);
+        toast.error("Error al enviar correo: ");
       }
     });
   };
@@ -87,12 +83,27 @@ export function EmailInput(emailInputProps: EmailInputProps) {
   const handleNext = async () => {
     try {
       if (emailInputProps.json) {
-        await emailInputProps.saveFinalState(emailInputProps.json);
+        setLoading(true); // Activar el loading
+        const saveResponse = await emailInputProps.saveFinalState(
+          emailInputProps.json
+        );
+        if (!saveResponse || typeof saveResponse.success !== "boolean") {
+          throw new Error("Respuesta inválida al guardar el estado final");
+        }
+        if (!saveResponse.success) {
+          throw new Error(
+            saveResponse.message ||
+              "No se pudo guardar el estado final. Inténtelo de nuevo."
+          );
+        }
         await bonita.changeTask();
-        alert("Avanzando...");
+        setProcessAdvanced(true);
       }
     } catch (error) {
-      alert(`Error: ${error}`);
+      // Mostrar mensaje de error
+      toast.error(`Error: ${error}`);
+    } finally {
+      setLoading(false); // Desactivar el loading siempre
     }
   };
 
@@ -198,10 +209,20 @@ export function EmailInput(emailInputProps: EmailInputProps) {
         <Button
           className="bg-[#931D21] text-white rounded-lg px-6 py-2 hover:bg-blue-700 transition-colors duration-200"
           onClick={handleNext}
+          disabled={loading || processAdvanced} // Deshabilitar el botón mientras se carga o si el proceso ya avanzó
         >
-          Siguiente Proceso
+          {loading ? (
+            <div className="flex items-center">
+              <span className="mr-2">Guardando...</span>
+              {/* Spinner de carga */}
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+            </div>
+          ) : (
+            "Siguiente Proceso"
+          )}
         </Button>
       </div>
+      <ToastContainer />
     </Card>
   );
 }
