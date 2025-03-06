@@ -157,6 +157,7 @@ export default function UploadForm() {
         id_tipo_documento: "5",
         document: fileBase64,
         memorando: memoCode,
+        id_tarea_per:`${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}`,
       };
 
       try {

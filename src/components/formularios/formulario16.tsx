@@ -142,7 +142,7 @@ export default function DocumentForm() {
     console.log("Documentos seleccionados:", selectedDocuments);
     const idtipoDocumento = 3;
     const response = await fetch(
-      `${SERVER_BACK_URL}/api/save-memorando?key=${memoCode}&id_tipo_documento=${idtipoDocumento}&id_registro=${bonitaData?.processId}-${bonitaData?.caseId}`
+      `${SERVER_BACK_URL}/api/save-memorando?key=${memoCode}&id_tipo_documento=${idtipoDocumento}&id_registro=${bonitaData?.processId}-${bonitaData?.caseId}&id_tarea_per=${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}`
     );
     if (!response.ok) {
       throw new Error("Error al guardar el memorando");

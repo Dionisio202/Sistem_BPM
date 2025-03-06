@@ -110,7 +110,7 @@ export default function MemoCodeForm() {
 
       // Enviar el código del memorando al endpoint de guardado
       const response = await fetch(
-        `${SERVER_BACK_URL}/api/save-memorando?key=${memoCode}&id_tipo_documento=${id_tipo_documento}&id_registro=${bonitaData?.processId}-${bonitaData?.caseId}`
+        `${SERVER_BACK_URL}/api/save-memorando?key=${memoCode}&id_tipo_documento=${id_tipo_documento}&id_registro=${bonitaData?.processId}-${bonitaData?.caseId}&id_tarea_per=${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}`
       );
 
       if (!response.ok) {

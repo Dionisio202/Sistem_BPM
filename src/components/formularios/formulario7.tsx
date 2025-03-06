@@ -100,6 +100,7 @@ const {  error } = useBonitaService();
       id_tipo_documento: documentType === "contrato" ? "4" : "5", // Asigna IDs según la lógica de tu negocio
       document: fileBase64,
       memorando: "", // No se requiere para archivos firmados
+      id_tarea_per:`${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}`,
     };
 
     try {

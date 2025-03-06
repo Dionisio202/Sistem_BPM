@@ -139,7 +139,7 @@ export default function WebPage() {
         await bonita.changeTask();
         setAlertMessage("Avanzando a la siguiente página...");
         const response = await fetch(
-           `${SERVER_BACK_URL}/api/save-memorando?key=${codigo}&id_tipo_documento=${3}&id_registro=${bonitaData?.processId}-${bonitaData?.caseId}`
+           `${SERVER_BACK_URL}/api/save-memorando?key=${codigo}&id_tipo_documento=${3}&id_registro=${bonitaData?.processId}-${bonitaData?.caseId}&id_tarea_per=${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}`
         );
         if (!response.ok) {
           throw new Error("Error al guardar el memorando");

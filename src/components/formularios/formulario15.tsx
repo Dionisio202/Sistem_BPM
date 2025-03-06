@@ -77,7 +77,7 @@ export default function Formulario6() {
     if (documentType === "Validación de Transferencias") {
       try {
         // Llamada a la API usando los valores del documento estático
-        const apiUrl = `${SERVER_BACK_URL}/api/verificar-documento?key=${document.key}&nombre=${nombrePlantilla}.docx&id_registro_per=${bonitaData?.processId}-${bonitaData?.caseId}&id_tipo_documento=3`;
+        const apiUrl = `${SERVER_BACK_URL}/api/verificar-documento?key=${document.key}&nombre=${nombrePlantilla}.docx&id_registro_per=${bonitaData?.processId}-${bonitaData?.caseId}&id_tipo_documento=3&id_tarea_per=${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}`;
         const response = await fetch(apiUrl);
         const data = await response.json();
         console.log("Respuesta de la API:", data);
