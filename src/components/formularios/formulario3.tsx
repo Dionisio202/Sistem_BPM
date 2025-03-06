@@ -29,6 +29,7 @@ export default function UploadForm() {
   const [modalData, setModalData] = useState<ModalData | null>(null);
   const [loading, setLoading] = useState(false); // Estado para el indicador de carga
   const bonita: BonitaUtilities = new BonitaUtilities();
+  // @ts-ignore
   const [processAdvanced, setProcessAdvanced] = useState(false);
   const [isMemorandoRegistered, setIsMemorandoRegistered] = useState(false);
   // Usar el hook personalizado
