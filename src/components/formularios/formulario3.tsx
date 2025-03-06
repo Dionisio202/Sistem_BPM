@@ -29,6 +29,8 @@ export default function UploadForm() {
   const [modalData, setModalData] = useState<ModalData | null>(null);
   const [loading, setLoading] = useState(false); // Estado para el indicador de carga
   const bonita: BonitaUtilities = new BonitaUtilities();
+  const [processAdvanced, setProcessAdvanced] = useState(false);
+  const [isMemorandoRegistered, setIsMemorandoRegistered] = useState(false);
   // Usar el hook personalizado
   const { usuario, bonitaData, tareaActual } = useCombinedBonitaData();
   const handleTipoMemorandoChange = (e: any) => {
@@ -41,7 +43,9 @@ export default function UploadForm() {
       setIsNextDisabled(false);
     } else {
       setIsNextDisabled(true);
-      toast.warning("Ingrese los documentos y verifique su información al guardar")
+      toast.warning(
+        "Ingrese los documentos y verifique su información al guardar"
+      );
     }
   }, [intellectualPropertyFileBase64, authorDataFileBase64]);
 
@@ -69,6 +73,7 @@ export default function UploadForm() {
           } else {
             setAuthorDataFileBase64(base64);
           }
+          setIsMemorandoRegistered(false); // Reiniciar el estado al cargar nuevos archivos
         });
       }
     },
@@ -79,14 +84,25 @@ export default function UploadForm() {
   const handleNext = async () => {
     try {
       if (json) {
-        await saveFinalState(json);
-      } else {
-        console.error("❌ Error: json is null");
+        setLoading(true); // Activar el loading
+        const saveResponse = await saveFinalState(json);
+        if (!saveResponse || typeof saveResponse.success !== "boolean") {
+          throw new Error("Respuesta inválida al guardar el estado final");
+        }
+        if (!saveResponse.success) {
+          throw new Error(
+            saveResponse.message ||
+              "No se pudo guardar el estado final. Inténtelo de nuevo."
+          );
+        }
+        await bonita.changeTask();
+        setProcessAdvanced(true);
       }
-      await bonita.changeTask();
     } catch (error) {
-      console.error("Error al cambiar la tarea:", error);
-      toast.error("Ocurrió un error al intentar avanzar.");
+      // Mostrar mensaje de error
+      toast.error(`Error: ${error}`);
+    } finally {
+      setLoading(false); // Desactivar el loading siempre
     }
   };
 
@@ -176,6 +192,11 @@ export default function UploadForm() {
       if (!authorDataFileBase64 || !intellectualPropertyFileBase64) {
         throw new Error("No se encontraron los archivos base64.");
       }
+
+      if (!jsonAutroes) {
+        throw new Error("No se encontraron los datos de los autores.");
+      }
+
       // Se establece el tipo y se asignan los productos extraídos del JSON de productos
       editedData.tipo = parseInt(tipoMemorando);
 
@@ -186,6 +207,7 @@ export default function UploadForm() {
       if (!bonitaData) {
         throw new Error("No se encontraron los datos de Bonita.");
       }
+
       socket.emit(
         "agregar_producto_datos",
         {
@@ -199,8 +221,8 @@ export default function UploadForm() {
               bonitaData.processId + "-" + bonitaData.caseId;
             console.log("📢 ID", codigoCombinado);
             console.log("📢 Datos editados guardados correctamente:", response);
-            alert("Datos editados guardados correctamente.");
-            alert("Insertando autores...");
+            toast.success("Datos Verificados y Guardados Correctamente");
+
             // Enviar los autores, también convertidos a cadena JSON
             socket.emit(
               "set_autores",
@@ -210,7 +232,10 @@ export default function UploadForm() {
               },
               (response: any) => {
                 if (response.success) {
-                  console.log("📢 Autores guardados correctamente:", response);
+                  console.log(
+                    "📢 Autores guardados correctamente:",
+                    response.message
+                  );
                   toast.success("Datos editados guardados correctamente.");
                 } else {
                   console.error(
@@ -226,13 +251,16 @@ export default function UploadForm() {
               "❌ Error al guardar los datos editados:",
               response.message
             );
-            toast.error("Error al guardar los datos editados.");
+            toast.info(
+              "Ya se encuentran registrados todos los productos de este Memorando."
+            );
+            toast.info("Ingrese un Nuevo Registro.");
+            setIsMemorandoRegistered(true); // Bloquear el botón de "Siguiente"
           }
         }
       );
     } catch (error) {
       console.error("Error al guardar los datos editados:", error);
-      alert("Error al guardar los datos editados.");
     }
   };
 
@@ -294,7 +322,7 @@ export default function UploadForm() {
           <Button
             className="bg-[#931D21] text-white rounded-lg px-6 py-2 hover:bg-blue-700 transition-colors duration-200"
             onClick={handleNext}
-            disabled={isNextDisabled}
+            disabled={isNextDisabled || loading || isMemorandoRegistered} // Bloquear si el memorando ya está registrado
           >
             Siguiente
           </Button>

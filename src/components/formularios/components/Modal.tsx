@@ -6,7 +6,9 @@ import {
   TipoProducto,
 } from "../../../interfaces/registros.interface";
 import { SERVER_BACK_URL } from "../../../config.ts";
+
 const socket = io(SERVER_BACK_URL); // Conecta con el backend
+
 const Modal: React.FC<ModalProps> = ({
   showModal,
   closeModal,
@@ -20,6 +22,8 @@ const Modal: React.FC<ModalProps> = ({
   const [loading, setLoading] = useState(true); // Estado para el indicador de carga
   const [error, setError] = useState<string | null>(null); // Estado para manejar errores
   const [facultadSeleccionada, setFacultadSeleccionada] = useState("");
+  const [hasMissingData, setHasMissingData] = useState(false); // Estado para rastrear datos faltantes
+
   const facultades = [
     { id: 1, nombre: "Facultad de Ingeniería" },
     { id: 2, nombre: "Facultad de Medicina" },
@@ -27,6 +31,7 @@ const Modal: React.FC<ModalProps> = ({
     { id: 4, nombre: "Facultad de Ciencias Económicas" },
     { id: 5, nombre: "Facultad de Arquitectura" },
   ];
+
   const handleFacultadChange = (e: any) => {
     setFacultadSeleccionada(e.target.value);
     setEditedData((prev: any) => ({
@@ -37,8 +42,8 @@ const Modal: React.FC<ModalProps> = ({
       },
     }));
   };
+
   // Cargar los tipos de productos al abrir el modal
-  // En el useEffect donde obtienes los tipos de productos
   useEffect(() => {
     if (showModal) {
       setError(null);
@@ -46,7 +51,6 @@ const Modal: React.FC<ModalProps> = ({
 
       socket.emit("obtener_tipos_productos", (response: any) => {
         if (response.success) {
-          // Mapear los resultados para crear un objeto con id y nombre
           const tiposMapeados = response.data.map((tipo: any) => ({
             id: tipo.id_tipo_producto,
             nombre: tipo.nombre,
@@ -54,14 +58,12 @@ const Modal: React.FC<ModalProps> = ({
 
           setTiposProductos(tiposMapeados);
 
-          // Si hay datos previos, establecer el valor inicial del select
           if (editedData.tipoMemorando) {
             const tipoSeleccionado = tiposMapeados.find(
               (t: any) => t.nombre === editedData.tipoMemorando
             );
             if (tipoSeleccionado) {
-              // @ts-ignore
-              setEditedData((prev) => ({
+              setEditedData((prev: any) => ({
                 ...prev,
                 tipoMemorando: tipoSeleccionado.id.toString(),
               }));
@@ -75,6 +77,7 @@ const Modal: React.FC<ModalProps> = ({
       });
     }
   }, [showModal]);
+
   const handleMemoFileChange = async (file: File | null) => {
     if (!file) return;
 
@@ -90,13 +93,11 @@ const Modal: React.FC<ModalProps> = ({
         reader.onerror = (error) => reject(error);
       });
 
-      // Llama a la API vía Socket.io para mapear el código del memorando
       socket.emit(
         "subir_documento",
         { documento: memoBase64 },
         (response: any) => {
           if (response.success) {
-            // Se asume que la API devuelve el código en response.codigo
             setEditedData((prev: any) => ({
               ...prev,
               codigoMemorando: response.codigo,
@@ -112,6 +113,7 @@ const Modal: React.FC<ModalProps> = ({
       alert("Error al procesar el archivo");
     }
   };
+
   const handleChange = (path: string, value: string) => {
     const keys = path.split(".");
     const updatedData = { ...editedData };
@@ -125,7 +127,49 @@ const Modal: React.FC<ModalProps> = ({
     setEditedData(updatedData);
   };
 
+  // Función para verificar si hay datos faltantes
+  const checkMissingData = () => {
+    const requiredFields = [
+      "codigoMemorando",
+      "lugar",
+      "destinatario.nombre",
+      "destinatario.titulo",
+      "destinatario.cargo",
+      "destinatario.institucion",
+      "solicitante.nombre",
+      "solicitante.cargo",
+      "solicitante.facultad",
+      "proyecto.carrera",
+      "proyecto.tipo",
+      "proyecto.titulo",
+      "proyecto.resolucion.numero",
+      "proyecto.resolucion.fecha",
+    ];
+
+    const missingFields = requiredFields.filter((field) => {
+      const keys = field.split(".");
+      let value = editedData;
+      for (const key of keys) {
+        value = value[key];
+        if (value === undefined || value === "") return true;
+      }
+      return false;
+    });
+
+    return missingFields;
+  };
+
   const handleSave = () => {
+    const missingFields = checkMissingData();
+
+    if (missingFields.length > 0) {
+      setError(`Faltan los siguientes campos: ${missingFields.join(", ")}`);
+      setHasMissingData(true);
+      return; // Evita que el usuario guarde si faltan datos
+    }
+
+    setError(null);
+    setHasMissingData(false);
     onSave(editedData);
     closeModal();
   };
@@ -133,9 +177,9 @@ const Modal: React.FC<ModalProps> = ({
   if (!showModal) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center p-4">
+    <div className="fixed inset-0 bg-gray-700/50 backdrop-blur-md flex justify-center items-center p-4">
       <div className="bg-amber-50 rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
+        <div className="p-6 border-zinc-800">
           {modalData.success && (
             <>
               <h2 className="text-2xl font-bold mb-2 text-center">
@@ -175,6 +219,7 @@ const Modal: React.FC<ModalProps> = ({
                   }
                   className="mt-1 text-xs block w-full p-1 border border-gray-300 rounded-md shadow-sm focus:ring-[#931D21] focus:border-[#931D21]"
                 />
+
                 <div>
                   <label
                     htmlFor="tipoMemorando"
@@ -197,6 +242,7 @@ const Modal: React.FC<ModalProps> = ({
                     ))}
                   </select>
                 </div>
+
                 <div>
                   <label className="block text-xs font-medium text-gray-700">
                     Lugar:
@@ -275,7 +321,7 @@ const Modal: React.FC<ModalProps> = ({
 
                 {/* Solicitante */}
                 <div className="bg-gray-50 rounded-lg">
-                  <h4 className="text-xss font-semibold text-orange-700 ">
+                  <h4 className="text-xss font-semibold text-orange-700">
                     Solicitante:
                   </h4>
                   <div className="space-y-4">
@@ -311,7 +357,7 @@ const Modal: React.FC<ModalProps> = ({
                         value={facultadSeleccionada}
                         onChange={handleFacultadChange}
                         className="mt-1 text-xs block w-full p-1 border border-gray-300 rounded-md shadow-sm focus:ring-[#931D21] focus:border-[#931D21]"
-                        disabled={loading} // Si necesitas mantener el estado de carga
+                        disabled={loading}
                       >
                         <option value="">Seleccione una facultad</option>
                         {facultades.map((facultad) => (
@@ -323,11 +369,12 @@ const Modal: React.FC<ModalProps> = ({
                     </div>
                   </div>
                 </div>
+
                 {/* Carrera */}
                 <div className="bg-gray-50 rounded-lg">
                   <div className="space-y-4">
                     <label className="block text-xs font-medium text-gray-700">
-                      <h4 className="text-xss font-semibold text-orange-700 ">
+                      <h4 className="text-xss font-semibold text-orange-700">
                         Carrera:
                       </h4>
                     </label>
@@ -339,15 +386,14 @@ const Modal: React.FC<ModalProps> = ({
                     />
                   </div>
                 </div>
+
                 {/* Productos */}
                 <div className="bg-gray-50 rounded-lg">
-                  <h4 className="text-xss font-semibold text-orange-700 ">
+                  <h4 className="text-xss font-semibold text-orange-700">
                     Productos:
                   </h4>
-                  {editedData.productos.map((producto: any, index: any) => (
+                  {editedData.productos.map((producto: any, index: number) => (
                     <div key={producto.id || index} className="mb-4">
-                      {" "}
-                      {/* Clave única */}
                       <label className="block text-xs font-medium text-gray-700">
                         Nombre del Producto:
                       </label>
@@ -368,12 +414,12 @@ const Modal: React.FC<ModalProps> = ({
 
                 {/* Proyecto */}
                 <div className="bg-gray-50 rounded-lg">
-                  <h4 className="text-xss font-semibold text-orange-700 ">
+                  <h4 className="text-xss font-semibold text-orange-700">
                     Proyecto:
                   </h4>
                   <div className="space-y-4">
                     <div>
-                      <label className="text-xs block  font-medium text-gray-700">
+                      <label className="text-xs block font-medium text-gray-700">
                         Tipo:
                       </label>
                       <input
@@ -448,6 +494,7 @@ const Modal: React.FC<ModalProps> = ({
           <button
             onClick={handleSave}
             className="bg-[#931D21] text-white text-xs px-4 py-2 rounded-lg hover:bg-red-700"
+            disabled={hasMissingData} // Deshabilitar si hay datos faltantes
           >
             Guardar Cambios
           </button>
