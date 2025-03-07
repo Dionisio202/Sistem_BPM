@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import Sidebar from "../components/Sidebar";
 import CardPrincipal from "../components/CardPrincipal";
 import PanelFiltros from "../components/PanelFiltros";
@@ -7,9 +7,28 @@ import TaskProgressCard from "../components/TaskProgressCard";
 import GanttChart from "../components/GanttComponent";
 import NumericCards from "../components/RecordNumber";
 import PDFExport from "../components/PDFExport";
+
+interface FiltersData {
+  year: string;
+  facultad: string;
+  estado: string;
+  fechaInicio: string;
+  fechaFin: string;
+}
 const Dashboard: React.FC = () => {
+  const [filtersData, setFiltersData] = useState<FiltersData>({
+    year: '',
+    facultad: '',
+    estado: '',
+    fechaInicio: '',
+    fechaFin: ''
+  });
   //Datos para los graficos
   //ojo para el back aqui se deberia cargar con la sentencia sql
+
+  const [filters, setFilters] = useState<string[]>([]);
+  const [periodo, setPeriodo] = useState("2024"); // Ejemplo con valor inicial
+
   const barChartData = [
     { name: "R.Obras", value: 10 },
     { name: "R.Software", value: 20 },
@@ -96,18 +115,28 @@ const Dashboard: React.FC = () => {
   ];
 
   return (
-    <PDFExport captureIds={["taskProgress"]}>
+    <PDFExport 
+      captureIds={["taskProgress"]}
+      filtersData={filtersData}
+    >
     <div className="flex flex-col min-h-screen">
       <div className="flex">
         <Sidebar />
         <main className="flex-grow p-1 space-y-2 ml-0 md:ml-60">
           <div className="flex gap-1 items-center">
             <div  className="flex-3">
-              <TaskProgressCard
-                completedTasks={7}
-                totalTasks={10}
-                nameTasks={"Caso 2001 / Registro Propiedad Intelectual"}
-              />
+            <div className="flex gap-1 items-center">
+              <div  className="flex-3">
+                <TaskProgressCard
+                  completedTasks={7}
+                  totalTasks={10}
+                  nameTasks={"Caso 2001 / Registro Propiedad Intelectual"}
+                />
+              </div>
+              <div className="flex-2">
+                <NumericCards records={records} />
+              </div>
+            </div>
             </div>
             <div className="flex-2">
               <NumericCards records={records} />
@@ -125,7 +154,10 @@ const Dashboard: React.FC = () => {
               pieChartData={pieChartData}
               pieChartColors={pieChartColors}
             ></CardPrincipal>
-            <PanelFiltros />
+            <PanelFiltros
+              onFilterChange={setFiltersData}
+              onYearChange={(year) => setFiltersData(prev => ({...prev, year}))}
+            />
           </div>
           <div className="p-3">
             <GanttChart tasks={tasks} />
