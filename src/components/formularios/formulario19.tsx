@@ -82,7 +82,7 @@ const { usuario, bonitaData, tareaActual} = useCombinedBonitaData();
     const payload = {
       nombre:
         baseName +
-        `_${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}`,
+        `_${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}.pdf`,
       id_registro_per: `${bonitaData?.processId}-${bonitaData?.caseId}`,
       id_tipo_documento: "6",
       document: fileBase64,

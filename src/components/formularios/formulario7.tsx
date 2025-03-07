@@ -97,7 +97,7 @@ const {  error } = useBonitaService();
     const baseName = dotIndex !== -1 ? fileName.substring(0, dotIndex) : fileName;
 
     const payload = {
-      nombre: baseName + `_${bonitaData.processId}-${bonitaData.caseId}-${bonitaData.taskId}`,
+      nombre: baseName + `_${bonitaData.processId}-${bonitaData.caseId}-${bonitaData.taskId}.pdf`,
       id_registro_per: `${bonitaData.processId}-${bonitaData.caseId}`,
       id_tipo_documento: documentType === "contrato" ? "4" : "5", // Asigna IDs según la lógica de tu negocio
       document: fileBase64,

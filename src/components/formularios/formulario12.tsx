@@ -75,7 +75,7 @@ export default function WebPage() {
             setSelectedDocument({
               key: response.jsonData,
               title: staticDocuments.datos.title,
-              nombre: `${response.jsonData}.pdf`,
+              nombre: `${response.jsonData}`,
             });
           } else {
             console.error("Error:", response.message);

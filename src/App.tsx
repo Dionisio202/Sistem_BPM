@@ -28,6 +28,7 @@ import Formulario21 from "./components/formularios/formulario21";
 import Dashboard from "./pages/DashBoard-Informes/dashboard-informes";
 import Dash from "./pages/DashBoard-Informes/screens/dashboard"
 import Reports from "./pages/DashBoard-Informes/screens/reports"
+import Trazabilidad from "./pages/trazabilidad-documentos/trazabilidad";
 
 const App = () => {
   return (
@@ -60,6 +61,7 @@ const App = () => {
             <Route path="/Reporteria" element={<Dashboard />} />
             <Route path="/Dashboard" element={<Dash/>} />
             <Route path="/Reports" element={<Reports />} />
+            <Route path="/Auditoria" element={<Trazabilidad />} />
           </Routes>
         </Router>
       </main>
