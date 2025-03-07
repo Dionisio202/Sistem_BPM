@@ -41,18 +41,25 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
   fileType,
   documentType
 })  => {
+  
+  const extension = documentName.split('.').pop()?.toLowerCase();
+
+  // Resolver fileType y documentType según la extensión si no fueron proporcionados
+  const resolvedFileType = fileType || (extension && (extension === 'pdf' || extension === 'docx') ? extension : 'docx');
+  const resolvedDocumentType = documentType || (extension === 'pdf' ? 'pdf' : 'word');
+
   const processedKey = keyDocument.replace(/\.(pdf|docx)$/i, "");
   const documentUrl = `${SERVER_BACK_URL}api/document?nombre=${encodeURIComponent(documentName)}`;
   const serverUrl = SERVER_ONLYOFFICE_URL;
   // Configuración de ONLYOFFICE con callbackUrl opcional
   const config: any = {
     document: {
-      fileType: fileType || 'docx', // Valor por defecto 'pdf'
+      fileType: resolvedFileType,
       key: processedKey,
       title: title,
       url: documentUrl,
     },
-    documentType: documentType || 'word', // Valor por defecto 'pdf'
+    documentType: resolvedDocumentType,
     editorConfig: {
       mode: mode || 'view', // Modo de visualización, por defecto 'view'
       ...(callbackUrl && { callbackUrl })
