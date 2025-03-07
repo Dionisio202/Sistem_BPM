@@ -25,11 +25,16 @@ const Modal: React.FC<ModalProps> = ({
   const [hasMissingData, setHasMissingData] = useState(false); // Estado para rastrear datos faltantes
 
   const facultades = [
-    { id: 1, nombre: "Facultad de Ingeniería" },
-    { id: 2, nombre: "Facultad de Medicina" },
-    { id: 3, nombre: "Facultad de Derecho" },
-    { id: 4, nombre: "Facultad de Ciencias Económicas" },
-    { id: 5, nombre: "Facultad de Arquitectura" },
+    { id: 1, nombre: "Ciencias de la Salud" },
+    { id: 2, nombre: "Ciencia e Ingeniería en Alimentos y Biotecnología" },
+    { id: 3, nombre: "Jurisprudencia y Ciencias Sociales" },
+    { id: 4, nombre: "Ingeniería en Sistemas, Electrónica e Industrial" },
+    { id: 5, nombre: "Ciencias Humanas y de la Educación" },
+    { id: 6, nombre: "Ciencias Agropecuarias" },
+    { id: 7, nombre: "Diseño y Arquitectura" },
+    { id: 8, nombre: "Ingeniería Civil y Mecánica" },
+    { id: 9, nombre: "Ciencias Administrativas" },
+    { id: 10, nombre: "Contabilidad y Auditoría" },
   ];
 
   const handleFacultadChange = (e: any) => {
