@@ -33,6 +33,8 @@ export interface Tarea {
   NombreProyecto: string;
   Facultad: string;
   MemorandoInicial?: string;
+  Carrera?: string; // Nueva propiedad agregada
+  TipoProyecto?: string; // Nueva propiedad agregada
 }
 
 // Interfaz para los datos de la tabla

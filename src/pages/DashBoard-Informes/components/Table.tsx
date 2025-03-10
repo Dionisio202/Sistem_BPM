@@ -53,6 +53,8 @@ const newData: TablaTarea[] = jsonData.Funcionarios.flatMap(
             NombreProductos: tarea.NombreProductos,
             NombreProyecto: tarea.NombreProyecto,
             Facultad: tarea.Facultad,
+            Carrera: tarea.Carrera || "No especificado", // Nueva propiedad agregada
+            TipoProyecto: tarea.TipoProyecto || "No especificado", // Nueva propiedad agregada
             MemorandoInicial: tarea.MemorandoInicial,
             NumeroCaso: caso.NumeroCaso,
             FechaRegistro: caso.FechaRegistro,
@@ -93,28 +95,26 @@ const newData: TablaTarea[] = jsonData.Funcionarios.flatMap(
     };
   }, []);
 
-  // Definir las columnas de la tabla
-  const columns = useMemo<MRT_ColumnDef<TablaTarea>[]>(
-    () => [
-      { accessorKey: "NombreProceso", header: "Nombre de Proceso", size: 150 },
-      { accessorKey: "Funcionario", header: "Funcionario", size: 150 },
-      { accessorKey: "NumeroCaso", header: "Número de Caso", size: 100 },
-      { accessorKey: "NombreTarea", header: "Nombre de Tarea", size: 100 },
-      { accessorKey: "Progreso", header: "Progreso", size: 100 },
-      { accessorKey: "EstadoDeProceso", header: "Estado de Proceso", size: 120 },
-      { accessorKey: "TipoProductos", header: "Tipo de Productos", size: 120 },
-      { accessorKey: "NombreProductos", header: "Nombre de Productos", size: 150 },
-      { accessorKey: "NombreProyecto", header: "Nombre del Proyecto", size: 150 },
-      { accessorKey: "Facultad", header: "Facultad", size: 120 },
-      { accessorKey: "MemorandoInicial", header: "Memorando Inicial", size: 120 },
-      { accessorKey: "FechaRegistro", header: "Fecha de Registro", size: 120 },
-      { accessorKey: "FechaFinalizacion", header: "Fecha de Finalización", size: 120 },
-      { accessorKey: "ProgresoGeneral", header: "Progreso General", size: 100 },
-      { accessorKey: "EstadoProcesoGeneral", header: "Estado General", size: 120 },
-      { accessorKey: "Autores", header: "Autores", size: 200 }, // nueva columna agregada
-    ],
-    []
-  );
+  const columns = useMemo<MRT_ColumnDef<TablaTarea>[]>(() => [
+    { accessorKey: "NombreProceso", header: "Nombre de Proceso", size: 150 },
+    { accessorKey: "Funcionario", header: "Funcionario", size: 150 },
+    { accessorKey: "NumeroCaso", header: "Número de Caso", size: 100 },
+    { accessorKey: "NombreTarea", header: "Nombre de Tarea", size: 100 },
+    { accessorKey: "Progreso", header: "Progreso", size: 100 },
+    { accessorKey: "EstadoDeProceso", header: "Estado de Proceso", size: 120 },
+    { accessorKey: "TipoProductos", header: "Tipo de Productos", size: 120 },
+    { accessorKey: "NombreProductos", header: "Nombre de Productos", size: 150 },
+    { accessorKey: "NombreProyecto", header: "Nombre del Proyecto", size: 150 },
+    { accessorKey: "Facultad", header: "Facultad", size: 120 },
+    { accessorKey: "Carrera", header: "Carrera", size: 120 }, // Nueva columna
+    { accessorKey: "TipoProyecto", header: "Tipo de Proyecto", size: 120 }, // Nueva columna
+    { accessorKey: "MemorandoInicial", header: "Memorando Inicial", size: 120 },
+    { accessorKey: "FechaRegistro", header: "Fecha de Registro", size: 120 },
+    { accessorKey: "FechaFinalizacion", header: "Fecha de Finalización", size: 120 },
+    { accessorKey: "ProgresoGeneral", header: "Progreso General", size: 100 },
+    { accessorKey: "EstadoProcesoGeneral", header: "Estado General", size: 120 },
+    { accessorKey: "Autores", header: "Autores", size: 200 },
+  ], []);
   
 
   const table = useMaterialReactTable({
