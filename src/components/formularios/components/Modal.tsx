@@ -6,6 +6,7 @@ import {
   TipoProducto,
 } from "../../../interfaces/registros.interface";
 import { SERVER_BACK_URL } from "../../../config.ts";
+import { Facultad } from "../../../interfaces/facultades.interface.ts";
 
 const socket = io(SERVER_BACK_URL); // Conecta con el backend
 
@@ -18,35 +19,12 @@ const Modal: React.FC<ModalProps> = ({
   handleTipoMemorandoChange,
 }) => {
   const [editedData, setEditedData] = useState(modalData.productos);
-  const [tiposProductos, setTiposProductos] = useState<TipoProducto[]>([]); // Estado para los tipos de productos
-  const [loading, setLoading] = useState(true); // Estado para el indicador de carga
-  const [error, setError] = useState<string | null>(null); // Estado para manejar errores
+  const [tiposProductos, setTiposProductos] = useState<TipoProducto[]>([]);
+  const [facultadesCarreras, setFacultadesCarreras] = useState<Facultad[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [facultadSeleccionada, setFacultadSeleccionada] = useState("");
-  const [hasMissingData, setHasMissingData] = useState(false); // Estado para rastrear datos faltantes
-
-  const facultades = [
-    { id: 1, nombre: "Ciencias de la Salud" },
-    { id: 2, nombre: "Facultad de ciencias Administrativas" },
-    { id: 3, nombre: "Jurisprudencia y Ciencias Sociales" },
-    { id: 4, nombre: "Ingeniería en Sistemas, Electrónica e Industrial" },
-    { id: 5, nombre: "Ciencias Humanas y de la Educación" },
-    { id: 6, nombre: "Ciencias Agropecuarias" },
-    { id: 7, nombre: "Diseño y Arquitectura" },
-    { id: 8, nombre: "Ingeniería Civil y Mecánica" },
-    { id: 9, nombre: "Ciencias Administrativas" },
-    { id: 10, nombre: "Contabilidad y Auditoría" },
-  ];
-
-  const handleFacultadChange = (e: any) => {
-    setFacultadSeleccionada(e.target.value);
-    setEditedData((prev: any) => ({
-      ...prev,
-      solicitante: {
-        ...prev.solicitante,
-        facultad: e.target.value,
-      },
-    }));
-  };
+  const [hasMissingData, setHasMissingData] = useState(false);
 
   // Cargar los tipos de productos al abrir el modal
   useEffect(() => {
@@ -83,9 +61,40 @@ const Modal: React.FC<ModalProps> = ({
     }
   }, [showModal]);
 
+  // Cargar facultades y carreras de forma dinámica
+  useEffect(() => {
+    if (showModal) {
+      socket.emit("obtener_facultades_carreras", (response: any) => {
+        if (response.success && response.data && response.data.length > 0) {
+          try {
+            // Se espera que la respuesta tenga una propiedad ResultadoJSON con el string JSON
+            const parsedData = JSON.parse(response.data[0].ResultadoJSON);
+            setFacultadesCarreras(parsedData);
+          } catch (parseError) {
+            console.error("Error al parsear facultades:", parseError);
+            setError("Error al cargar facultades y carreras");
+          }
+        } else {
+          console.error("Error al obtener facultades:", response.message);
+          setError("Error al cargar facultades y carreras");
+        }
+      });
+    }
+  }, [showModal]);
+
+  const handleFacultadChange = (e: any) => {
+    setFacultadSeleccionada(e.target.value);
+    setEditedData((prev: any) => ({
+      ...prev,
+      solicitante: {
+        ...prev.solicitante,
+        facultad: e.target.value,
+      },
+    }));
+  };
+
   const handleMemoFileChange = async (file: File | null) => {
     if (!file) return;
-
     try {
       const memoBase64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
@@ -122,17 +131,14 @@ const Modal: React.FC<ModalProps> = ({
   const handleChange = (path: string, value: string) => {
     const keys = path.split(".");
     const updatedData = { ...editedData };
-
     let current: any = updatedData;
     for (let i = 0; i < keys.length - 1; i++) {
       current = current[keys[i]];
     }
     current[keys[keys.length - 1]] = value;
-
     setEditedData(updatedData);
   };
 
-  // Función para verificar si hay datos faltantes
   const checkMissingData = () => {
     const requiredFields = [
       "codigoMemorando",
@@ -144,13 +150,11 @@ const Modal: React.FC<ModalProps> = ({
       "solicitante.nombre",
       "solicitante.cargo",
       "solicitante.facultad",
-      "proyecto.carrera",
       "proyecto.tipo",
       "proyecto.titulo",
       "proyecto.resolucion.numero",
       "proyecto.resolucion.fecha",
     ];
-
     const missingFields = requiredFields.filter((field) => {
       const keys = field.split(".");
       let value = editedData;
@@ -160,19 +164,16 @@ const Modal: React.FC<ModalProps> = ({
       }
       return false;
     });
-
     return missingFields;
   };
 
   const handleSave = () => {
     const missingFields = checkMissingData();
-
     if (missingFields.length > 0) {
       setError(`Faltan los siguientes campos: ${missingFields.join(", ")}`);
       setHasMissingData(true);
-      return; // Evita que el usuario guarde si faltan datos
+      return;
     }
-
     setError(null);
     setHasMissingData(false);
     onSave(editedData);
@@ -207,8 +208,6 @@ const Modal: React.FC<ModalProps> = ({
                     label="Subir archivo del memorando"
                   />
                 </div>
-
-                {/* Código de Memorando */}
                 <label
                   htmlFor="codigoMemorando"
                   className="block text-xs font-medium text-gray-700"
@@ -224,7 +223,6 @@ const Modal: React.FC<ModalProps> = ({
                   }
                   className="mt-1 text-xs block w-full p-1 border border-gray-300 rounded-md shadow-sm focus:ring-[#931D21] focus:border-[#931D21]"
                 />
-
                 <div>
                   <label
                     htmlFor="tipoMemorando"
@@ -247,7 +245,6 @@ const Modal: React.FC<ModalProps> = ({
                     ))}
                   </select>
                 </div>
-
                 <div>
                   <label className="block text-xs font-medium text-gray-700">
                     Lugar:
@@ -259,8 +256,6 @@ const Modal: React.FC<ModalProps> = ({
                     className="mt-1 mb-5 block w-full text-xs p-1 border border-gray-300 rounded-md shadow-sm focus:ring-[#931D21] focus:border-[#931D21]"
                   />
                 </div>
-
-                {/* Destinatario */}
                 <div className="bg-gray-50 rounded-lg">
                   <h4 className="text-xss font-semibold text-orange-700 mb-1">
                     Destinatario
@@ -323,8 +318,6 @@ const Modal: React.FC<ModalProps> = ({
                     </div>
                   </div>
                 </div>
-
-                {/* Solicitante */}
                 <div className="bg-gray-50 rounded-lg">
                   <h4 className="text-xss font-semibold text-orange-700">
                     Solicitante:
@@ -347,16 +340,22 @@ const Modal: React.FC<ModalProps> = ({
                       <label className="block text-xs font-medium text-gray-700">
                         Cargo:
                       </label>
-                      <input
-                        type="text"
+                      <select
                         value={editedData.solicitante.cargo}
-                        onChange={(e) =>
-                          handleChange("solicitante.cargo", e.target.value)
-                        }
+                        onChange={(e) => handleChange("solicitante.cargo", e.target.value)}
                         className="mt-1 mb-5 text-xs block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-[#931D21] focus:border-[#931D21]"
-                      />
+                      >
+                        <option value="">Seleccione un cargo</option>
+                        <option value="Director">Director</option>
+                        <option value="Docente">Docente</option>
+                        <option value="Rector">Rector</option>
+                        <option value="Decano">Decano</option>
+                      </select>
                     </div>
                     <div>
+                    <label className="block text-xs font-medium text-gray-700">
+                        Facultad:
+                      </label>
                       <select
                         id="facultad"
                         value={facultadSeleccionada}
@@ -365,34 +364,18 @@ const Modal: React.FC<ModalProps> = ({
                         disabled={loading}
                       >
                         <option value="">Seleccione una facultad</option>
-                        {facultades.map((facultad) => (
-                          <option key={facultad.id} value={facultad.nombre}>
-                            {facultad.nombre}
+                        {facultadesCarreras.map((facultad) => (
+                          <option
+                            key={facultad.id_facultad}
+                            value={facultad.id_facultad}
+                          >
+                            {facultad.nombre_facultad}
                           </option>
                         ))}
                       </select>
                     </div>
                   </div>
                 </div>
-
-                {/* Carrera */}
-                <div className="bg-gray-50 rounded-lg">
-                  <div className="space-y-4">
-                    <label className="block text-xs font-medium text-gray-700">
-                      <h4 className="text-xss font-semibold text-orange-700">
-                        Carrera:
-                      </h4>
-                    </label>
-                    <input
-                      type="text"
-                      value={editedData.proyecto.carrera}
-                      onChange={(e) => handleChange("carrera", e.target.value)}
-                      className="mt-1 mb-5 text-xs block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-[#931D21] focus:border-[#931D21]"
-                    />
-                  </div>
-                </div>
-
-                {/* Productos */}
                 <div className="bg-gray-50 rounded-lg">
                   <h4 className="text-xss font-semibold text-orange-700">
                     Productos:
@@ -416,8 +399,6 @@ const Modal: React.FC<ModalProps> = ({
                     </div>
                   ))}
                 </div>
-
-                {/* Proyecto */}
                 <div className="bg-gray-50 rounded-lg">
                   <h4 className="text-xss font-semibold text-orange-700">
                     Proyecto:
