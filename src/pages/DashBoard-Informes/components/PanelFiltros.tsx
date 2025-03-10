@@ -1,25 +1,45 @@
-
 import React, { useState, useCallback } from "react";
 
+// Definición de tipos
 interface Filters {
   estado: string;
   proyecto: string[];
   producto: string[];
   funcionario: string;
   facultad: string;
+  carreras: string[]; // Nuevo campo para carreras
+  fechaInicio: string;
+  fechaFin: string;
 }
 
 interface FilterPanelProps {
   onFilterChange: (filters: Filters) => void;
+  estados: string[];
+  proyectos: string[];
+  productos: string[];
+  funcionarios: string[];
+  facultades: string[];
+  carreras: string[]; // Nuevo prop para carreras
 }
 
-export default function FilterPanel({ onFilterChange }: FilterPanelProps) {
+export default function FilterPanel({
+  onFilterChange,
+  estados,
+  proyectos,
+  productos,
+  funcionarios,
+  facultades,
+  carreras,
+}: FilterPanelProps) {
   const [filters, setFilters] = useState<Filters>({
     estado: "Todos",
     proyecto: [],
     producto: [],
     funcionario: "Todos",
     facultad: "Todos",
+    carreras: [], // Inicialmente vacío
+    fechaInicio: "",
+    fechaFin: "",
   });
 
   const handleChange = useCallback(
@@ -29,18 +49,24 @@ export default function FilterPanel({ onFilterChange }: FilterPanelProps) {
       setFilters((prevFilters) => {
         if (type === "checkbox") {
           const isChecked = (e.target as HTMLInputElement).checked;
-          const key = name as keyof Filters; // 🔹 Asegurar que `name` es una clave válida de `Filters`
-          const prevValue = prevFilters[key] as string[]; // 🔹 Ahora TypeScript sabe que `key` es válido
+          const key = name as keyof Filters;
+          const prevValue = prevFilters[key] as string[];
 
           return {
             ...prevFilters,
             [key]: isChecked
-              ? [...prevValue, value] // Agregar al array si está marcado
-              : prevValue.filter((item) => item !== value), // Eliminar si se desmarca
+              ? [...prevValue, value]
+              : prevValue.filter((item) => item !== value),
           };
+        } else if (type === "select-multiple") {
+          const selectElement = e.target as HTMLSelectElement;
+          const selectedOptions = Array.from(selectElement.selectedOptions).map(
+            (option) => option.value
+          );
+          return { ...prevFilters, [name]: selectedOptions };
         } else {
-          const key = name as keyof Filters; // 🔹 Asegurar que `name` es una clave válida de `Filters`
-          return { ...prevFilters, [key]: value }; // 🔹 Para select y text inputs
+          const key = name as keyof Filters;
+          return { ...prevFilters, [key]: value };
         }
       });
     },
@@ -52,22 +78,45 @@ export default function FilterPanel({ onFilterChange }: FilterPanelProps) {
   }, [filters, onFilterChange]);
 
   return (
-    <div className="bg-gray-800 text-white p-4 rounded-lg shadow-lg">
-      <div className="grid grid-cols-5 gap-25">
+    <div className="bg-gray-800 text-white p-6 rounded-lg shadow-lg w-full">
+      {/* Contenedor de filtros */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         {/* Estado de Registros */}
-        <FilterSelect
-          label="Estado de Registros"
-          name="estado"
-          value={filters.estado}
-          options={["Todos", "Procesado", "Pendiente"]}
-          onChange={handleChange}
-        />
+        <div>
+          <FilterSelect
+            label="Estado de Registros"
+            name="estado"
+            value={filters.estado}
+            options={["Todos", ...estados]}
+            onChange={handleChange}
+          />
+          {/* Filtro de fechas */}
+          <div className="mt-4 bg-white p-4 rounded-lg shadow-sm">
+            <h3 className="text-lg font-semibold mb-2 text-gray-800">Rango de Fechas</h3>
+            <div className="flex flex-col gap-2">
+              <input
+                type="date"
+                name="fechaInicio"
+                value={filters.fechaInicio}
+                onChange={handleChange}
+                className="w-full p-2 border border-gray-300 rounded-md text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <input
+                type="date"
+                name="fechaFin"
+                value={filters.fechaFin}
+                onChange={handleChange}
+                className="w-full p-2 border border-gray-300 rounded-md text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+        </div>
 
         {/* Tipo de Proyecto */}
         <FilterCheckboxGroup
           label="Tipo de Proyecto"
           name="proyecto"
-          options={["Innovación", "Investigación", "Vinculación"]}
+          options={proyectos}
           selectedValues={filters.proyecto}
           onChange={handleChange}
         />
@@ -76,7 +125,7 @@ export default function FilterPanel({ onFilterChange }: FilterPanelProps) {
         <FilterCheckboxGroup
           label="Tipo de Producto"
           name="producto"
-          options={["Artículo", "Software", "Libro"]}
+          options={productos}
           selectedValues={filters.producto}
           onChange={handleChange}
         />
@@ -86,7 +135,7 @@ export default function FilterPanel({ onFilterChange }: FilterPanelProps) {
           label="Funcionario"
           name="funcionario"
           value={filters.funcionario}
-          options={["Todos", "Jimmy", "Fanny"]}
+          options={["Todos", ...funcionarios]}
           onChange={handleChange}
         />
 
@@ -95,18 +144,38 @@ export default function FilterPanel({ onFilterChange }: FilterPanelProps) {
           label="Facultad"
           name="facultad"
           value={filters.facultad}
-          options={["Todos", "Ingeniería", "Ciencias"]}
+          options={["Todos", ...facultades]}
           onChange={handleChange}
         />
+
+        {/* Carreras */}
+        <div className="bg-white p-4 rounded-lg shadow-sm">
+          <h3 className="text-lg font-semibold mb-2 text-gray-800">Carreras</h3>
+          <select
+            name="carreras"
+            value={filters.carreras}
+            onChange={handleChange}
+            multiple // Permite selección múltiple
+            className="w-full p-2 border border-gray-300 rounded-md text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {carreras.map((carrera) => (
+              <option key={carrera} value={carrera}>
+                {carrera}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Botón de Aplicar Filtros */}
-      <button
-        onClick={applyFilters}
-        className="mt-4 bg-blue-600 px-4 py-2 rounded w-full hover:bg-blue-700 transition-colors"
-      >
-        Aplicar Filtros
-      </button>
+      <div className="mt-6">
+        <button
+          onClick={applyFilters}
+          className="bg-blue-600 text-white px-4 py-2 rounded w-full hover:bg-blue-700 transition-colors"
+        >
+          Aplicar Filtros
+        </button>
+      </div>
     </div>
   );
 }
@@ -120,21 +189,15 @@ interface FilterSelectProps {
   onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
 }
 
-function FilterSelect({
-  label,
-  name,
-  value,
-  options,
-  onChange,
-}: FilterSelectProps) {
+function FilterSelect({ label, name, value, options, onChange }: FilterSelectProps) {
   return (
-    <div>
-      <h3 className="text-lg font-semibold mb-2">{label}</h3>
+    <div className="bg-white p-4 rounded-lg shadow-sm">
+      <h3 className="text-lg font-semibold mb-2 text-gray-800">{label}</h3>
       <select
         name={name}
         value={value}
         onChange={onChange}
-        className="text-black p-2 rounded w-full"
+        className="w-full p-2 border border-gray-300 rounded-md text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
       >
         {options.map((option) => (
           <option key={option} value={option}>
@@ -163,11 +226,11 @@ function FilterCheckboxGroup({
   onChange,
 }: FilterCheckboxGroupProps) {
   return (
-    <div>
-      <h3 className="text-lg font-semibold mb-2">{label}</h3>
+    <div className="bg-white p-4 rounded-lg shadow-sm">
+      <h3 className="text-lg font-semibold mb-2 text-gray-800">{label}</h3>
       <div className="flex flex-col gap-1">
         {options.map((option) => (
-          <label key={option} className="flex items-center">
+          <label key={option} className="flex items-center text-gray-700">
             <input
               type="checkbox"
               name={name}

@@ -107,7 +107,16 @@ export default function UploadForm() {
   const handleNext = useCallback(async () => {
     try {
       if (json) {
-        await saveFinalState(json);
+      const saveResponse =  await saveFinalState(json);
+      if (!saveResponse || typeof saveResponse.success !== "boolean") {
+        throw new Error("Respuesta inválida al guardar el estado final");
+      }
+      if (!saveResponse.success) {
+        throw new Error(
+          saveResponse.message ||
+            "No se pudo guardar el estado final. Inténtelo de nuevo."
+        );
+      }
       } else {
         console.error("❌ Error: json is null");
       }
@@ -131,7 +140,7 @@ export default function UploadForm() {
       }
 
       // Extraer el nombre del archivo sin extensión
-      const fileName = file?.name || "";
+      const fileName = file?.name ?? "";
       const dotIndex = fileName.lastIndexOf(".");
       const baseName = dotIndex !== -1 ? fileName.substring(0, dotIndex) : fileName;
 

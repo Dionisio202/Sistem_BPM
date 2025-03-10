@@ -2,30 +2,26 @@ import React from "react";
 import { scaleBand, scaleLinear, max } from "d3";
 import { ProcesoDatos } from "./interfaces/proceso.interface";
 
-// Definimos el tipo para los datos
-const data: ProcesoDatos[] = [
-  { key: "Caso2001", value: 100 },
-  { key: "Casso2002", value: 70 },
-  { key: "Caso2003", value: 60 },
-  { key: "Caso2004", value: 10 },
-  { key: "Caso2005", value: 10 },
-  { key: "Caso2006", value: 30 },
-  { key: "Caso2007", value: 50 },
-].sort((a, b) => b.value - a.value); // Ordenamos los datos
+interface HorizontalBarProps {
+  Datos: ProcesoDatos[]; // Datos dinámicos pasados como prop
+}
 
-const HorizontalBar: React.FC = () => {
+const HorizontalBar: React.FC<HorizontalBarProps> = ({ Datos }) => {
+  // Ordenamos los datos por valor (de mayor a menor)
+  const sortedData = [...Datos].sort((a, b) => b.value - a.value);
+
   // Escalas
   const yScale = scaleBand<string>()
-    .domain(data.map((d) => d.key))
+    .domain(sortedData.map((d) => d.key))
     .range([0, 100])
     .padding(0.6);
 
   const xScale = scaleLinear<number>()
-    .domain([0, max(data, (d) => d.value) ?? 0])
+    .domain([0, max(sortedData, (d) => d.value) ?? 0])
     .range([0, 100]);
 
   // Calculamos el ancho máximo de las etiquetas del eje Y
-  const longestWord = max(data.map((d) => d.key.length)) ?? 1;
+  const longestWord = max(sortedData.map((d) => d.key.length)) ?? 1;
 
   // Función para determinar el color de la barra
   const getBarColor = (width: number) => {
@@ -40,7 +36,7 @@ const HorizontalBar: React.FC = () => {
       {/* Descripción del gráfico */}
       <div className="mb-4">
         <h2 className="text-xl font-semibold text-gray-800">
-          Porcentaje de Progreso por Registro
+          Registros por Carrera
         </h2>
         <p className="text-sm text-gray-500">Estado de Progreso</p>
       </div>
@@ -60,7 +56,7 @@ const HorizontalBar: React.FC = () => {
         {/* Área del gráfico */}
         <div className="absolute inset-0 z-10 h-[calc(100%-var(--marginTop)-var(--marginBottom))] translate-y-[var(--marginTop)] w-[calc(100%-var(--marginLeft)-var(--marginRight))] translate-x-[var(--marginLeft)] overflow-visible">
           {/* Barras del gráfico */}
-          {data.map((d) => {
+          {sortedData.map((d) => {
             const barWidth = xScale(d.value);
             const barHeight = yScale.bandwidth();
             const barColor = getBarColor(barWidth);
@@ -75,6 +71,7 @@ const HorizontalBar: React.FC = () => {
                     height: `${barHeight}%`,
                   }}
                   aria-label={`${d.key}: ${d.value}`}
+                  role="img"
                 />
                 {/* Punta de la barra */}
                 <div
@@ -135,7 +132,7 @@ const HorizontalBar: React.FC = () => {
 
         {/* Eje Y (Etiquetas) */}
         <div className="h-[calc(100%-var(--marginTop)-var(--marginBottom))] w-[var(--marginLeft)] translate-y-[var(--marginTop)] overflow-visible">
-          {data.map((entry) => (
+          {sortedData.map((entry) => (
             <span
               key={entry.key}
               className="absolute text-xs text-gray-400 -translate-y-1/2 w-full text-right pr-2"
