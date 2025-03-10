@@ -24,6 +24,7 @@ export default function ConfirmationScreen() {
   const [loading, setLoading] = useState(false); // Estado para manejar el loading
   const bonita: BonitaUtilities = new BonitaUtilities();
   const { error } = useBonitaService();
+  // @ts-ignore
   const [processAdvanced, setProcessAdvanced] = useState(false);
 
   // 🔹 Manejo de cambios en los checkboxes

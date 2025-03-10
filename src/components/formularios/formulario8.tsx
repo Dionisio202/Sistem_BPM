@@ -7,7 +7,6 @@ import BonitaUtilities from "../bonita/bonita-utilities";
 import Title from "./components/TitleProps";
 import { SERVER_BACK_URL } from "../../config.ts";
 import { useSaveTempState } from "../bonita/hooks/datos_temprales";
-import { useBonitaService } from "../../services/bonita.service";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { useCombinedBonitaData } from "../bonita/hooks/obtener_datos_bonita.tsx";
 import { ToastContainer, toast } from "react-toastify";
@@ -25,6 +24,7 @@ export default function MemoCodeForm() {
   const bonita: BonitaUtilities = new BonitaUtilities();
   const id_tipo_documento = 3; // Valor de ejemplo, reemplazar según corresponda
   const [json, setJson] = useState<temporalData | null>(null);
+    // @ts-ignore
   const [processAdvanced, setProcessAdvanced] = useState(false);
   // Obtener usuario autenticado
   useEffect(() => {

@@ -1,9 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Sidebar from "../components/Sidebar";
 import CardPrincipal from "../components/CardPrincipal";
-import PanelFiltros from "../components/PanelFiltros";
 import HorizontalBar from "../components/HorizontalBarComponent";
-import TaskProgressCard from "../components/TaskProgressCard";
 import GanttChart from "../components/GanttComponent";
 import NumericCards from "../components/RecordNumber";
 import PDFExport from "../components/PDFExport";
@@ -48,14 +46,18 @@ useEffect(() => {
 }, []);
 
   // record numerico, card para los conteos generales del dashboard
-  const records = [
-    { label: "Casos", value: 120 },
-    { label: "Año", value: 2025 },
-    { label: "Informes", value: 1 },
-  ];
-
+ 
  return (
-    <PDFExport captureIds={["taskProgress"]}>
+  <PDFExport
+  captureIds={["taskProgress"]}
+  filtersData={{
+    year: "2023",
+    facultad: "UTA",
+    estado: "ssd",
+    fechaInicio: "sdd",
+    fechaFin: "dsd",
+  }}
+>
     <div className="flex flex-col min-h-screen">
       <div className="flex">
         <Sidebar />

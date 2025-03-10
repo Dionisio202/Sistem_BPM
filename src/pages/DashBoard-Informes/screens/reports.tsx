@@ -3,6 +3,7 @@ import Sidebar from "../components/Sidebar";
 import Table from "../components/Table";
 
 const Reports: React.FC = () => {
+    // @ts-ignore
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   // Escuchar los cambios en el sidebar mediante un evento personalizado

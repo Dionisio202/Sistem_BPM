@@ -19,6 +19,7 @@ export default function ConfirmationScreen() {
   const { startAutoSave, saveFinalState } = useSaveTempState(socket);
   const { usuario, bonitaData, tareaActual } = useCombinedBonitaData();
   const [loading, setLoading] = useState(false);
+    // @ts-ignore
   const [processAdvanced, setProcessAdvanced] = useState(false);
   const [selectedDocuments, setSelectedDocuments] = useState({
     certificado: false,

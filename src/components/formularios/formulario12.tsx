@@ -32,15 +32,20 @@ export default function WebPage() {
   const [json, setJson] = useState<temporalData | null>(null);
   const urlSave = `${SERVER_BACK_URL}/api/save-document`;
   const [codigo, setCodigo] = useState(""); // Código del memorando
+  // @ts-ignore
   const [codigoGuardado, setCodigoGuardado] = useState<string | null>(null);
+  // @ts-ignore
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
   const bonita: BonitaUtilities = new BonitaUtilities();
+    // @ts-ignore
+
   const [codigoalmacenamiento, setCodigoAlmacenamiento] = useState<string>("");
   const [selectedDocument, setSelectedDocument] = useState<DocumentType>(
     staticDocuments.datos
   );
   const [loading, setLoading] = useState(false); // Estado para manejar el loading
   const [fileUploaded, setFileUploaded] = useState(false); // Estado para rastrear si el archivo se ha subido
+    // @ts-ignore
   const [processAdvanced, setProcessAdvanced] = useState(false);
   const handleCodigoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setCodigo(e.target.value);

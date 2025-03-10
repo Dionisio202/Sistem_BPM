@@ -26,7 +26,9 @@ export default function Formulario6() {
   const bonita: BonitaUtilities = new BonitaUtilities();
   const [json, setJson] = useState<temporalData | null>(null);
   const [aprobado, setAprobado] = useState<boolean>(false);
+    // @ts-ignore
   const [loading, setLoading] = useState(false);
+    // @ts-ignore
   const [processAdvanced, setProcessAdvanced] = useState(false);
   // Modificamos la función para aceptar un string
   const handleViewDocument = async (documentType: string) => {
@@ -70,10 +72,7 @@ export default function Formulario6() {
 
   // Guardado final
   const handleNext = async () => {
-    if (!aprobado) {
-      toast.error("Debes aprobar el documento para continuar.");
-      return;
-    }
+  
 
     try {
       if (json) {

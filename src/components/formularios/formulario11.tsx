@@ -23,6 +23,7 @@ const Formulario11: React.FC = () => {
   const [json, setJson] = useState<temporalData | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false); // Estado para controlar el envío
   const [loading, setLoading] = useState(false); // Estado para manejar el loading
+  // @ts-ignore
   const [processAdvanced, setProcessAdvanced] = useState(false);
   useEffect(() => {
     if (bonitaData && usuario) {

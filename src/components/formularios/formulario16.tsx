@@ -34,6 +34,7 @@ export default function DocumentForm() {
   const [loading, setLoading] = useState(false); // Estado para manejar el loading
   const [uploadError, setUploadError] = useState<string>("");
   const [fileUploaded, setFileUploaded] = useState(false); // Estado para rastrear si el archivo se ha subido
+    // @ts-ignore
   const [processAdvanced, setProcessAdvanced] = useState(false);
   // 🔹 Recuperar el estado guardado al cargar el componente
   useEffect(() => {

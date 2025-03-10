@@ -21,6 +21,7 @@ export default function ConfirmationScreen() {
   const [file, setFile] = useState<File | null>(null);
   const [isDocumentUploaded, setIsDocumentUploaded] = useState(false); // Estado para controlar si el documento ha sido subido
   const bonita = new BonitaUtilities();
+    // @ts-ignore
   const [processAdvanced, setProcessAdvanced] = useState(false);
   const handleNext = async () => {
     if (!isDocumentUploaded) {

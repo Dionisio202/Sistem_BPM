@@ -4,7 +4,6 @@ import Checkbox from "./components/Checkbox"; // Importamos el componente Checkb
 //@ts-ignore
 import BonitaUtilities from "../bonita/bonita-utilities";
 import { useSaveTempState } from "../bonita/hooks/datos_temprales";
-import { useBonitaService } from "../../services/bonita.service.ts";
 import io from "socket.io-client";
 import Title from "./components/TitleProps";
 import { SERVER_BACK_URL } from "../../config.ts";
@@ -23,6 +22,8 @@ export default function ConfirmationScreen() {
   const [json, setJson] = useState<temporalData | null>(null);
   const bonita: BonitaUtilities = new BonitaUtilities();
   const [loading, setLoading] = useState(false); // Estado para manejar el loading
+    // @ts-ignore
+
   const [processAdvanced, setProcessAdvanced] = useState(false);
   const handleChange = (name: string, checked: boolean) => {
     setSelectedDocuments((prevState) => ({

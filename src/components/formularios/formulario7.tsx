@@ -28,6 +28,7 @@ export default function ConfirmationScreen() {
   const [actaFile, setActaFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const bonita: BonitaUtilities = new BonitaUtilities();
+    // @ts-ignore
   const [processAdvanced, setProcessAdvanced] = useState(false);
 
   const handleChange = (name: string, checked: boolean) => {
