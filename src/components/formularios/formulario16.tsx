@@ -30,12 +30,15 @@ export default function DocumentForm() {
     cedulaRepresentante: false,
     rucUTA: false,
   });
+  const idtipoDocumento = 3;
+  // @ts-ignore
   const bonita = new BonitaUtilities();
   const [loading, setLoading] = useState(false); // Estado para manejar el loading
   const [uploadError, setUploadError] = useState<string>("");
   const [fileUploaded, setFileUploaded] = useState(false); // Estado para rastrear si el archivo se ha subido
-    // @ts-ignore
+  // @ts-ignore
   const [processAdvanced, setProcessAdvanced] = useState(false);
+
   // 🔹 Recuperar el estado guardado al cargar el componente
   useEffect(() => {
     if (bonitaData) {
@@ -131,48 +134,27 @@ export default function DocumentForm() {
     }));
   };
 
+  // Función para guardar el memorando (submit del formulario)
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    console.log("Código del memorando:", memoCode);
+    console.log("Documentos seleccionados:", selectedDocuments);
+    
+   await fetch(
+      `${SERVER_BACK_URL}/api/save-memorando?key=${memoCode}&id_tipo_documento=${idtipoDocumento}&id_registro=${bonitaData?.processId}-${bonitaData?.caseId}&id_tarea_per=${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}`
+    );
  
+    toast.success("Memorando guardado correctamente.");
+  };
 
   // Guardado final y avance en el proceso
   const handleNext = async () => {
-    // Validar que el código del memorando esté ingresado o que el archivo se haya subido
-    if (memoCode.trim() === "" && !fileUploaded) {
-      toast.error("Debes ingresar el código del memorando o subir el archivo para continuar.");
-      return;
-    }
-
-    // Validar que todos los checkbox estén seleccionados
-    const allDocumentsSelected = Object.values(selectedDocuments).every(
-      (value) => value === true
-    );
-    if (!allDocumentsSelected) {
-      toast.error("Debes seleccionar todos los documentos para continuar.");
-      return;
-    }
-    
     if (bonitaData && usuario) {
       try {
         setLoading(true); // Activar el estado de loading
-        const idtipoDocumento = 3;
-        const response = await fetch(
-          `${SERVER_BACK_URL}/api/save-memorando?key=${memoCode}&id_tipo_documento=${idtipoDocumento}&id_registro=${bonitaData?.processId}-${bonitaData?.caseId}&id_tarea_per=${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}`
-        );
-
-        if (!response.ok) {
-          throw new Error("Error al guardar el memorando");
-        }
 
         if (json) {
-          const saveResponse = await saveFinalState(json);
-        if (!saveResponse || typeof saveResponse.success !== "boolean") {
-          throw new Error("Respuesta inválida al guardar el estado final");
-        }
-        if (!saveResponse.success) {
-          throw new Error(
-            saveResponse.message ||
-              "No se pudo guardar el estado final. Inténtelo de nuevo."
-          );
-        }
+          await saveFinalState(json);
         } else {
           console.error("❌ Error: json is null");
         }
@@ -187,10 +169,16 @@ export default function DocumentForm() {
     }
   };
 
+  // Condición para habilitar ambos botones (ajústala según la lógica deseada)
+  const isDisabled =
+    loading ||
+    (memoCode.trim() === "" && !fileUploaded) ||
+    !Object.values(selectedDocuments).every((value) => value === true);
+
   return (
     <CardContainer title="Expediente de Entrega">
       <Title text="Oficio de entrega y Expediente" className="text-center mb-1" />
-      <form  className="flex flex-col space-y-4">
+      <form onSubmit={handleSubmit} className="flex flex-col space-y-4">
         {/* Componente para subir el archivo del memorando */}
         <div className="flex flex-col">
           <label htmlFor="memoFile" className="block font-semibold">
@@ -257,18 +245,24 @@ export default function DocumentForm() {
           />
         </div>
 
-        <button
-          type="submit"
-          className="w-full bg-[#931D21] hover:bg-[#7A171A] text-white py-2 rounded-lg font-semibold hover:scale-105 transition-transform duration-300 disabled:opacity-50"
-          onClick={handleNext}
-          disabled={
-            loading ||
-            (memoCode.trim() === "" && !fileUploaded) ||
-            !Object.values(selectedDocuments).every((value) => value === true)
-          } // Deshabilitar si no se cumplen las condiciones
-        >
-          {loading ? "Cargando..." : "Siguiente"}
-        </button>
+        {/* Botones separados para cada acción */}
+        <div className="flex flex-row gap-4">
+          <button
+            type="submit"
+            className="w-full bg-[#931D21] hover:bg-[#7A171A] text-white py-2 rounded-lg font-semibold hover:scale-105 transition-transform duration-300 disabled:opacity-50"
+            disabled={isDisabled}
+          >
+            {loading ? "Guardando..." : "Guardar Memorando"}
+          </button>
+          <button
+            type="button"
+            className="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-lg font-semibold hover:scale-105 transition-transform duration-300 disabled:opacity-50"
+            onClick={handleNext}
+            disabled={isDisabled}
+          >
+            {loading ? "Cargando..." : "Siguiente"}
+          </button>
+        </div>
 
         {usuario && (
           <p className="text-center text-gray-700 mt-2">
