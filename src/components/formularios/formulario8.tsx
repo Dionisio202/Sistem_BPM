@@ -10,7 +10,7 @@ import { useSaveTempState } from "../bonita/hooks/datos_temprales";
 import { useBonitaService } from "../../services/bonita.service";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { useCombinedBonitaData } from "../bonita/hooks/obtener_datos_bonita.tsx";
-import { ToastContainer } from "react-toastify";
+import { ToastContainer, toast } from "react-toastify";
 
 // Crear la instancia de Socket.io
 const socket = io(SERVER_BACK_URL);
@@ -20,21 +20,12 @@ export default function MemoCodeForm() {
   const { usuario, bonitaData, tareaActual } = useCombinedBonitaData();
   const [memoCode, setMemoCode] = useState("");
   const [loading, setLoading] = useState(false);
-  // @ts-ignore
   const [error, setError] = useState("");
+  const [fileUploaded, setFileUploaded] = useState(false); // Estado para rastrear si el archivo se ha subido
   const bonita: BonitaUtilities = new BonitaUtilities();
   const id_tipo_documento = 3; // Valor de ejemplo, reemplazar según corresponda
   const [json, setJson] = useState<temporalData | null>(null);
-
-  // @ts-ignore
-  const {
-    obtenerUsuarioAutenticado,
-    obtenerDatosBonita,
-    // @ts-ignore
-    error: errorService,
-    obtenerTareaActual,
-  } = useBonitaService();
-
+  const [processAdvanced, setProcessAdvanced] = useState(false);
   // Obtener usuario autenticado
   useEffect(() => {
     if (bonitaData && usuario) {
@@ -43,7 +34,7 @@ export default function MemoCodeForm() {
         id_tarea: parseInt(bonitaData.taskId),
         jsonData: JSON.stringify("No Form Data"),
         id_funcionario: parseInt(usuario.user_id),
-        nombre_tarea: tareaActual?.name || "",
+        nombre_tarea: tareaActual?.name ?? "",
       };
       setJson(data);
       startAutoSave(data, 10000, "En Proceso");
@@ -53,10 +44,16 @@ export default function MemoCodeForm() {
   // Función para manejar la carga del archivo del memorando y obtener el código mediante Socket.io
   const handleMemoFileChange = useCallback(
     async (file: File | null) => {
-      if (!file) return;
+      if (!file) {
+        setError("Debes seleccionar un archivo para continuar.");
+        return;
+      }
+
       try {
         setLoading(true);
         setError("");
+        setFileUploaded(false); // Reiniciar el estado de subida del archivo
+
         // Convertir el archivo a base64
         const memoBase64 = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
@@ -80,17 +77,19 @@ export default function MemoCodeForm() {
           (response: any) => {
             if (response.success) {
               setMemoCode(response.codigo);
+              setFileUploaded(true); // Marcar el archivo como subido correctamente
+              toast.success("Archivo subido correctamente.");
             } else {
               setError("No se pudo obtener el código del memorando.");
+              toast.error("Error al subir el archivo.");
             }
             setLoading(false);
           }
         );
       } catch (err) {
         console.error("Error al obtener el código del memorando:", err);
-        setError(
-          "Error al obtener el código del memorando. Intente nuevamente."
-        );
+        setError("Error al obtener el código del memorando. Intente nuevamente.");
+        toast.error("Error al procesar el archivo.");
         setLoading(false);
       }
     },
@@ -101,15 +100,19 @@ export default function MemoCodeForm() {
   const handleSubmit = async () => {
     try {
       setError("");
-      alert("Avanzando a la siguiente página...");
-      // Invocar el cambio de tarea
+      // Validar que el archivo se haya subido y el código esté disponible
+      if (!fileUploaded || !memoCode) {
+        toast.error("Debes subir el archivo y obtener el código para continuar.");
+        return;
+      }
+      // Guardar el estado final
       if (json) {
         await saveFinalState(json);
       } else {
         console.error("❌ Error: json is null");
       }
       await bonita.changeTask();
-
+      setProcessAdvanced(true);
       // Enviar el código del memorando al endpoint de guardado
       const response = await fetch(
         `${SERVER_BACK_URL}/api/save-memorando?key=${memoCode}&id_tipo_documento=${id_tipo_documento}&id_registro=${bonitaData?.processId}-${bonitaData?.caseId}&id_tarea_per=${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}`
@@ -121,11 +124,11 @@ export default function MemoCodeForm() {
 
       const data = await response.json();
       console.log("Memorando guardado:", data);
+      toast.success("Memorando guardado correctamente.");
     } catch (err) {
-      setError(
-        "Error al guardar el memorando. Verifica el código e intenta nuevamente."
-      );
+      setError("Error al guardar el memorando. Verifica el código e intenta nuevamente.");
       console.error("Error:", err);
+      toast.error("Error al guardar el memorando.");
     }
   };
 
@@ -169,12 +172,12 @@ export default function MemoCodeForm() {
           type="button"
           className="w-full bg-[#931D21] hover:bg-[#7A171A] text-white py-2 rounded-lg font-semibold hover:scale-105 transition-transform duration-300 disabled:opacity-50"
           onClick={handleSubmit}
-          disabled={loading || !memoCode}
+          disabled={loading || !memoCode || !fileUploaded} // Deshabilitar si no hay código o el archivo no se ha subido
         >
           {loading ? "Enviando..." : "Siguiente"}
         </button>
       </div>
-      <ToastContainer/>
+      <ToastContainer />
     </CardContainer>
   );
 }

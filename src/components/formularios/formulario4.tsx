@@ -9,7 +9,7 @@ import { SERVER_BACK_URL } from "../../config.ts";
 import { useSaveTempState } from "../bonita/hooks/datos_temprales";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { useCombinedBonitaData } from "../bonita/hooks/obtener_datos_bonita.tsx";
-import { ToastContainer } from "react-toastify";
+import { ToastContainer, toast } from "react-toastify";
 // Crear instancia de socket
 const socket = io(SERVER_BACK_URL);
 
@@ -99,7 +99,7 @@ export default function UploadForm() {
         setNotificaciones((prev) => [...prev, "Documento mapeado correctamente."]);
       } else {
         console.error("Error al subir el documento:", response.message);
-        alert("Error al subir el documento");
+        toast.error("Error al subir el documento");
       }
     });
   }, []);
@@ -112,10 +112,8 @@ export default function UploadForm() {
         console.error("❌ Error: json is null");
       }
       await bonita.changeTask();
-      alert("Avanzando a la siguiente página...");
     } catch (error) {
       console.error("Error al cambiar la tarea:", error);
-      alert("Ocurrió un error al intentar avanzar.");
     }
   }, [bonita]);
 
@@ -124,11 +122,11 @@ export default function UploadForm() {
       event.preventDefault();
 
       if (!memoCode) {
-        alert("Por favor, ingrese el código del memorando.");
+        toast.error("Por favor, ingrese el código del memorando.");
         return;
       }
       if (!file && (forceNewUpload || !lastCertification)) {
-        alert("Por favor, cargue un archivo de certificación.");
+        toast.error("Por favor, cargue un archivo de certificación.");
         return;
       }
 
@@ -179,12 +177,12 @@ export default function UploadForm() {
         // Mostrar mensaje de confirmación
         setIsSubmitted(true);
         setNotificaciones((prev) => [...prev, "Datos enviados correctamente."]);
-        alert("Datos enviados correctamente.");
+        toast.success("Datos enviados correctamente.");
         // Reiniciamos la opción de forzar nueva subida tras el envío
         setForceNewUpload(false);
       } catch (error) {
         console.error("Error en la solicitud:", error);
-        alert("Ocurrió un error al enviar los datos.");
+        toast.error("Ocurrió un error al enviar los datos.");
       }
     },
     [memoCode, file, bonitaData, forceNewUpload, lastCertification]

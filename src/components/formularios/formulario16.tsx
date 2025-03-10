@@ -11,7 +11,7 @@ import Title from "./components/TitleProps";
 import { SERVER_BACK_URL } from "../../config.ts";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { useCombinedBonitaData } from "../bonita/hooks/obtener_datos_bonita.tsx";
-import { ToastContainer } from "react-toastify";
+import { ToastContainer, toast } from "react-toastify";
 
 const socket = io(SERVER_BACK_URL);
 
@@ -19,7 +19,7 @@ export default function DocumentForm() {
   const [json, setJson] = useState<temporalData | null>(null);
   const { startAutoSave, saveFinalState } = useSaveTempState(socket);
   const { usuario, bonitaData, tareaActual } = useCombinedBonitaData();
-  const {  error } = useBonitaService();
+  const { error } = useBonitaService();
   const [memoCode, setMemoCode] = useState("");
   const [selectedDocuments, setSelectedDocuments] = useState({
     solicitud: false,
@@ -31,13 +31,10 @@ export default function DocumentForm() {
     rucUTA: false,
   });
   const bonita = new BonitaUtilities();
-  // Estados para manejo de carga y error en la subida del archivo
-  // @ts-ignore
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false); // Estado para manejar el loading
   const [uploadError, setUploadError] = useState<string>("");
-
-  // 🔹 Obtener el usuario autenticado al montar el componente
-
+  const [fileUploaded, setFileUploaded] = useState(false); // Estado para rastrear si el archivo se ha subido
+  const [processAdvanced, setProcessAdvanced] = useState(false);
   // 🔹 Recuperar el estado guardado al cargar el componente
   useEffect(() => {
     if (bonitaData) {
@@ -47,11 +44,7 @@ export default function DocumentForm() {
       socket.emit(
         "obtener_estado_temporal",
         { id_registro, id_tarea },
-        (response: {
-          success: boolean;
-          message: string;
-          jsonData?: string;
-        }) => {
+        (response: { success: boolean; message: string; jsonData?: string }) => {
           if (response.success && response.jsonData) {
             try {
               const loadedState = JSON.parse(response.jsonData);
@@ -60,10 +53,7 @@ export default function DocumentForm() {
               console.error("Error al parsear el JSON:", err);
             }
           } else {
-            console.error(
-              "Error al obtener el estado temporal:",
-              response.message
-            );
+            console.error("Error al obtener el estado temporal:", response.message);
           }
         }
       );
@@ -94,6 +84,8 @@ export default function DocumentForm() {
     try {
       setLoading(true);
       setUploadError("");
+      setFileUploaded(false); // Reiniciar el estado de subida del archivo
+
       // Convertir el archivo a base64
       const memoBase64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
@@ -105,6 +97,7 @@ export default function DocumentForm() {
         };
         reader.onerror = (error) => reject(error);
       });
+
       // Emitir el evento "subir_documento" mediante Socket.io para obtener el código
       socket.emit(
         "subir_documento",
@@ -112,20 +105,19 @@ export default function DocumentForm() {
         (response: any) => {
           if (response.success) {
             setMemoCode(response.codigo);
+            setFileUploaded(true); // Marcar el archivo como subido
+            toast.success("Archivo subido correctamente.");
           } else {
-            console.error(
-              "Error al obtener el código del memorando:",
-              response.message
-            );
+            console.error("Error al obtener el código del memorando:", response.message);
             setUploadError("Error al obtener el código del memorando.");
+            toast.error("Error al subir el archivo.");
           }
         }
       );
     } catch (error) {
       console.error("Error al subir archivo del memorando:", error);
-      setUploadError(
-        "Error al subir el archivo del memorando. Intente nuevamente."
-      );
+      setUploadError("Error al subir el archivo del memorando. Intente nuevamente.");
+      toast.error("Ocurrió un error al procesar el archivo.");
     } finally {
       setLoading(false);
     }
@@ -155,26 +147,44 @@ export default function DocumentForm() {
 
   // Guardado final y avance en el proceso
   const handleNext = async () => {
+    // Validar que el código del memorando esté ingresado o que el archivo se haya subido
+    if (memoCode.trim() === "" && !fileUploaded) {
+      toast.error("Debes ingresar el código del memorando o subir el archivo para continuar.");
+      return;
+    }
+
+    // Validar que todos los checkbox estén seleccionados
+    const allDocumentsSelected = Object.values(selectedDocuments).every(
+      (value) => value === true
+    );
+    if (!allDocumentsSelected) {
+      toast.error("Debes seleccionar todos los documentos para continuar.");
+      return;
+    }
+
     if (bonitaData && usuario) {
       try {
+        setLoading(true); // Activar el estado de loading
+
         if (json) {
           await saveFinalState(json);
         } else {
           console.error("❌ Error: json is null");
         }
-        bonita.changeTask();
+
+        await bonita.changeTask();
+        setProcessAdvanced(true);
       } catch (error) {
         console.error("Error guardando estado final:", error);
+      } finally {
+        setLoading(false); // Desactivar el estado de loading
       }
     }
   };
 
   return (
     <CardContainer title="Expediente de Entrega">
-      <Title
-        text="Oficio de entrega y Expediente"
-        className="text-center mb-1"
-      />
+      <Title text="Oficio de entrega y Expediente" className="text-center mb-1" />
       <form onSubmit={handleSubmit} className="flex flex-col space-y-4">
         {/* Componente para subir el archivo del memorando */}
         <div className="flex flex-col">
@@ -188,6 +198,7 @@ export default function DocumentForm() {
           />
           {uploadError && <p className="text-red-500">{uploadError}</p>}
         </div>
+
         {/* Input para el código del memorando */}
         <div className="flex flex-col">
           <label htmlFor="memoCode" className="block font-semibold">
@@ -201,6 +212,7 @@ export default function DocumentForm() {
             onChange={handleMemoCodeChange}
           />
         </div>
+
         {/* Checkboxes para los documentos */}
         <div className="space-y-2 text-xn">
           <Checkbox
@@ -239,22 +251,28 @@ export default function DocumentForm() {
             onChange={(checked) => handleChange("rucUTA", checked)}
           />
         </div>
+
         <button
           type="submit"
-          className="w-full bg-[#931D21] hover:bg-[#7A171A] text-white py-2 rounded-lg font-semibold hover:scale-105 transition-transform duration-300"
+          className="w-full bg-[#931D21] hover:bg-[#7A171A] text-white py-2 rounded-lg font-semibold hover:scale-105 transition-transform duration-300 disabled:opacity-50"
           onClick={handleNext}
+          disabled={
+            loading ||
+            (memoCode.trim() === "" && !fileUploaded) ||
+            !Object.values(selectedDocuments).every((value) => value === true)
+          } // Deshabilitar si no se cumplen las condiciones
         >
-          Siguiente
+          {loading ? "Cargando..." : "Siguiente"}
         </button>
+
         {usuario && (
           <p className="text-center text-gray-700 mt-2">
-            Usuario autenticado: <b>{usuario.user_name}</b> (ID:{" "}
-            {usuario.user_id})
+            Usuario autenticado: <b>{usuario.user_name}</b> (ID: {usuario.user_id})
           </p>
         )}
         {error && <p className="text-red-500 text-center">{error}</p>}
       </form>
-      <ToastContainer/>
+      <ToastContainer />
     </CardContainer>
   );
 }

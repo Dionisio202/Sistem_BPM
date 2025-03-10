@@ -8,7 +8,7 @@ import { useSaveTempState } from "../bonita/hooks/datos_temprales";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { SERVER_BACK_URL } from "../../config.ts";
 import { useCombinedBonitaData } from "../bonita/hooks/obtener_datos_bonita.tsx";
-import { ToastContainer } from "react-toastify";
+import { ToastContainer, toast } from "react-toastify";
 
 const socket = io(SERVER_BACK_URL);
 type StaticDocument = {
@@ -26,7 +26,8 @@ export default function Formulario6() {
   const bonita: BonitaUtilities = new BonitaUtilities();
   const [json, setJson] = useState<temporalData | null>(null);
   const [aprobado, setAprobado] = useState<boolean>(false);
-
+  const [loading, setLoading] = useState(false);
+  const [processAdvanced, setProcessAdvanced] = useState(false);
   // Modificamos la función para aceptar un string
   const handleViewDocument = async (documentType: string) => {
     const document = staticDocuments[documentType];
@@ -60,32 +61,43 @@ export default function Formulario6() {
         id_tarea: parseInt(bonitaData.taskId),
         jsonData: JSON.stringify(selectedDocuments),
         id_funcionario: parseInt(usuario.user_id),
-        nombre_tarea: tareaActual?.name || "",
+        nombre_tarea: tareaActual?.name ?? "",
       };
       setJson(data);
       startAutoSave(data, 10000, "En Proceso");
     }
-  }, [bonitaData, usuario, startAutoSave, tareaActual,selectedDocuments]);
+  }, [bonitaData, usuario, startAutoSave, tareaActual, selectedDocuments]);
 
   // Guardado final
   const handleNext = async () => {
-    alert("Avanzando a la siguiente página...");
-    if (json) {
-      await saveFinalState(json);
-    } else {
-      console.error("❌ Error: json is null");
+    if (!aprobado) {
+      toast.error("Debes aprobar el documento para continuar.");
+      return;
     }
-    console.log("Aprobado", aprobado);
-    bonita.changeTask({
-      formData: {
-      aprobadoInput:
-      {
-        aprobado: aprobado
-      }
-    },
-    });
 
+    try {
+      if (json) {
+        setLoading(true);
+        await saveFinalState(json);
+      } else {
+        console.error("❌ Error: json is null");
+      }
+      console.log("Aprobado", aprobado);
+      bonita.changeTask({
+        formData: {
+          aprobadoInput: {
+            aprobado: aprobado,
+          },
+        },
+      });
+      setProcessAdvanced(true);
+    } catch (error) {
+      toast.error(`Error: ${error}`);
+    } finally {
+      setLoading(false);
+    }
   };
+
   const nombrePlantilla1 = "Contrato_Cesion_Derechos";
   const nombrePlantilla2 = "Acta_Porcentaje_Participacion";
   const codigoProceso = `${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}`;
@@ -116,15 +128,17 @@ export default function Formulario6() {
           Siguiente
         </button>
         <div className="flex items-center">
-  <input
-    type="checkbox"
-    className="h-6 w-6"
-    id="aprobado"
-    name="aprobado"
-    onChange={(e) => setAprobado(e.target.checked)}
-  />
-  <label htmlFor="aprobado" className="ml-2">Aprobado</label>
-</div>
+          <input
+            type="checkbox"
+            className="h-6 w-6"
+            id="aprobado"
+            name="aprobado"
+            onChange={(e) => setAprobado(e.target.checked)}
+          />
+          <label htmlFor="aprobado" className="ml-2">
+            Aprobado
+          </label>
+        </div>
       </div>
 
       <div className="flex-grow">
@@ -142,7 +156,7 @@ export default function Formulario6() {
           </p>
         )}
       </div>
-      <ToastContainer/>
+      <ToastContainer />
     </div>
   );
 }

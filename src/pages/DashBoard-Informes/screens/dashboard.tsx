@@ -7,6 +7,7 @@ import TaskProgressCard from "../components/TaskProgressCard";
 import GanttChart from "../components/GanttComponent";
 import NumericCards from "../components/RecordNumber";
 import PDFExport from "../components/PDFExport";
+import Separator from "../components/UI/Separator";
 const Dashboard: React.FC = () => {
   //Datos para los graficos
   //ojo para el back aqui se deberia cargar con la sentencia sql
@@ -100,20 +101,13 @@ const Dashboard: React.FC = () => {
     <div className="flex flex-col min-h-screen">
       <div className="flex">
         <Sidebar />
-        <main className="flex-grow p-1 space-y-2 ml-0 md:ml-60">
+        <main className="flex-grow p-1 space-y-2 ml-0 md:ml-15">
           <div className="flex gap-1 items-center">
-            <div  className="flex-3">
-              <TaskProgressCard
-                completedTasks={7}
-                totalTasks={10}
-                nameTasks={"Caso 2001 / Registro Propiedad Intelectual"}
-              />
-            </div>
-            <div className="flex-2">
-              <NumericCards records={records} />
-            </div>
           </div>
-
+          <div  className="flex-grow md:ml-15 space-y-2 ml=0 ">
+            <NumericCards/>
+            </div>
+            <Separator title="Distribución de Registros Universidad Técnica de Ambato"/>
           <div className="flex justify-end bg-gray-200 p-3 rounded-lg">
             <div className="flex-9" id="taskProgress">
               <HorizontalBar />
@@ -125,7 +119,7 @@ const Dashboard: React.FC = () => {
               pieChartData={pieChartData}
               pieChartColors={pieChartColors}
             ></CardPrincipal>
-            <PanelFiltros />
+           
           </div>
           <div className="p-3">
             <GanttChart tasks={tasks} />
