@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Sidebar from "../components/Sidebar";
 import CardPrincipal from "../components/CardPrincipal";
 import PanelFiltros from "../components/PanelFiltros";
@@ -7,6 +7,10 @@ import TaskProgressCard from "../components/TaskProgressCard";
 import GanttChart from "../components/GanttComponent";
 import NumericCards from "../components/RecordNumber";
 import PDFExport from "../components/PDFExport";
+import io from "socket.io-client";
+import { SERVER_BACK_URL } from "../../../config";
+const socket = io(SERVER_BACK_URL);
+
 const Dashboard: React.FC = () => {
   //Datos para los graficos
   //ojo para el back aqui se deberia cargar con la sentencia sql
@@ -28,66 +32,21 @@ const Dashboard: React.FC = () => {
 
   // Colores personalizados para el gráfico de torta
   const pieChartColors = ["#8884d8", "#82ca9d", "#ff8042"];
+  const [tasks, setTasks] = useState<any[]>([]);
 
-  // tareas para cargar al diagrama de gannt
-  const tasks = [
-    {
-      id: "1",
-      name: "Caso 2002",
-      startDate: new Date(2023, 9, 1), // 1 de Octubre de 2023
-      endDate: new Date(2023, 9, 5), // 5 de Octubre de 2023
-      progress: 60,
-      status: "En progreso",
-      subtasks: [
-        {
-          id: "1.1",
-          name: "Asesoria para Registro de Propiedad Intelectual",
-          startDate: new Date(2023, 9, 1),
-          endDate: new Date(2023, 9, 3),
-          progress: 80,
-          status: "Completado",
-        },
-        {
-          id: "1.2",
-          name: "Atención de Solicitud de Registro de Propiedad Intelectual",
-          startDate: new Date(2023, 9, 3),
-          endDate: new Date(2023, 9, 5),
-          progress: 40,
-          status: "En progreso",
-        },
-      ],
-    },
-    {
-      id: "2",
-      name: "Caso 2003",
-      startDate: new Date(2023, 9, 3), // 3 de Octubre de 2023
-      progress: 30,
-      status: "En Progreso",
-      subtasks: [
-        {
-          id: "1.1",
-          name: "Asesoria de Registro de Propiedad Intelectual",
-          startDate: new Date(2023, 9, 1),
-          progress: 80,
-          status: "Completado",
-        },
-        {
-          id: "1.2",
-          name: "Atención de Solicitud de Registro de Propiedad Intelectual",
-          startDate: new Date(2023, 9, 3),
-          progress: 40,
-          status: "Completado",
-        },
-        {
-          id: "1.3",
-          name: "Solicitud de Certificación Presupuestaria",
-          startDate: new Date(2023, 9, 3),
-          progress: 40,
-          status: "En Progreso",
-        },
-      ],
-    },
-  ];
+
+  // Files data to pass to the GanttChart component
+// En tu componente Dashboard
+useEffect(() => {
+  socket.emit("obtener_tareas_gantt", {}, (response:any) => {
+    if (response.success) {
+      setTasks(response.data);
+    } else {
+      console.error("Error al obtener tareas para Gantt:", response.message);
+    }
+  });
+}, []);
+
   // record numerico, card para los conteos generales del dashboard
   const records = [
     { label: "Casos", value: 120 },
@@ -102,7 +61,7 @@ const Dashboard: React.FC = () => {
         <Sidebar />
         <main className="flex-grow p-1 space-y-2 ml-0 md:ml-60">
           <div className="flex gap-1 items-center">
-            <div  className="flex-3">
+            <div className="flex-3">
               <TaskProgressCard
                 completedTasks={7}
                 totalTasks={10}

@@ -126,6 +126,11 @@ const newData: TablaTarea[] = jsonData.Funcionarios.flatMap(
         color: "#ffffff",
       },
     },
+    muiTableBodyCellProps: {
+      style: {
+        verticalAlign: "top", // Alinea el contenido hacia arriba
+      },
+    },
     muiPaginationProps: {
       style: {
         backgroundColor: "#1F2937",

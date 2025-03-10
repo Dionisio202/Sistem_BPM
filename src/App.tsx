@@ -29,6 +29,7 @@ import Dashboard from "./pages/DashBoard-Informes/dashboard-informes";
 import Dash from "./pages/DashBoard-Informes/screens/dashboard"
 import Reports from "./pages/DashBoard-Informes/screens/reports"
 import Trazabilidad from "./pages/trazabilidad-documentos/trazabilidad";
+import DocumentViewerPage from "./pages/DashBoard-Informes/screens/DocumentViewPage";
 
 const App = () => {
   return (
@@ -62,6 +63,7 @@ const App = () => {
             <Route path="/Dashboard" element={<Dash/>} />
             <Route path="/Reports" element={<Reports />} />
             <Route path="/Auditoria" element={<Trazabilidad />} />
+            <Route path="/document-viewer" element={<DocumentViewerPage />} />
           </Routes>
         </Router>
       </main>
