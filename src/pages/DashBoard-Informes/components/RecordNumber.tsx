@@ -16,6 +16,17 @@ interface SmallCardData {
   value: number | string;
 }
 
+interface ProjectCategory {
+  name: string;
+  count: number;
+}
+
+interface DashboardCardsProps {
+  cardsData: CardData[]; // Datos para las tarjetas principales
+  smallCardsData: SmallCardData[]; // Datos para las tarjetas pequeñas
+  projectCategories: ProjectCategory[]; // Datos para las categorías de proyectos
+}
+
 // Componente reutilizable para tarjetas principales
 const CardComponent: React.FC<CardData> = ({
   title,
@@ -56,33 +67,11 @@ const SmallCardComponent: React.FC<SmallCardData> = ({ title, value }) => {
   );
 };
 
-const DashboardCards: React.FC = () => {
-  // Datos para las tarjetas
-  const cardsData: CardData[] = [
-    {
-      title: "Total Registro de Propiedad Intelectual",
-      value: 37,
-      description: "45.9% completado",
-      progress: 45.9,
-    },
-    {
-      title: "Total de Proyectos",
-      value: "37",
-      icon: <FiPackage className="text-2xl" />,
-    },
-  ];
-
-  const smallCardsData: SmallCardData[] = [
-    { title: "Finalizados", value: 17 },
-    { title: "En Progreso", value: 20 },
-  ];
-
-  const projectCategories = [
-    { name: "Investigación", count: 7 },
-    { name: "Vinculación", count: 15 },
-    { name: "Carrera", count: 15 },
-  ];
-
+const DashboardCards: React.FC<DashboardCardsProps> = ({
+  cardsData,
+  smallCardsData,
+  projectCategories,
+}) => {
   return (
     <div className="p-4 bg-gray-100 flex flex-wrap gap-8">
       {/* Tarjeta principal */}
@@ -106,13 +95,14 @@ const DashboardCards: React.FC = () => {
             className="bg-gray-700 text-white p-2 rounded-lg flex flex-col items-center w-32 shadow-md"
           >
             <div className="flex flex-col items-center">
-              <FiPackage className="text-2x1" />
+              <FiPackage className="text-2xl" />
               <span className="text-xl font-bold mt-2">{item.count}</span>
               <p className="text-sm">{item.name}</p>
             </div>
           </div>
         ))}
       </div>
+
       {/* Botón de descarga */}
       <button className="bg-red-600 text-white p-3 rounded-lg flex items-center mt-2 hover:bg-red-700 transition-colors">
         Descargar Informe <FaDownload className="ml-2" />
