@@ -8,7 +8,7 @@ import UploadFile from "./components/UploadFile";
 import { useSaveTempState } from "../bonita/hooks/datos_temprales";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { useCombinedBonitaData } from "../bonita/hooks/obtener_datos_bonita.tsx";
-import { ToastContainer } from "react-toastify";
+import { ToastContainer, toast } from "react-toastify";
 
 const socket = io(SERVER_BACK_URL);
 
@@ -35,11 +35,13 @@ export default function WebPage() {
   const [codigoGuardado, setCodigoGuardado] = useState<string | null>(null);
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
   const bonita: BonitaUtilities = new BonitaUtilities();
-  // @ts-ignore
   const [codigoalmacenamiento, setCodigoAlmacenamiento] = useState<string>("");
   const [selectedDocument, setSelectedDocument] = useState<DocumentType>(
     staticDocuments.datos
   );
+  const [loading, setLoading] = useState(false); // Estado para manejar el loading
+  const [fileUploaded, setFileUploaded] = useState(false); // Estado para rastrear si el archivo se ha subido
+  const [processAdvanced, setProcessAdvanced] = useState(false);
   const handleCodigoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setCodigo(e.target.value);
   };
@@ -88,8 +90,6 @@ export default function WebPage() {
     };
   }, [bonitaData]);
 
-
-
   // Función para subir el archivo del memorando y obtener el código mediante Socket.io
   const handleFileUpload = useCallback(async (file: File | null) => {
     if (!file) return;
@@ -113,43 +113,54 @@ export default function WebPage() {
         (response: any) => {
           if (response.success) {
             setCodigo(response.codigo);
+            setFileUploaded(true); // Marcar el archivo como subido
+            toast.success("Archivo subido correctamente.");
           } else {
-            console.error(
-              "Error al obtener el código del memorando:",
-              response.message
-            );
+            console.error("Error al obtener el código del memorando:", response.message);
+            toast.error("Error al subir el archivo.");
           }
         }
       );
     } catch (err) {
       console.error("Error al procesar el archivo:", err);
+      toast.error("Ocurrió un error al procesar el archivo.");
     }
   }, []);
 
   // Función para avanzar, guardando el memorando
   const handleSiguiente = async () => {
-    if (codigo.trim() !== "") {
-      setCodigoGuardado(codigo);
-      try {
-        setCodigo("");
-        if (json) {
-          await saveFinalState(json);
-        } else {
-          console.error("❌ Error: json is null");
-        }
-        await bonita.changeTask();
-        setAlertMessage("Avanzando a la siguiente página...");
-        const response = await fetch(
-           `${SERVER_BACK_URL}/api/save-memorando?key=${codigo}&id_tipo_documento=${3}&id_registro=${bonitaData?.processId}-${bonitaData?.caseId}&id_tarea_per=${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}`
-        );
-        if (!response.ok) {
-          throw new Error("Error al guardar el memorando");
-        }
-        const data = await response.json();
-        console.log("Memorando guardado:", data);
-      } catch (err) {
-        console.error("Error:", err);
+    // Validar que el código esté ingresado o que el archivo se haya subido
+    if (codigo.trim() === "" && !fileUploaded) {
+      toast.error("Debes ingresar el código del memorando o subir el archivo para continuar.");
+      return;
+    }
+
+    try {
+      setLoading(true); // Activar el estado de loading
+
+      if (json) {
+        await saveFinalState(json);
+      } else {
+        console.error("❌ Error: json is null");
       }
+
+      await bonita.changeTask();
+      setProcessAdvanced(true);
+      const response = await fetch(
+        `${SERVER_BACK_URL}/api/save-memorando?key=${codigo}&id_tipo_documento=${3}&id_registro=${bonitaData?.processId}-${bonitaData?.caseId}&id_tarea_per=${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}`
+      );
+
+      if (!response.ok) {
+        throw new Error("Error al guardar el memorando");
+      }
+
+      const data = await response.json();
+      console.log("Memorando guardado:", data);
+      toast.success("Memorando guardado correctamente.");
+    } catch (err) {
+      console.error("Error:", err);
+    } finally {
+      setLoading(false); // Desactivar el estado de loading
     }
   };
 
@@ -206,9 +217,10 @@ export default function WebPage() {
 
         <button
           onClick={handleSiguiente}
-          className="w-full bg-[#931D21] text-white py-2 rounded hover:bg-gray-400 transition duration-300"
+          className="w-full bg-[#931D21] text-white py-2 rounded hover:bg-gray-400 transition duration-300 disabled:opacity-50"
+          disabled={loading || (codigo.trim() === "" && !fileUploaded)} // Deshabilitar si no hay código o archivo subido
         >
-          Siguiente
+          {loading ? "Cargando..." : "Siguiente"}
         </button>
       </div>
 
@@ -225,7 +237,7 @@ export default function WebPage() {
           {alertMessage}
         </div>
       )}
-      <ToastContainer/>
+      <ToastContainer />
     </div>
   );
 }

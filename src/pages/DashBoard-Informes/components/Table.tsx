@@ -152,7 +152,7 @@ const newData: TablaTarea[] = jsonData.Funcionarios.flatMap(
   return (
     <div>
       <ExportCard filteredData={filteredData} />
-      <div className="h-[95vh] w-full max-w-5xl overflow-y-auto mx-auto p-1 border border-gray-200 shadow-lg rounded-lg">
+      <div className="h-[95vh] w-full max-w-6xl overflow-y-auto mx-auto p-1 border border-gray-200 shadow-lg rounded-lg">
         <MaterialReactTable table={table} />
       </div>
     </div>
