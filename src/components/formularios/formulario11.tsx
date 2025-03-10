@@ -10,9 +10,10 @@ import { SERVER_BACK_URL } from "../../config.ts";
 import { useSaveTempState } from "../bonita/hooks/datos_temprales";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { useCombinedBonitaData } from "../bonita/hooks/obtener_datos_bonita.tsx";
-import { ToastContainer } from "react-toastify";
+import { ToastContainer, toast } from "react-toastify";
 
 const socket = io(SERVER_BACK_URL);
+
 const Formulario11: React.FC = () => {
   const { startAutoSave, saveFinalState } = useSaveTempState(socket);
   const { usuario, bonitaData, tareaActual } = useCombinedBonitaData();
@@ -20,10 +21,9 @@ const Formulario11: React.FC = () => {
   const bonita: BonitaUtilities = new BonitaUtilities();
   const [notificaciones, setNotificaciones] = useState<string[]>([]);
   const [json, setJson] = useState<temporalData | null>(null);
-
-  // @ts-ignore
-  const [isSubmitted, setIsSubmitted] = useState(false); // Nuevo estado para controlar el envío
-
+  const [isSubmitted, setIsSubmitted] = useState(false); // Estado para controlar el envío
+  const [loading, setLoading] = useState(false); // Estado para manejar el loading
+  const [processAdvanced, setProcessAdvanced] = useState(false);
   useEffect(() => {
     if (bonitaData && usuario) {
       const data: temporalData = {
@@ -39,17 +39,24 @@ const Formulario11: React.FC = () => {
   }, [bonitaData, usuario, startAutoSave, tareaActual]);
 
   const handleNext = async () => {
+    if (!isSubmitted) {
+      toast.error("Debes subir el archivo antes de continuar.");
+      return;
+    }
     try {
+      setLoading(true); // Activar el estado de loading
       if (json) {
         await saveFinalState(json);
       } else {
         console.error("❌ Error: json is null");
       }
+
       await bonita.changeTask();
-      alert("Avanzando a la siguiente página...");
+      setProcessAdvanced(true);
     } catch (error) {
       console.error("Error al cambiar la tarea:", error);
-      alert("Ocurrió un error al intentar avanzar.");
+    } finally {
+      setLoading(false); // Desactivar el estado de loading
     }
   };
 
@@ -57,7 +64,7 @@ const Formulario11: React.FC = () => {
     event.preventDefault();
 
     if (!file) {
-      alert("Por favor, cargue un archivo.");
+      toast.error("Por favor, cargue un archivo.");
       return;
     }
 
@@ -84,7 +91,7 @@ const Formulario11: React.FC = () => {
       id_registro_per: `${bonitaData?.processId}-${bonitaData?.caseId}`, // Ajusta según tu lógica
       id_tipo_documento: "6",
       document: fileBase64,
-      id_tarea_per:`${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}`,
+      id_tarea_per: `${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}`,
     };
 
     try {
@@ -98,11 +105,12 @@ const Formulario11: React.FC = () => {
 
       const data = await response.json();
       console.log("Respuesta del servidor:", data);
-      setIsSubmitted(true);
+      setIsSubmitted(true); // Marcar el archivo como subido
       setNotificaciones([...notificaciones, "Datos enviados correctamente."]);
-      alert("Datos enviados correctamente."); // Mensaje de confirmación
+      toast.success("Datos enviados correctamente.");
     } catch (error) {
       console.error("Error en la solicitud:", error);
+      toast.error("Ocurrió un error al subir el archivo.");
     }
   };
 
@@ -121,7 +129,7 @@ const Formulario11: React.FC = () => {
         <UploadFile
           id="document-file"
           onFileChange={setFile}
-          label="Subir comprobante de pago  de la solucitud del registro de la propiedad intelectual"
+          label="Subir comprobante de pago de la solicitud del registro de la propiedad intelectual"
         />
 
         <Button
@@ -132,10 +140,11 @@ const Formulario11: React.FC = () => {
         </Button>
 
         <Button
-          className="mt-5 bg-[#931D21] text-white rounded-lg px-6 min-w-full hover:bg-blue-700"
+          className="w-full bg-[#931D21] hover:bg-[#7A171A] text-white py-2 rounded-lg font-semibold hover:scale-105 transition-transform duration-300 disabled:opacity-50"
           onClick={handleNext}
+          disabled={loading || !isSubmitted} // Deshabilitar si no se ha subido el archivo
         >
-          Siguiente Proceso
+          {loading ? "Cargando..." : "Siguiente Proceso"}
         </Button>
       </form>
       <div className="mt-6 w-full max-w-lg">
@@ -152,9 +161,8 @@ const Formulario11: React.FC = () => {
           )}
         </ul>
       </div>
-      <ToastContainer/>
+      <ToastContainer />
     </CardContainer>
   );
 };
-
 export default Formulario11;

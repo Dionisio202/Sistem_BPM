@@ -10,18 +10,19 @@ import { SERVER_BACK_URL } from "../../config.ts";
 import io from "socket.io-client";
 import Title from "./components/TitleProps";
 import { useCombinedBonitaData } from "../bonita/hooks/obtener_datos_bonita.tsx";
-import { ToastContainer } from "react-toastify"; 
-
+import { ToastContainer, toast } from "react-toastify";
+import Button from "../UI/button.tsx";
 const socket = io(SERVER_BACK_URL);
 
 export default function ConfirmationScreen() {
   const [json, setJson] = useState<temporalData | null>(null);
   const { startAutoSave, saveFinalState } = useSaveTempState(socket);
-  const { usuario, bonitaData, tareaActual} = useCombinedBonitaData();
+  const { usuario, bonitaData, tareaActual } = useCombinedBonitaData();
+  const [loading, setLoading] = useState(false);
+  const [processAdvanced, setProcessAdvanced] = useState(false);
   const [selectedDocuments, setSelectedDocuments] = useState({
     certificado: false,
   });
-
 
   const bonita: BonitaUtilities = new BonitaUtilities();
   const handleChange = (name: string, checked: boolean) => {
@@ -40,7 +41,11 @@ export default function ConfirmationScreen() {
       socket.emit(
         "obtener_estado_temporal",
         { id_registro, id_tarea },
-        (response: { success: boolean; message: string; jsonData?: string }) => {
+        (response: {
+          success: boolean;
+          message: string;
+          jsonData?: string;
+        }) => {
           if (response.success && response.jsonData) {
             try {
               const loadedState = JSON.parse(response.jsonData);
@@ -49,7 +54,10 @@ export default function ConfirmationScreen() {
               console.error("Error al parsear el JSON:", err);
             }
           } else {
-            console.error("Error al obtener el estado temporal:", response.message);
+            console.error(
+              "Error al obtener el estado temporal:",
+              response.message
+            );
           }
         }
       );
@@ -78,17 +86,29 @@ export default function ConfirmationScreen() {
 
   // 🔹 Guardado final al hacer clic en "Siguiente"
   const handleNext = async () => {
+    // Validar que ambos checkbox estén seleccionados
+    if (!selectedDocuments.certificado) {
+      toast.error(
+        "Debes seleccionar para confirmar la entrega de certificado."
+      );
+      return;
+    }
     if (bonitaData && usuario) {
       try {
+        setLoading(true); // Activar el estado de loading
+
         if (json) {
           await saveFinalState(json);
         } else {
           console.error("❌ Error: json is null");
         }
-        alert("Avanzando a la siguiente página...");
-        bonita.changeTask();
+
+        await bonita.changeTask();
+        setProcessAdvanced(true);
       } catch (error) {
         console.error("Error guardando estado final:", error);
+      } finally {
+        setLoading(false); // Desactivar el estado de loading
       }
     }
   };
@@ -109,15 +129,16 @@ export default function ConfirmationScreen() {
         </div>
 
         {/* Botón Siguiente */}
-        <button
-          type="submit"
-          className="w-full bg-[#931D21] hover:bg-[#7A171A] text-white py-2 rounded-lg font-semibold hover:scale-105 transition-transform duration-300"
+        <Button
+          className="w-full bg-[#931D21] hover:bg-[#7A171A] text-white py-2 rounded-lg font-semibold hover:scale-105 transition-transform duration-300 disabled:opacity-50"
           onClick={handleNext}
+          disabled={loading || !selectedDocuments.certificado}
         >
+          {loading ? "Cargando..." : "Siguiente Proceso"}
           Siguiente
-        </button>
+        </Button>
       </form>
-      <ToastContainer/>
+      <ToastContainer />
     </CardContainer>
   );
 }

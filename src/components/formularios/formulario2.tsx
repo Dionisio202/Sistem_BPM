@@ -88,7 +88,7 @@ export default function WebPage() {
             //Preparar el json de envio de datos al backend
             const data = {
               id_proceso: bonitaData.processId,
-              nombre_proceso: bonitaData.processName,
+              nombre_proceso: "Proceso de Registro de Propiedad Intelectual",
               id_funcionario: usuario.user_id,
               id_caso: bonitaData.caseId
             };

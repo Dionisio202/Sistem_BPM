@@ -9,7 +9,7 @@ import { SERVER_BACK_URL } from "../../config.ts";
 import { useSaveTempState } from "../bonita/hooks/datos_temprales";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { useCombinedBonitaData } from "../bonita/hooks/obtener_datos_bonita.tsx";
-import { ToastContainer } from "react-toastify";
+import { ToastContainer} from "react-toastify";
 
 const socket = io(SERVER_BACK_URL);
 
@@ -37,26 +37,24 @@ export default function Formulario6() {
         console.error("❌ Error: json is null");
       }
       await bonita.changeTask();
-      alert("Avanzando a la siguiente página...");
     } catch (error) {
       console.error("Error al cambiar la tarea:", error);
-      alert("Ocurrió un error al intentar avanzar.");
     }
   };
-    // Obtener usuario autenticado
-    useEffect(() => {
-      if (bonitaData && usuario) {
-        const data: temporalData = {
-          id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
-          id_tarea: parseInt(bonitaData.taskId),
-          jsonData: JSON.stringify("No Form Data"),
-          id_funcionario: parseInt(usuario.user_id),
-          nombre_tarea: tareaActual?.name || "",
-        };
-        setJson(data);
-        startAutoSave(data, 10000, "En Proceso");
-      }
-    }, [bonitaData, usuario, startAutoSave, tareaActual]);
+  // Obtener usuario autenticado
+  useEffect(() => {
+    if (bonitaData && usuario) {
+      const data: temporalData = {
+        id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
+        id_tarea: parseInt(bonitaData.taskId),
+        jsonData: JSON.stringify("No Form Data"),
+        id_funcionario: parseInt(usuario.user_id),
+        nombre_tarea: tareaActual?.name ?? "",
+      };
+      setJson(data);
+      startAutoSave(data, 10000, "En Proceso");
+    }
+  }, [bonitaData, usuario, startAutoSave, tareaActual]);
 
   const nombrePlantilla = "fsvt-001";
   const codigoProceso = `${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}`;
@@ -100,7 +98,7 @@ export default function Formulario6() {
           defaultLabel="Selecciona un documento"
         />
         <Button
-          className="w-40 bg-[#931D21] text-white p-2 rounded hover:bg-[#7A171A] transition duration-300"
+            className="w-full bg-[#931D21] hover:bg-[#7A171A] text-white py-2 rounded-lg font-semibold hover:scale-105 transition-transform duration-300 disabled:opacity-50"
           onClick={handleNext}
         >
           Siguiente
@@ -122,7 +120,7 @@ export default function Formulario6() {
           </p>
         )}
       </div>
-      <ToastContainer/>
+      <ToastContainer />
     </div>
   );
 }

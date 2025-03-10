@@ -47,7 +47,7 @@ export default function ConfirmationScreen() {
         id_tarea: parseInt(bonitaData.taskId),
         jsonData: JSON.stringify("No Form Data"),
         id_funcionario: parseInt(usuario.user_id),
-        nombre_tarea: tareaActual?.name || "",
+        nombre_tarea: tareaActual?.name ?? "",
       };
       setJson(data);
       startAutoSave(data, 10000, "En Proceso");

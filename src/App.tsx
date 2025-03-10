@@ -34,7 +34,7 @@ import DocumentViewerPage from "./pages/DashBoard-Informes/screens/DocumentViewP
 const App = () => {
   return (
     <div className="flex flex-col min-h-screen">
-       {!["/Dashboard", "/Reporteria", "/Reports","/reporteria"].includes(location.pathname) && <Header />}
+       {!["/dashboard", "/Reporteria", "/reports","/reporteria"].includes(location.pathname) && <Header />}
       <main className="flex-grow p-6 space-y-4">
         <Router>
           <Routes>
