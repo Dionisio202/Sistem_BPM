@@ -30,6 +30,7 @@ export default function DocumentForm() {
     cedulaRepresentante: false,
     rucUTA: false,
   });
+  const idtipoDocumento = 3;
   // @ts-ignore
   const bonita = new BonitaUtilities();
   const [loading, setLoading] = useState(false); // Estado para manejar el loading
@@ -138,15 +139,11 @@ export default function DocumentForm() {
     event.preventDefault();
     console.log("Código del memorando:", memoCode);
     console.log("Documentos seleccionados:", selectedDocuments);
-    const idtipoDocumento = 3;
-    const response = await fetch(
+    
+   await fetch(
       `${SERVER_BACK_URL}/api/save-memorando?key=${memoCode}&id_tipo_documento=${idtipoDocumento}&id_registro=${bonitaData?.processId}-${bonitaData?.caseId}&id_tarea_per=${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}`
     );
-    if (!response.ok) {
-      toast.error("Error al guardar el memorando.");
-    }
-    const data = await response.json();
-    console.log("Memorando guardado:", data);
+ 
     toast.success("Memorando guardado correctamente.");
   };
 
