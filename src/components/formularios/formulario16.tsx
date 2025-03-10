@@ -131,20 +131,7 @@ export default function DocumentForm() {
     }));
   };
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    console.log("Código del memorando:", memoCode);
-    console.log("Documentos seleccionados:", selectedDocuments);
-    const idtipoDocumento = 3;
-    const response = await fetch(
-      `${SERVER_BACK_URL}/api/save-memorando?key=${memoCode}&id_tipo_documento=${idtipoDocumento}&id_registro=${bonitaData?.processId}-${bonitaData?.caseId}&id_tarea_per=${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}`
-    );
-    if (!response.ok) {
-      throw new Error("Error al guardar el memorando");
-    }
-    const data = await response.json();
-    console.log("Memorando guardado:", data);
-  };
+ 
 
   // Guardado final y avance en el proceso
   const handleNext = async () => {
@@ -162,13 +149,30 @@ export default function DocumentForm() {
       toast.error("Debes seleccionar todos los documentos para continuar.");
       return;
     }
-
+    
     if (bonitaData && usuario) {
       try {
         setLoading(true); // Activar el estado de loading
+        const idtipoDocumento = 3;
+        const response = await fetch(
+          `${SERVER_BACK_URL}/api/save-memorando?key=${memoCode}&id_tipo_documento=${idtipoDocumento}&id_registro=${bonitaData?.processId}-${bonitaData?.caseId}&id_tarea_per=${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}`
+        );
+
+        if (!response.ok) {
+          throw new Error("Error al guardar el memorando");
+        }
 
         if (json) {
-          await saveFinalState(json);
+          const saveResponse = await saveFinalState(json);
+        if (!saveResponse || typeof saveResponse.success !== "boolean") {
+          throw new Error("Respuesta inválida al guardar el estado final");
+        }
+        if (!saveResponse.success) {
+          throw new Error(
+            saveResponse.message ||
+              "No se pudo guardar el estado final. Inténtelo de nuevo."
+          );
+        }
         } else {
           console.error("❌ Error: json is null");
         }
@@ -186,7 +190,7 @@ export default function DocumentForm() {
   return (
     <CardContainer title="Expediente de Entrega">
       <Title text="Oficio de entrega y Expediente" className="text-center mb-1" />
-      <form onSubmit={handleSubmit} className="flex flex-col space-y-4">
+      <form  className="flex flex-col space-y-4">
         {/* Componente para subir el archivo del memorando */}
         <div className="flex flex-col">
           <label htmlFor="memoFile" className="block font-semibold">

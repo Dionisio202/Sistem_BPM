@@ -26,7 +26,7 @@ const Modal: React.FC<ModalProps> = ({
 
   const facultades = [
     { id: 1, nombre: "Ciencias de la Salud" },
-    { id: 2, nombre: "Ciencia e Ingeniería en Alimentos y Biotecnología" },
+    { id: 2, nombre: "Facultad de ciencias Administrativas" },
     { id: 3, nombre: "Jurisprudencia y Ciencias Sociales" },
     { id: 4, nombre: "Ingeniería en Sistemas, Electrónica e Industrial" },
     { id: 5, nombre: "Ciencias Humanas y de la Educación" },
