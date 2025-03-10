@@ -150,7 +150,7 @@ export default function UploadForm() {
 
       // Construir el payload para enviar al back-end
       const payload = {
-        nombre: `${baseName}_${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}`,
+        nombre: `${baseName}_${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}.pdf`,
         id_registro_per: `${bonitaData?.processId}-${bonitaData?.caseId}`,
         id_tipo_documento: "5",
         document: fileBase64,
