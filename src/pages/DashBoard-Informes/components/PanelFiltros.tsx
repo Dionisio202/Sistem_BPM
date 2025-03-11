@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 
 // Definición de tipos
 interface Filters {
@@ -6,8 +6,8 @@ interface Filters {
   proyecto: string[];
   producto: string[];
   funcionario: string;
-  facultad: string;
-  carreras: string[]; // Nuevo campo para carreras
+  facultades: string[]; // Array para soportar múltiples facultades
+  carreras: string[]; 
   fechaInicio: string;
   fechaFin: string;
 }
@@ -19,7 +19,8 @@ interface FilterPanelProps {
   productos: string[];
   funcionarios: string[];
   facultades: string[];
-  carreras: string[]; // Nuevo prop para carreras
+  carreras: string[];
+  currentFilters: Filters; // Nueva prop para mantener sincronizados los filtros
 }
 
 export default function FilterPanel({
@@ -30,21 +31,53 @@ export default function FilterPanel({
   funcionarios,
   facultades,
   carreras,
+  currentFilters,
 }: FilterPanelProps) {
   const [filters, setFilters] = useState<Filters>({
     estado: "Todos",
     proyecto: [],
     producto: [],
     funcionario: "Todos",
-    facultad: "Todos",
-    carreras: [], // Inicialmente vacío
+    facultades: [],
+    carreras: [], 
     fechaInicio: "",
     fechaFin: "",
   });
+  
+  // Referencia para prevenir el bucle infinito
+  const isInternalChange = useRef(false);
+  const prevFiltersRef = useRef<Filters | null>(null);
+
+  // Inicialización y sincronización con currentFilters
+  useEffect(() => {
+    // Solo actualizar si currentFilters ha cambiado realmente y no es una
+    // respuesta a nuestros cambios internos
+    if (
+      currentFilters && 
+      !isInternalChange.current && 
+      JSON.stringify(currentFilters) !== JSON.stringify(prevFiltersRef.current)
+    ) {
+      setFilters(currentFilters);
+    }
+    
+    prevFiltersRef.current = currentFilters;
+  }, [currentFilters]);
+
+  // Notificar cambios de filtros
+  useEffect(() => {
+    // Solo notificar si es un cambio interno y los filtros han cambiado
+    if (isInternalChange.current) {
+      onFilterChange(filters);
+      isInternalChange.current = false;
+    }
+  }, [filters, onFilterChange]);
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
       const { name, value, type } = e.target;
+      
+      // Marcar que este es un cambio iniciado por el usuario
+      isInternalChange.current = true;
 
       setFilters((prevFilters) => {
         if (type === "checkbox") {
@@ -73,9 +106,23 @@ export default function FilterPanel({
     []
   );
 
-  const applyFilters = useCallback(() => {
-    onFilterChange(filters);
-  }, [filters, onFilterChange]);
+  // Función para limpiar todos los filtros
+  const clearAllFilters = useCallback(() => {
+    isInternalChange.current = true;
+    
+    const defaultFilters: Filters = {
+      estado: "Todos",
+      proyecto: [],
+      producto: [],
+      funcionario: "Todos",
+      facultades: [],
+      carreras: [],
+      fechaInicio: "",
+      fechaFin: "",
+    };
+    
+    setFilters(defaultFilters);
+  }, []);
 
   return (
     <div className="bg-gray-800 text-white p-6 rounded-lg shadow-lg w-full">
@@ -139,23 +186,33 @@ export default function FilterPanel({
           onChange={handleChange}
         />
 
-        {/* Facultad */}
-        <FilterSelect
-          label="Facultad"
-          name="facultad"
-          value={filters.facultad}
-          options={["Todos", ...facultades]}
-          onChange={handleChange}
-        />
+        {/* Facultades - Selección múltiple */}
+        <div className="bg-white p-4 rounded-lg shadow-sm">
+          <h3 className="text-lg font-semibold mb-2 text-gray-800">Facultades</h3>
+          <select
+            name="facultades"
+            multiple
+            value={filters.facultades}
+            onChange={handleChange}
+            className="w-full p-2 border border-gray-300 rounded-md text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {facultades.map((facultad) => (
+              <option key={facultad} value={facultad}>
+                {facultad}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-gray-500 mt-1">Mantén Ctrl para selección múltiple</p>
+        </div>
 
-        {/* Carreras */}
+        {/* Carreras - Selección múltiple */}
         <div className="bg-white p-4 rounded-lg shadow-sm">
           <h3 className="text-lg font-semibold mb-2 text-gray-800">Carreras</h3>
           <select
             name="carreras"
             value={filters.carreras}
             onChange={handleChange}
-            multiple // Permite selección múltiple
+            multiple
             className="w-full p-2 border border-gray-300 rounded-md text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             {carreras.map((carrera) => (
@@ -164,16 +221,17 @@ export default function FilterPanel({
               </option>
             ))}
           </select>
+          <p className="text-xs text-gray-500 mt-1">Mantén Ctrl para selección múltiple</p>
         </div>
       </div>
 
-      {/* Botón de Aplicar Filtros */}
+      {/* Botón para limpiar filtros */}
       <div className="mt-6">
         <button
-          onClick={applyFilters}
-          className="bg-blue-600 text-white px-4 py-2 rounded w-full hover:bg-blue-700 transition-colors"
+          onClick={clearAllFilters}
+          className="bg-red-600 text-white px-4 py-2 rounded w-full hover:bg-red-700 transition-colors"
         >
-          Aplicar Filtros
+          Limpiar Todos los Filtros
         </button>
       </div>
     </div>

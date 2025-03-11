@@ -20,7 +20,7 @@ const FileIcon: React.FC<{ file: TaskFile }> = ({ file }) => {
       window.open(viewerUrl, '_blank');
     } else {
       // Si no hay path, muestra un alert con el ID del documento
-      alert(`Documento sin archivo asociado. ID: ${file.id}`);
+      alert(`Documento sin archivo asociado. Codigo de Memorando: ${file.name}`);
     }
   };
 
@@ -52,13 +52,55 @@ const FileSection: React.FC<{ files?: TaskFile[] }> = ({ files = [] }) => {
 };
 
 // Helper function to format dates
-const formatDate = (dateString:any) => {
+const formatDate = (dateString: string | Date | null | undefined): string => {
   if (!dateString) return "—";
+  
   try {
-    return new Date(dateString).toLocaleDateString();
+    // Si es objeto Date, convertir a string ISO
+    if (dateString instanceof Date) {
+      dateString = dateString.toISOString().split('T')[0];
+    }
+    
+    // Asegurémonos de trabajar con el formato ISO YYYY-MM-DD
+    if (typeof dateString === 'string') {
+      // Extraer sólo la parte de la fecha si incluye tiempo (YYYY-MM-DDT...)
+      if (dateString.includes('T')) {
+        dateString = dateString.split('T')[0];
+      }
+      
+      // Si es formato ISO (YYYY-MM-DD)
+      if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        const [year, month, day] = dateString.split('-');
+        
+        // Convertir los valores a números enteros
+        const yearNum = parseInt(year, 10);
+        const monthNum = parseInt(month, 10);
+        const dayNum = parseInt(day, 10);
+        
+        // Validar que la fecha sea correcta
+        if (yearNum > 0 && monthNum >= 1 && monthNum <= 12 && dayNum >= 1 && dayNum <= 31) {
+          return `${dayNum.toString().padStart(2, '0')}/${monthNum.toString().padStart(2, '0')}/${yearNum}`;
+        }
+      }
+    }
+    
+    // Si el formato no es como esperábamos o no es un string, intentamos con el enfoque tradicional
+    // pero utilizando UTC para evitar problemas de zona horaria
+    const date = new Date(dateString);
+    
+    if (isNaN(date.getTime())) {
+      return "Fecha inválida";
+    }
+    
+    // Usamos UTC para evitar ajustes de zona horaria
+    const dia = date.getUTCDate().toString().padStart(2, '0');
+    const mes = (date.getUTCMonth() + 1).toString().padStart(2, '0');
+    const anio = date.getUTCFullYear();
+    
+    return `${dia}/${mes}/${anio}`;
   } catch (error) {
-    console.error("Error formatting date:", error);
-    return dateString;
+    console.error("Error formatting date:", error, dateString);
+    return typeof dateString === 'string' ? dateString : "Fecha inválida";
   }
 };
 
