@@ -46,10 +46,8 @@ export const useBonitaService = () => {
     async (userId: string): Promise<Tarea | null> => {
       try {
         if (process.env.NODE_ENV === "development") {
-          console.log("Buscando tareas para el usuario con user_id=", userId);
         }
         const taskInstance = await bonitaUtilities.getTaskInstance();
-        console.log("**************************************Tarea obtenida desde bonita utilities", taskInstance);
   
         const response = await fetch(
           `${SERVER_BONITA_URL}/bonita/API/bpm/humanTask?p=0&c=10000&f=user_id=${userId}`,
@@ -117,7 +115,6 @@ export const useBonitaService = () => {
           console.warn("No hay tarea asignada al usuario.");
           return null;
         }
-        console.log("Tarea actual:", tarea);
 
         // 2️⃣ Dado que no podemos obtener detalles adicionales del proceso,
         // usaremos los datos disponibles en la tarea.

@@ -117,11 +117,12 @@ const Modal: React.FC<ModalProps> = ({
     }));
   };
   const handleRolesChange = (e: any) => {
+    setSelectedRole(e.target.value);
     setEditedData((prev: any) => ({
       ...prev,
       solicitante: {
         ...prev.solicitante,
-        cargo: e.target.value,
+        rol: e.target.value,
       },
     }));
   };

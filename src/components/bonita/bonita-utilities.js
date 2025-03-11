@@ -37,13 +37,11 @@ export default class BonitaUtilities {
       }
 
       const sessionData = await response.json();
-      console.log("Datos de sesión:", sessionData);
 
       // Si Bonita devuelve el token en las cookies, debería ser enviado automáticamente.
       // Pero si no, puedes verificar si el servidor devuelve un token en los headers de la respuesta.
       const token = response.headers.get("X-Bonita-API-Token");
       if (token) {
-        console.log("Token obtenido desde API:", token);
         return token;
       } else {
         console.error("No se encontró el token en la respuesta de la API.");
