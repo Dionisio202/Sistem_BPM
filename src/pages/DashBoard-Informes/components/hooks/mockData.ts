@@ -1,0 +1,89 @@
+// data/mockData.ts
+
+import { RegistroPI } from "../interfaces/dashboard.interface";
+
+export const simulatedData: RegistroPI[] = [
+  {
+    id: "1",
+    numero: 1,
+    nombre: "Software BPM",
+    descripcion: "Sistema de gestión de procesos de negocio",
+    tipoProducto: "Software",
+    tipoProyecto: "Investigación",
+    facultades: ["FISEI", "FCHE"],
+    carreras: ["Software", "TI"],
+    funcionario: "Jimmy",
+    estado: "Finalizado",
+    progreso: 100,
+    fechaInicio: "2024-09-01",
+    fechaFin: "2024-09-05",
+    subtareas: [
+      {
+        id: "1.1",
+        nombre: "Asesoría para Registro de Propiedad Intelectual",
+        fechaInicio: "2023-09-01",
+        fechaFin: "2023-09-03",
+        estado: "Completado",
+        archivos: [
+          { id: "f1", name: "Informe_Asesoria.pdf", path: "/ruta/al/archivo/Informe_Asesoria.pdf" },
+          { id: "f2", name: "Formulario_PI.docx" }
+        ]
+      },
+      {
+        id: "1.2",
+        nombre: "Atención de Solicitud de Registro de Propiedad Intelectual",
+        fechaInicio: "2023-09-03",
+        fechaFin: "2023-09-05",
+        estado: "Completado"
+      }
+    ]
+  },
+  {
+    id: "2",
+    numero: 2,
+    nombre: "Mini Película",
+    descripcion: "Cortometraje educativo",
+    tipoProducto: "R.Obras Artisticas",
+    tipoProyecto: "Vinculación",
+    facultades: ["FCHE", "FDA"],
+    carreras: ["Diseño", "Administración"],
+    funcionario: "Fanny",
+    estado: "En Proceso",
+    progreso: 30,
+    fechaInicio: "2024-09-03",
+    fechaFin: "2024-09-15",
+    subtareas: []
+  },
+  {
+    id: "3",
+    numero: 3,
+    nombre: "Libro: Vida en la UTA",
+    descripcion: "Publicación institucional",
+    tipoProducto: "R. Obras Literarias",
+    tipoProyecto: "Carrera",
+    facultades: ["FDA"],
+    carreras: ["Administración"],
+    funcionario: "Jimmy",
+    estado: "Finalizado",
+    progreso: 100,
+    fechaInicio: "2024-08-25",
+    fechaFin: "2024-09-10",
+    subtareas: []
+  },
+  {
+    id: "4",
+    numero: 4,
+    nombre: "Manual de Programación",
+    descripcion: "Guía técnica",
+    tipoProducto: "R. Obras Literarias",
+    tipoProyecto: "Investigación",
+    facultades: ["FISEI"],
+    carreras: ["Software", "TI"],
+    funcionario: "Jimmy",
+    estado: "En Proceso",
+    progreso: 60,
+    fechaInicio: "2023-10-01",
+    fechaFin: "2023-10-30",
+    subtareas: []
+  }
+];

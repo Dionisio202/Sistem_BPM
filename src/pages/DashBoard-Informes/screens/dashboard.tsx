@@ -1,3 +1,4 @@
+// Archivo principal: Dashboard.tsx
 import React, { useEffect, useState } from "react";
 import Sidebar from "../components/Sidebar";
 import CardPrincipal from "../components/CardPrincipal";
@@ -7,72 +8,34 @@ import NumericCards from "../components/RecordNumber";
 import PDFExport from "../components/PDFExport";
 import Separator from "../components/UI/Separator";
 import FilterPanel from "../components/PanelFiltros";
-import io from "socket.io-client";
-import { SERVER_BACK_URL } from "../../../config";
 import TableProducts from "../components/TableProducts";
 import { FiPackage } from "react-icons/fi";
+import { DatosFiltros, Filters, ProductCard, RegistroPI } from "../components/interfaces/dashboard.interface";
+import { cargarCarreras, cargarCarrerasPorFacultad, cargarEstados, cargarFacultades, cargarFuncionarios, cargarProductos, cargarProyectos } from "../components/dataFIlters";
+import io from "socket.io-client";
+import { SERVER_BACK_URL } from "../../../config";
+import { generarDatosGraficos, prepararDatosGantt, prepararDatosTabla, prepararTarjetasProductos } from "../components/hooks/dataUtils";
+import { simulatedData } from "../components/hooks/mockData";
+
 
 const socket = io(SERVER_BACK_URL);
-const API_URL = SERVER_BACK_URL + "/api"; // URL base para las consultas API
+const API_URL = SERVER_BACK_URL + "/api";
 
-// Definición de tipos
-interface Filters {
-  estado: string;
-  proyecto: string[];
-  producto: string[];
-  funcionario: string;
-  facultades: string[];
-  carreras: string[];
-  fechaInicio: string;
-  fechaFin: string;
-}
 
-// Interfaces para los datos
-interface RegistroPI {
-  id: string;
-  numero: number;
-  nombre: string;
-  descripcion: string;
-  tipoProducto: string;
-  tipoProyecto: string;
-  facultades: string[];
-  carreras: string[];
-  funcionario: string;
-  estado: string;
-  progreso: number;
-  fechaInicio: string;
-  fechaFin: string;
-  subtareas?: {
-    id: string;
-    nombre: string;
-    fechaInicio: string;
-    fechaFin: string;
-    estado: string;
-    archivos?: {
-      id: string;
-      name: string;
-      path?: string;
-    }[];
-  }[];
-}
 
-// Interfaz para las tarjetas de productos
-interface ProductCard {
-  title: string;
-  value: number;
-  icon?: React.ReactNode;
-}
-
-// Interfaz para las opciones de filtros
-interface DatosFiltros {
-  estados: string[];
-  proyectos: string[];
-  productos: string[];
-  funcionarios: string[];
-  facultades: string[];
-  carreras: string[];
-  carrerasPorFacultad: Map<string, string[]>; // Mapa para relacionar facultades con carreras
-}
+const ProductTypeCard: React.FC<ProductCard> = ({ title, value, icon }) => {
+  return (
+    <div className="bg-white rounded-lg shadow-md p-4 flex items-center justify-between">
+      <div>
+        <h3 className="text-sm font-medium text-gray-700">{title}</h3>
+        <p className="text-2xl font-bold mt-1">{value}</p>
+      </div>
+      <div className="bg-blue-100 p-3 rounded-full">
+        {icon || <FiPackage className="h-6 w-6 text-blue-500" />}
+      </div>
+    </div>
+  );
+};
 
 const Dashboard: React.FC = () => {
   // Estado para todos los datos (origen único)
@@ -115,243 +78,42 @@ const Dashboard: React.FC = () => {
       // const datos = response.data;
       
       // Simulación de datos para desarrollo
-      const datosSimulados: RegistroPI[] = [
-        {
-          id: "1",
-          numero: 1,
-          nombre: "Software BPM",
-          descripcion: "Sistema de gestión de procesos de negocio",
-          tipoProducto: "Software",
-          tipoProyecto: "Investigación",
-          facultades: ["FISEI", "FCHE"],
-          carreras: ["Software", "TI"],
-          funcionario: "Jimmy",
-          estado: "Finalizado",
-          progreso: 100,
-          fechaInicio: "2024-09-01",
-          fechaFin: "2024-09-05",
-          subtareas: [
-            {
-              id: "1.1",
-              nombre: "Asesoría para Registro de Propiedad Intelectual",
-              fechaInicio: "2023-09-01",
-              fechaFin: "2023-09-03",
-              estado: "Completado",
-              archivos: [
-                { id: "f1", name: "Informe_Asesoria.pdf", path: "/ruta/al/archivo/Informe_Asesoria.pdf" },
-                { id: "f2", name: "Formulario_PI.docx" }
-              ]
-            },
-            {
-              id: "1.2",
-              nombre: "Atención de Solicitud de Registro de Propiedad Intelectual",
-              fechaInicio: "2023-09-03",
-              fechaFin: "2023-09-05",
-              estado: "Completado"
-            }
-          ]
-        },
-        // Resto de los datos simulados (aquí irían los otros registros)
-        {
-          id: "2",
-          numero: 2,
-          nombre: "Mini Película",
-          descripcion: "Cortometraje educativo",
-          tipoProducto: "R.Obras Artisticas",
-          tipoProyecto: "Vinculación",
-          facultades: ["FCHE", "FDA"],
-          carreras: ["Diseño", "Administración"],
-          funcionario: "Fanny",
-          estado: "En Proceso",
-          progreso: 30,
-          fechaInicio: "2024-09-03",
-          fechaFin: "2024-09-15",
-          subtareas: []
-        },
-        // Más datos simulados...
-        {
-          id: "3",
-          numero: 3,
-          nombre: "Libro: Vida en la UTA",
-          descripcion: "Publicación institucional",
-          tipoProducto: "R. Obras Literarias",
-          tipoProyecto: "Carrera",
-          facultades: ["FDA"],
-          carreras: ["Administración"],
-          funcionario: "Jimmy",
-          estado: "Finalizado",
-          progreso: 100,
-          fechaInicio: "2024-08-25",
-          fechaFin: "2024-09-10",
-          subtareas: []
-        },
-        {
-          id: "4",
-          numero: 4,
-          nombre: "Manual de Programación",
-          descripcion: "Guía técnica",
-          tipoProducto: "R. Obras Literarias",
-          tipoProyecto: "Investigación",
-          facultades: ["FISEI"],
-          carreras: ["Software", "TI"],
-          funcionario: "Jimmy",
-          estado: "En Proceso",
-          progreso: 60,
-          fechaInicio: "2023-10-01",
-          fechaFin: "2023-10-30",
-          subtareas: []
-        }
-      ];
-      
-      setTodosRegistros(datosSimulados);
-      setRegistrosFiltrados(datosSimulados);
+      setTodosRegistros(simulatedData);
+      setRegistrosFiltrados(simulatedData);
       
     } catch (error) {
       console.error("Error al cargar registros:", error);
     }
   };
 
-  // Funciones para cargar datos de cada filtro de forma independiente
-  const cargarEstados = async () => {
-    try {
-      // En un entorno real, reemplazar con la llamada a la API
-      // const response = await axios.get(`${API_URL}/estados`);
-      // return response.data;
-      
-      // Datos simulados para desarrollo
-      return ["En Proceso", "Finalizado"];
-    } catch (error) {
-      console.error("Error al cargar estados:", error);
-      return [];
-    }
-  };
-
-  const cargarProyectos = async () => {
-    try {
-      // En un entorno real, reemplazar con la llamada a la API
-      // const response = await axios.get(`${API_URL}/proyectos`);
-      // return response.data;
-      
-      return ["Investigación", "Vinculación", "Carrera"];
-    } catch (error) {
-      console.error("Error al cargar proyectos:", error);
-      return [];
-    }
-  };
-
-  const cargarProductos = async () => {
-    try {
-      // En un entorno real, reemplazar con la llamada a la API
-      // const response = await axios.get(`${API_URL}/productos`);
-      // return response.data;
-      
-      return ["R. Obras Literarias", "Software", "Libro", "R.Obras Artisticas", "R. P Radio", "R. Fonogramas"];
-    } catch (error) {
-      console.error("Error al cargar productos:", error);
-      return [];
-    }
-  };
-
-  const cargarFuncionarios = async () => {
-    try {
-      // En un entorno real, reemplazar con la llamada a la API
-      // const response = await axios.get(`${API_URL}/funcionarios`);
-      // return response.data;
-      
-      return ["Jimmy", "Fanny"];
-    } catch (error) {
-      console.error("Error al cargar funcionarios:", error);
-      return [];
-    }
-  };
-
-  const cargarFacultades = async () => {
-    try {
-      // En un entorno real, reemplazar con la llamada a la API
-      // const response = await axios.get(`${API_URL}/facultades`);
-      // return response.data;
-      
-      return ["FISEI", "FCHE", "FDA", "FCS"];
-    } catch (error) {
-      console.error("Error al cargar facultades:", error);
-      return [];
-    }
-  };
-
-  const cargarCarreras = async () => {
-    try {
-      // En un entorno real, reemplazar con la llamada a la API
-      // const response = await axios.get(`${API_URL}/carreras`);
-      // return response.data;
-      
-      return [
-        "Ingeniería Civil",
-        "Ingeniería de Sistemas",
-        "Medicina",
-        "Derecho",
-        "Arquitectura",
-        "Software",
-        "TI",
-        "Administración",
-        "Diseño"
-      ];
-    } catch (error) {
-      console.error("Error al cargar carreras:", error);
-      return [];
-    }
-  };
-
-  // Función para cargar la relación entre facultades y carreras
-  const cargarCarrerasPorFacultad = async () => {
-    try {
-      // En un entorno real, reemplazar con la llamada a la API
-      // const response = await axios.get(`${API_URL}/facultades-carreras`);
-      // Construir el mapa a partir de la respuesta
-      
-      // Datos simulados para desarrollo
-      const relaciones = [
-        { facultad: "FISEI", carreras: ["Ingeniería Civil", "Ingeniería de Sistemas", "Software", "TI"] },
-        { facultad: "FCHE", carreras: ["Derecho", "Administración"] },
-        { facultad: "FDA", carreras: ["Arquitectura", "Diseño"] },
-        { facultad: "FCS", carreras: ["Medicina"] }
-      ];
-      
-      const mapa = new Map<string, string[]>();
-      relaciones.forEach(rel => {
-        mapa.set(rel.facultad, rel.carreras);
-      });
-      
-      return mapa;
-    } catch (error) {
-      console.error("Error al cargar relación facultades-carreras:", error);
-      return new Map<string, string[]>();
-    }
-  };
-
   // Función para cargar todos los datos de filtros de forma independiente
   const cargarTodosDatosFiltros = async () => {
-    const [estados, proyectos, productos, funcionarios, facultades, carreras, carrerasPorFacultad] = await Promise.all([
-      cargarEstados(),
-      cargarProyectos(),
-      cargarProductos(),
-      cargarFuncionarios(),
-      cargarFacultades(),
-      cargarCarreras(),
-      cargarCarrerasPorFacultad()
-    ]);
-    
-    setDatosFiltros({
-      estados,
-      proyectos,
-      productos,
-      funcionarios,
-      facultades,
-      carreras,
-      carrerasPorFacultad
-    });
-    
-    // Inicialmente, mostrar todas las carreras
-    setCarrerasFiltradas(carreras);
+    try {
+      const [estados, proyectos, productos, funcionarios, facultades, carreras, carrerasPorFacultad] = await Promise.all([
+        cargarEstados(),
+        cargarProyectos(),
+        cargarProductos(),
+        cargarFuncionarios(),
+        cargarFacultades(),
+        cargarCarreras(),
+        cargarCarrerasPorFacultad()
+      ]);
+      
+      setDatosFiltros({
+        estados,
+        proyectos,
+        productos,
+        funcionarios,
+        facultades,
+        carreras,
+        carrerasPorFacultad
+      });
+      
+      // Inicialmente, mostrar todas las carreras
+      setCarrerasFiltradas(carreras);
+    } catch (error) {
+      console.error("Error al cargar datos de filtros:", error);
+    }
   };
 
   // Carga inicial de datos
@@ -360,9 +122,9 @@ const Dashboard: React.FC = () => {
     cargarTodosDatosFiltros();
   }, []);
 
-  // Función para aplicar filtros a los datos
+  // Aplicar filtros a los datos
   const applyFilters = (filters: Filters) => {
-    const registrosFiltrados = todosRegistros.filter(registro => {
+    const filtrados = todosRegistros.filter(registro => {
       // Filtro por estado
       if (filters.estado !== "Todos" && registro.estado !== filters.estado) {
         return false;
@@ -383,41 +145,41 @@ const Dashboard: React.FC = () => {
         return false;
       }
 
-      // Filtro por facultades (verifica intersección entre arrays)
+      // Filtro por facultades
       if (filters.facultades.length > 0 && !registro.facultades.some(facultad => filters.facultades.includes(facultad))) {
         return false;
       }
 
-      // Filtro por carreras (verifica intersección entre arrays)
+      // Filtro por carreras
       if (filters.carreras.length > 0 && !registro.carreras.some(carrera => filters.carreras.includes(carrera))) {
         return false;
       }
 
-      // Filtro por fecha (usando solo la fecha de fin del registro)
-if (filters.fechaInicio || filters.fechaFin) {
-  const fechaFinRegistro = new Date(registro.fechaFin);
-  
-  // Si hay fecha de inicio en el filtro
-  if (filters.fechaInicio) {
-    const startDate = new Date(filters.fechaInicio);
-    if (fechaFinRegistro < startDate) {
-      return false; // El registro finaliza antes del período de filtro
-    }
-  }
-  
-  // Si hay fecha de fin en el filtro
-  if (filters.fechaFin) {
-    const endDate = new Date(filters.fechaFin);
-    if (fechaFinRegistro > endDate) {
-      return false; // El registro finaliza después del período de filtro
-    }
-  }
-}
+      // Filtro por fecha
+      if (filters.fechaInicio || filters.fechaFin) {
+        const fechaFinRegistro = new Date(registro.fechaFin);
+        
+        // Si hay fecha de inicio en el filtro
+        if (filters.fechaInicio) {
+          const startDate = new Date(filters.fechaInicio);
+          if (fechaFinRegistro < startDate) {
+            return false; // El registro finaliza antes del período de filtro
+          }
+        }
+        
+        // Si hay fecha de fin en el filtro
+        if (filters.fechaFin) {
+          const endDate = new Date(filters.fechaFin);
+          if (fechaFinRegistro > endDate) {
+            return false; // El registro finaliza después del período de filtro
+          }
+        }
+      }
 
       return true;
     });
 
-    setRegistrosFiltrados(registrosFiltrados);
+    setRegistrosFiltrados(filtrados);
   };
 
   // Manejar cambios en los filtros
@@ -449,141 +211,11 @@ if (filters.fechaInicio || filters.fechaFin) {
     setCurrentFilters(filters);
     applyFilters(filters);
   };
-
-  // Función para generar datos derivados para los gráficos
-  const generarDatosGraficos = () => {
-    // Mapa para contar registros por facultad (con arrays planos)
-    const conteoFacultades = new Map<string, number>();
-    datosFiltros.facultades.forEach(facultad => {
-      conteoFacultades.set(facultad, 0);
-    });
-    
-    // Contar registros para cada facultad
-    registrosFiltrados.forEach(registro => {
-      registro.facultades.forEach(facultad => {
-        const contador = conteoFacultades.get(facultad) || 0;
-        conteoFacultades.set(facultad, contador + 1);
-      });
-    });
-    
-    // Convertir a formato para gráfico
-    const datosFacultades = Array.from(conteoFacultades.entries()).map(([facultad, count]) => ({
-      name: facultad,
-      value: count,
-      facultad: facultad
-    }));
-
-    // Mapa para contar registros por carrera (con arrays planos)
-    const conteoCarreras = new Map<string, number>();
-    datosFiltros.carreras.forEach(carrera => {
-      conteoCarreras.set(carrera, 0);
-    });
-    
-    // Contar registros para cada carrera
-    registrosFiltrados.forEach(registro => {
-      registro.carreras.forEach(carrera => {
-        const contador = conteoCarreras.get(carrera) || 0;
-        conteoCarreras.set(carrera, contador + 1);
-      });
-    });
-    
-    // Convertir a formato para gráfico
-    const datosCarreras = Array.from(conteoCarreras.entries()).map(([carrera, count]) => ({
-      key: carrera,
-      value: count,
-      carrera: carrera
-    }));
-
-    // Datos para gráfico de barras apiladas (por tipo de producto)
-    const datosTipoProducto = Array.from(
-      datosFiltros.productos.reduce((acc, producto) => {
-        const registrosProducto = registrosFiltrados.filter(reg => reg.tipoProducto === producto);
-        const investigacion = registrosProducto.filter(reg => reg.tipoProyecto === "Investigación").length;
-        const vinculacion = registrosProducto.filter(reg => reg.tipoProyecto === "Vinculación").length;
-        const carrera = registrosProducto.filter(reg => reg.tipoProyecto === "Carrera").length;
-        
-        acc.set(producto, { 
-          name: producto, 
-          value1: investigacion, // Investigación
-          value2: vinculacion, // Vinculación
-          value3: carrera, // Carrera
-          tipo: producto 
-        });
-        
-        return acc;
-      }, new Map())
-    ).map(([_, value]) => value);
-
-    // Datos para categorías de proyectos
-    const datosProyectos = Array.from(
-      datosFiltros.proyectos.reduce((acc, proyecto) => {
-        const count = registrosFiltrados.filter(reg => reg.tipoProyecto === proyecto).length;
-        acc.set(proyecto, { 
-          name: proyecto, 
-          count: count, 
-          proyecto: proyecto 
-        });
-        return acc;
-      }, new Map())
-    ).map(([_, value]) => value);
-
-    return {
-      datosFacultades,
-      datosCarreras,
-      datosTipoProducto,
-      datosProyectos
-    };
-  };
-
-  // Preparar datos para Gantt
-  const prepararDatosGantt = () => {
-    return registrosFiltrados.map(registro => ({
-      id: registro.id,
-      name: `Caso ${registro.numero} - ${registro.nombre}`,
-      startDate: new Date(registro.fechaInicio),
-      endDate: new Date(registro.fechaFin),
-      progress: registro.progreso,
-      status: registro.estado,
-      facultades: registro.facultades.join(", "), // Unir las facultades con coma para mostrar
-      proyecto: registro.tipoProyecto,
-      producto: registro.tipoProducto,
-      funcionario: registro.funcionario,
-      carreras: registro.carreras.join(", "), // Unir las carreras con coma para mostrar
-      subtasks: registro.subtareas ? registro.subtareas.map(subtarea => ({
-        id: subtarea.id,
-        name: subtarea.nombre,
-        startDate: new Date(subtarea.fechaInicio),
-        endDate: new Date(subtarea.fechaFin),
-        status: subtarea.estado,
-        files: subtarea.archivos
-      })) : []
-    }));
-  };
-
-  // Preparar datos para tabla de productos
-  const prepararDatosTabla = () => {
-    return registrosFiltrados.map(registro => ({
-      number: registro.numero,
-      name: registro.nombre,
-      description: registro.tipoProducto,
-      category: registro.tipoProyecto,
-      facultades: registro.facultades.join(", "), // Mostrar facultades separadas por coma
-      carreras: registro.carreras.join(", ") // Mostrar carreras separadas por coma
-    }));
-  };
   
-  // Preparar datos para las tarjetas de productos
-  const prepararTarjetasProductos = () => {
-    return datosFiltros.productos.map(producto => ({
-      title: producto,
-      value: registrosFiltrados.filter(reg => reg.tipoProducto === producto).length,
-      icon: <FiPackage className="h-8 w-8 text-blue-500" />
-    }));
-  };
+  // Generar datos para la interfaz
+  const { datosFacultades, datosCarreras, datosTipoProducto, datosProyectos } = 
+    generarDatosGraficos(registrosFiltrados, datosFiltros);
 
-  // Obtener todos los datos derivados para los gráficos
-  const { datosFacultades, datosCarreras, datosTipoProducto, datosProyectos } = generarDatosGraficos();
-  
   // Datos para las tarjetas numéricas
   const totalRegistros = registrosFiltrados.length;
   const registrosFinalizados = registrosFiltrados.filter(r => r.estado === "Finalizado").length;
@@ -604,29 +236,14 @@ if (filters.fechaInicio || filters.fechaFin) {
   ];
 
   // Tarjetas de productos
-  const productCards = prepararTarjetasProductos();
-
-  // Componente de tarjeta de producto
-  const ProductTypeCard: React.FC<ProductCard> = ({ title, value, icon }) => {
-    return (
-      <div className="bg-white rounded-lg shadow-md p-4 flex items-center justify-between">
-        <div>
-          <h3 className="text-sm font-medium text-gray-700">{title}</h3>
-          <p className="text-2xl font-bold mt-1">{value}</p>
-        </div>
-        <div className="bg-blue-100 p-3 rounded-full">
-          {icon || <FiPackage className="h-6 w-6 text-blue-500" />}
-        </div>
-      </div>
-    );
-  };
+  const productCards = prepararTarjetasProductos(registrosFiltrados, datosFiltros.productos);
 
   return (
     <PDFExport
       captureIds={["taskProgress"]}
       filtersData={{
         year: new Date().getFullYear().toString(),
-        facultad: currentFilters.facultades.join(", "), // Mostrar facultades seleccionadas
+        facultad: currentFilters.facultades.join(", "),
         estado: currentFilters.estado,
         fechaInicio: currentFilters.fechaInicio,
         fechaFin: currentFilters.fechaFin,
@@ -644,8 +261,8 @@ if (filters.fechaInicio || filters.fechaFin) {
               productos={datosFiltros.productos}
               funcionarios={datosFiltros.funcionarios}
               facultades={datosFiltros.facultades}
-              carreras={carrerasFiltradas} // Usamos el estado de carreras filtradas
-              currentFilters={currentFilters} // Pasamos los filtros actuales
+              carreras={carrerasFiltradas}
+              currentFilters={currentFilters}
             />
 
             {/* Tarjetas numéricas */}
@@ -688,7 +305,7 @@ if (filters.fechaInicio || filters.fechaFin) {
                     { header: "Facultades", accessorKey: "facultades" },
                     { header: "Carreras", accessorKey: "carreras" }
                   ]} 
-                  data={prepararDatosTabla()} 
+                  data={prepararDatosTabla(registrosFiltrados)} 
                 />
               </div>
               <div className="space-y-4">
@@ -706,7 +323,7 @@ if (filters.fechaInicio || filters.fechaFin) {
 
             {/* Gráfico de Gantt */}
             <div className="p-3">
-              <GanttChart tasks={prepararDatosGantt()} />
+              <GanttChart tasks={prepararDatosGantt(registrosFiltrados)} />
             </div>
           </main>
         </div>
