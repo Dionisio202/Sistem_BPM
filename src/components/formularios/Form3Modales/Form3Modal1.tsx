@@ -2,10 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import io from "socket.io-client";
 import UploadFile from "../components/UploadFile";
 import { SERVER_BACK_URL } from "../../../config.ts";
-import {
-  ModalProps,
-  TipoProducto,
-} from "../../../interfaces/registros.interface";
+import { ModalProps, TipoProducto } from "../../../interfaces/registros.interface";
 import { Facultad } from "../../../interfaces/facultades.interface.ts";
 import InputField from "./components/InputField.tsx";
 import Section from "./components/Section.tsx";
@@ -41,6 +38,11 @@ interface FormData {
     productos: any[];
     tipoMemorando: string;
   };
+}
+
+interface Rol {
+  id_rol: number;
+  nombre: string;
 }
 
 const Form3Modal1: React.FC<ModalProps> = ({
@@ -79,12 +81,12 @@ const Form3Modal1: React.FC<ModalProps> = ({
   });
   const [tiposProductos, setTiposProductos] = useState<TipoProducto[]>([]);
   const [facultadesCarreras, setFacultadesCarreras] = useState<Facultad[]>([]);
+  const [roles, setRoles] = useState<Rol[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [facultadSeleccionada, setFacultadSeleccionada] = useState("");
   const [hasMissingData, setHasMissingData] = useState(false);
-  const [intellectualPropertyFileBase64, setIntellectualPropertyFileBase64] =
-    useState<string | null>(null);
+  const [intellectualPropertyFileBase64, setIntellectualPropertyFileBase64] = useState<string | null>(null);
 
   // Cargar tipos de productos
   useEffect(() => {
@@ -101,14 +103,17 @@ const Form3Modal1: React.FC<ModalProps> = ({
 
           setTiposProductos(tiposMapeados);
 
-          if (editedData.tipoMemorando) {
+          if (editedData.productos.tipoMemorando) {
             const tipoSeleccionado = tiposMapeados.find(
-              (t: any) => t.nombre === editedData.tipoMemorando
+              (t: any) => t.nombre === editedData.productos.tipoMemorando
             );
             if (tipoSeleccionado) {
               setEditedData((prev: any) => ({
                 ...prev,
-                tipoMemorando: tipoSeleccionado.id.toString(),
+                productos: {
+                  ...prev.productos,
+                  tipoMemorando: tipoSeleccionado.id.toString(),
+                },
               }));
             }
           }
@@ -127,7 +132,6 @@ const Form3Modal1: React.FC<ModalProps> = ({
       socket.emit("obtener_facultades_carreras", (response: any) => {
         if (response.success && response.data && response.data.length > 0) {
           try {
-            // Se espera que la respuesta tenga una propiedad ResultadoJSON con el string JSON
             const parsedData = JSON.parse(response.data[0].ResultadoJSON);
             setFacultadesCarreras(parsedData);
           } catch (parseError) {
@@ -137,6 +141,25 @@ const Form3Modal1: React.FC<ModalProps> = ({
         } else {
           console.error("Error al obtener facultades:", response.message);
           setError("Error al cargar facultades y carreras");
+        }
+      });
+    }
+  }, [showModal]);
+
+  // Cargar roles
+  useEffect(() => {
+    if (showModal) {
+      socket.emit("obtener_rol", (response: any) => {
+        if (response.success && response.data && response.data.length > 0) {
+          try {
+            setRoles(response.data);
+          } catch (parseError) {
+            console.error("Error al parsear roles:", parseError);
+            setError("Error al cargar roles");
+          }
+        } else {
+          console.error("Error al obtener roles:", response.message);
+          setError("Error al cargar roles");
         }
       });
     }
@@ -158,26 +181,6 @@ const Form3Modal1: React.FC<ModalProps> = ({
     },
     []
   );
-  //Cargar roles de forma dinámica
-    useEffect(() => {
-      if (showModal) {
-        socket.emit("obtener_rol", (response: any) => {
-          if (response.success && response.data && response.data.length > 0) {
-            try {
-              // Se espera que la respuesta tenga una propiedad ResultadoJSON con el string JSON
-              setRoles(response.data);
-            } catch (parseError) {
-              console.error("Error al parsear roles:", parseError);
-              setError("Error al cargar roles");
-            }
-          } else {
-            console.error("Error al obtener roles:", response.message);
-            setError("Error al cargar roles");
-          }
-        });
-      }
-    }, [showModal]);
-    
 
   const handleMemoFileChange = useCallback(async (file: File | null) => {
     if (!file) return;
@@ -303,46 +306,39 @@ const Form3Modal1: React.FC<ModalProps> = ({
       }
 
       try {
-        setLoading(true); // Activar el indicador de carga
+        setLoading(true);
 
-        // Timeout para evitar que el botón se quede en "Procesando..."
         const timeout = setTimeout(() => {
           setLoading(false);
           toast.error("El servidor no respondió a tiempo. Inténtalo de nuevo.");
-        }, 30000); // Aumenta el timeout a 30 segundos
+        }, 30000);
 
-        // Enviar el archivo al backend para mapeo
         socket.emit(
-          "procesar_documento", // Asegúrate de que este sea el evento correcto en el backend
+          "procesar_documento",
           { documento: intellectualPropertyFileBase64 },
           (response: any) => {
-            clearTimeout(timeout); // Cancelar el timeout si el servidor responde
-            setLoading(false); // Desactivar el indicador de carga
+            clearTimeout(timeout);
+            setLoading(false);
 
-            // Inspeccionar el JSON devuelto por el backend
             console.log("Respuesta del backend:", response);
 
             if (response && response.success) {
-              // Actualiza el estado con los datos mapeados
               setEditedData((prev) => ({
                 ...prev,
                 productos: {
                   ...prev.productos,
-                  ...response.data, // Asegúrate de que el backend devuelva los datos en el formato correcto
+                  ...response.data,
                 },
               }));
               toast.success("Documento mapeado correctamente");
             } else {
-              console.error(
-                "Error en la respuesta del servidor:",
-                response?.message
-              );
+              console.error("Error en la respuesta del servidor:", response?.message);
               toast.error(response?.message || "Error desconocido");
             }
           }
         );
       } catch (error) {
-        setLoading(false); // Desactivar el indicador de carga en caso de error
+        setLoading(false);
         console.error("Error al guardar los documentos:", error);
         toast.error("Error al procesar los documentos. Inténtalo de nuevo.");
       }
