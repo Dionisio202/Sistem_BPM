@@ -127,11 +127,6 @@ export default function UploadForm() {
         onClose={closeModal2}
         title="Registro de Autores"
       >
-        <p className="text-gray-700 mb-4">
-          Este es el contenido detallado del segundo documento. Puedes agregar
-          aquí información relevante, como un formulario, una tabla o un texto
-          explicativo.
-        </p>
         <Form3Modal2
           showModal={isModal2Open}
           closeModal={closeModal2}
@@ -140,23 +135,6 @@ export default function UploadForm() {
           tipoMemorando={tipoMemorando}
           handleTipoMemorandoChange={handleTipoMemorandoChange}
         />
-        <div className="flex justify-end space-x-2">
-          <Button
-            className="bg-gray-500 text-white rounded-lg px-4 py-2 hover:bg-gray-600 transition-colors duration-200"
-            onClick={closeModal2}
-          >
-            Cerrar
-          </Button>
-          <Button
-            className="bg-blue-600 text-white rounded-lg px-4 py-2 hover:bg-blue-700 transition-colors duration-200"
-            onClick={() => {
-              console.log("Acción en Modal 2");
-              closeModal2();
-            }}
-          >
-            Aceptar
-          </Button>
-        </div>
       </ModalP>
     </div>
   );

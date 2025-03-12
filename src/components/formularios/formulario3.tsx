@@ -57,7 +57,7 @@ export default function UploadForm() {
         id_tarea: parseInt(bonitaData.taskId),
         jsonData: JSON.stringify("No Form Data"),
         id_funcionario: parseInt(usuario.user_id),
-        nombre_tarea: tareaActual?.name || "",
+        nombre_tarea: tareaActual?.name ?? "",
       };
       setJson(data);
       startAutoSave(data, 10000, "En Proceso");
@@ -202,7 +202,6 @@ export default function UploadForm() {
       editedData.tipo = parseInt(tipoMemorando);
 
       console.log("Json de productos editados:", editedData);
-      console.log("Json de autores editados:", jsonAutroes);
 
       // Enviar los datos editados al backend como JSON string
       if (!bonitaData) {

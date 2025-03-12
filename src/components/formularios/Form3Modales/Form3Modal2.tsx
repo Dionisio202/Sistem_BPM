@@ -5,30 +5,25 @@ import Title from "../components/TitleProps";
 import { ToastContainer, toast } from "react-toastify";
 
 const Form3Modal2: React.FC<ModalProps> = ({
-  showModal,
   closeModal,
-  modalData,
-  onSave,
-  tipoMemorando,
-  handleTipoMemorandoChange,
 }) => {
   const [hasMissingData, setHasMissingData] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [intellectualPropertyFileBase64, setIntellectualPropertyFileBase64] = useState<string | null>(null);
   const [authorDataFileBase64, setAuthorDataFileBase64] = useState<string | null>(null);
 
   // Función para manejar cambios en los archivos
-  const handleFileChange = (file: File | null, fileType: string) => {
+  const handleFileChange = (file: File | null) => {
     if (file) {
-      convertFileToBase64(file).then((base64) => {
-        if (fileType === "Solicitud de Registro de Propiedad Intelectual") {
-          setIntellectualPropertyFileBase64(base64);
-        } else {
-          setAuthorDataFileBase64(base64);
-        }
-      }).catch((error) => {
-        toast.error(`Error al convertir el archivo: ${error}`);
-      });
+      convertFileToBase64(file)
+        .then((base64) => {
+          setAuthorDataFileBase64(base64); // Guarda el archivo en Base64
+          toast.success("Archivo cargado correctamente");
+        })
+        .catch((error) => {
+          toast.error(`Error al convertir el archivo: ${error}`);
+        });
+    } else {
+      setAuthorDataFileBase64(null); // Limpia el archivo si no se selecciona ninguno
     }
   };
 
@@ -52,29 +47,20 @@ const Form3Modal2: React.FC<ModalProps> = ({
 
   // Función para guardar los datos
   const handleSave = async () => {
-    if (!intellectualPropertyFileBase64 || !authorDataFileBase64) {
+    if (!authorDataFileBase64) {
       setHasMissingData(true);
-      toast.warning("Por favor, sube ambos archivos antes de guardar.");
+      toast.warning("Por favor, sube un archivo antes de guardar.");
       return;
     }
 
     setLoading(true);
     try {
-      // Aquí puedes agregar la lógica para enviar los archivos al backend
-      // Por ejemplo:
-      // const response = await enviarArchivosAlBackend(intellectualPropertyFileBase64, authorDataFileBase64);
-      // if (response.success) {
-      //   toast.success("Archivos guardados correctamente.");
-      // } else {
-      //   toast.error("Error al guardar los archivos.");
-      // }
-
       // Simulación de éxito
-      toast.success("Archivos guardados correctamente.");
+      toast.success("Archivo guardado correctamente.");
       setHasMissingData(false);
       closeModal();
     } catch (error) {
-      toast.error(`Error al guardar los archivos: ${error}`);
+      toast.error(`Error al guardar el archivo: ${error}`);
     } finally {
       setLoading(false);
     }
@@ -93,9 +79,7 @@ const Form3Modal2: React.FC<ModalProps> = ({
         </h1>
         <UploadFile
           id="author-data-file"
-          onFileChange={(file) =>
-            handleFileChange(file, "Datos informativos de autores")
-          }
+          onFileChange={(file) => handleFileChange(file)}
           label="Cargar Datos informativos de autores"
         />
 
