@@ -9,6 +9,10 @@
   fechaInicio: string;
   fechaFin: string;
 }
+export interface Facultad {
+    nombre: string;
+    carreras: string[];
+  }
 
 // Interfaces para los datos
 export interface RegistroPI {
@@ -18,8 +22,7 @@ export interface RegistroPI {
   descripcion: string;
   tipoProducto: string;
   tipoProyecto: string;
-  facultades: string[];
-  carreras: string[];
+facultades: Facultad[];
   funcionario: string;
   estado: string;
   progreso: number;

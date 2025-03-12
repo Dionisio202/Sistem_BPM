@@ -1,7 +1,7 @@
-// utils/dataUtils.ts
 import React from "react";
-import { DatosFiltros, RegistroPI } from "../../components/interfaces/dashboard.interface";
+import { DatosFiltros, RegistroPI, Facultad } from "../../components/interfaces/dashboard.interface";
 import { FiPackage } from "react-icons/fi";
+
 // Función para generar datos derivados para los gráficos
 export const generarDatosGraficos = (registros: RegistroPI[], datosFiltros: DatosFiltros) => {
   // Mapa para contar registros por facultad
@@ -13,8 +13,8 @@ export const generarDatosGraficos = (registros: RegistroPI[], datosFiltros: Dato
   // Contar registros para cada facultad
   registros.forEach(registro => {
     registro.facultades.forEach(facultad => {
-      const contador = conteoFacultades.get(facultad) || 0;
-      conteoFacultades.set(facultad, contador + 1);
+      const contador = conteoFacultades.get(facultad.nombre) || 0;
+      conteoFacultades.set(facultad.nombre, contador + 1);
     });
   });
   
@@ -33,9 +33,11 @@ export const generarDatosGraficos = (registros: RegistroPI[], datosFiltros: Dato
   
   // Contar registros para cada carrera
   registros.forEach(registro => {
-    registro.carreras.forEach(carrera => {
-      const contador = conteoCarreras.get(carrera) || 0;
-      conteoCarreras.set(carrera, contador + 1);
+    registro.facultades.forEach(facultad => {
+      facultad.carreras.forEach(carrera => {
+        const contador = conteoCarreras.get(carrera) || 0;
+        conteoCarreras.set(carrera, contador + 1);
+      });
     });
   });
   
@@ -87,6 +89,20 @@ export const generarDatosGraficos = (registros: RegistroPI[], datosFiltros: Dato
   };
 };
 
+// Función para extraer nombres de facultades de un registro
+const extraerNombresFacultades = (facultades: Facultad[]): string => {
+  return facultades.map(facultad => facultad.nombre).join(", ");
+};
+
+// Función para extraer todas las carreras de todas las facultades de un registro
+const extraerTodasCarreras = (facultades: Facultad[]): string => {
+  const todasCarreras: string[] = [];
+  facultades.forEach(facultad => {
+    todasCarreras.push(...facultad.carreras);
+  });
+  return todasCarreras.join(", ");
+};
+
 // Preparar datos para Gantt
 export const prepararDatosGantt = (registros: RegistroPI[]) => {
   return registros.map(registro => ({
@@ -96,11 +112,11 @@ export const prepararDatosGantt = (registros: RegistroPI[]) => {
     endDate: new Date(registro.fechaFin),
     progress: registro.progreso,
     status: registro.estado,
-    facultades: registro.facultades.join(", "),
+    facultades: extraerNombresFacultades(registro.facultades),
     proyecto: registro.tipoProyecto,
     producto: registro.tipoProducto,
     funcionario: registro.funcionario,
-    carreras: registro.carreras.join(", "),
+    carreras: extraerTodasCarreras(registro.facultades),
     subtasks: registro.subtareas ? registro.subtareas.map(subtarea => ({
       id: subtarea.id,
       name: subtarea.nombre,
@@ -119,8 +135,8 @@ export const prepararDatosTabla = (registros: RegistroPI[]) => {
     name: registro.nombre,
     description: registro.tipoProducto,
     category: registro.tipoProyecto,
-    facultades: registro.facultades.join(", "),
-    carreras: registro.carreras.join(", ")
+    facultades: extraerNombresFacultades(registro.facultades),
+    carreras: extraerTodasCarreras(registro.facultades)
   }));
 };
 
