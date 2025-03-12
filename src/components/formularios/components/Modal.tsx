@@ -25,9 +25,13 @@ const Modal: React.FC<ModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [facultadSeleccionada, setFacultadSeleccionada] = useState("");
   const [hasMissingData, setHasMissingData] = useState(false);
+  const [roles, setRoles] = useState<any[]>([]);
+  const [selectedRole, setSelectedRole] = useState("");
 
   // Cargar los tipos de productos al abrir el modal
   useEffect(() => {
+    setSelectedRole(editedData.solicitante.rol);
+    setFacultadSeleccionada(editedData.solicitante.facultad);
     if (showModal) {
       setError(null);
       setLoading(true);
@@ -82,6 +86,26 @@ const Modal: React.FC<ModalProps> = ({
     }
   }, [showModal]);
 
+  //Cargar roles de forma dinámica
+  useEffect(() => {
+    if (showModal) {
+      socket.emit("obtener_rol", (response: any) => {
+        if (response.success && response.data && response.data.length > 0) {
+          try {
+            // Se espera que la respuesta tenga una propiedad ResultadoJSON con el string JSON
+            setRoles(response.data);
+          } catch (parseError) {
+            console.error("Error al parsear roles:", parseError);
+            setError("Error al cargar roles");
+          }
+        } else {
+          console.error("Error al obtener roles:", response.message);
+          setError("Error al cargar roles");
+        }
+      });
+    }
+  }, [showModal]);
+
   const handleFacultadChange = (e: any) => {
     setFacultadSeleccionada(e.target.value);
     setEditedData((prev: any) => ({
@@ -89,6 +113,16 @@ const Modal: React.FC<ModalProps> = ({
       solicitante: {
         ...prev.solicitante,
         facultad: e.target.value,
+      },
+    }));
+  };
+  const handleRolesChange = (e: any) => {
+    setSelectedRole(e.target.value);
+    setEditedData((prev: any) => ({
+      ...prev,
+      solicitante: {
+        ...prev.solicitante,
+        rol: e.target.value,
       },
     }));
   };
@@ -341,15 +375,17 @@ const Modal: React.FC<ModalProps> = ({
                         Cargo:
                       </label>
                       <select
-                        value={editedData.solicitante.cargo}
-                        onChange={(e) => handleChange("solicitante.cargo", e.target.value)}
+                        value={selectedRole}
+                        onChange={handleRolesChange}
                         className="mt-1 mb-5 text-xs block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-[#931D21] focus:border-[#931D21]"
+                        disabled={loading}
                       >
                         <option value="">Seleccione un cargo</option>
-                        <option value="Director">Director</option>
-                        <option value="Docente">Docente</option>
-                        <option value="Rector">Rector</option>
-                        <option value="Decano">Decano</option>
+                        {roles.map((rol) => (
+                          <option key={rol.id} value={rol.id}>
+                            {rol.nombre}
+                          </option>
+                        ))}
                       </select>
                     </div>
                     <div>

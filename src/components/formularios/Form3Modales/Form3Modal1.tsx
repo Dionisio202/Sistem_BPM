@@ -98,23 +98,21 @@ const Form3Modal1: React.FC<ModalProps> = ({
             id: tipo.id_tipo_producto,
             nombre: tipo.nombre,
           }));
+
           setTiposProductos(tiposMapeados);
 
-          if (editedData.productos.tipoMemorando) {
+          if (editedData.tipoMemorando) {
             const tipoSeleccionado = tiposMapeados.find(
-              (t: any) => t.nombre === editedData.productos.tipoMemorando
+              (t: any) => t.nombre === editedData.tipoMemorando
             );
             if (tipoSeleccionado) {
-              setEditedData((prev) => ({
+              setEditedData((prev: any) => ({
                 ...prev,
-                productos: {
-                  ...prev.productos,
-                  tipoMemorando: tipoSeleccionado.id.toString(),
-                },
+                tipoMemorando: tipoSeleccionado.id.toString(),
               }));
             }
           }
-            } else {
+        } else {
           console.error("Error al obtener tipos:", response.message);
           setError("Error al cargar tipos de productos");
         }
@@ -129,6 +127,7 @@ const Form3Modal1: React.FC<ModalProps> = ({
       socket.emit("obtener_facultades_carreras", (response: any) => {
         if (response.success && response.data && response.data.length > 0) {
           try {
+            // Se espera que la respuesta tenga una propiedad ResultadoJSON con el string JSON
             const parsedData = JSON.parse(response.data[0].ResultadoJSON);
             setFacultadesCarreras(parsedData);
           } catch (parseError) {
@@ -159,6 +158,26 @@ const Form3Modal1: React.FC<ModalProps> = ({
     },
     []
   );
+  //Cargar roles de forma dinámica
+    useEffect(() => {
+      if (showModal) {
+        socket.emit("obtener_rol", (response: any) => {
+          if (response.success && response.data && response.data.length > 0) {
+            try {
+              // Se espera que la respuesta tenga una propiedad ResultadoJSON con el string JSON
+              setRoles(response.data);
+            } catch (parseError) {
+              console.error("Error al parsear roles:", parseError);
+              setError("Error al cargar roles");
+            }
+          } else {
+            console.error("Error al obtener roles:", response.message);
+            setError("Error al cargar roles");
+          }
+        });
+      }
+    }, [showModal]);
+    
 
   const handleMemoFileChange = useCallback(async (file: File | null) => {
     if (!file) return;
@@ -396,21 +415,29 @@ const Form3Modal1: React.FC<ModalProps> = ({
               <InputField
                 label="Lugar"
                 value={editedData.productos.lugar}
-                onChange={(e) => handleChange("productos.lugar", e.target.value)}
+                onChange={(e) =>
+                  handleChange("productos.lugar", e.target.value)
+                }
               />
               <Section title="Destinatario">
                 <InputField
                   label="Nombre"
                   value={editedData.productos.destinatario.nombre}
                   onChange={(e) =>
-                    handleChange("productos.destinatario.nombre", e.target.value)
+                    handleChange(
+                      "productos.destinatario.nombre",
+                      e.target.value
+                    )
                   }
                 />
                 <InputField
                   label="Título"
                   value={editedData.productos.destinatario.titulo}
                   onChange={(e) =>
-                    handleChange("productos.destinatario.titulo", e.target.value)
+                    handleChange(
+                      "productos.destinatario.titulo",
+                      e.target.value
+                    )
                   }
                 />
                 <InputField
@@ -424,7 +451,10 @@ const Form3Modal1: React.FC<ModalProps> = ({
                   label="Institución"
                   value={editedData.productos.destinatario.institucion}
                   onChange={(e) =>
-                    handleChange("productos.destinatario.institucion", e.target.value)
+                    handleChange(
+                      "productos.destinatario.institucion",
+                      e.target.value
+                    )
                   }
                 />
               </Section>
@@ -461,16 +491,21 @@ const Form3Modal1: React.FC<ModalProps> = ({
                 />
               </Section>
               <Section title="Productos">
-                {editedData.productos.productos.map((producto: any, index: number) => (
-                  <InputField
-                    key={producto.id || index}
-                    label="Nombre del Producto"
-                    value={producto.nombre}
-                    onChange={(e) =>
-                      handleChange(`productos.productos.${index}.nombre`, e.target.value)
-                    }
-                  />
-                ))}
+                {editedData.productos.productos.map(
+                  (producto: any, index: number) => (
+                    <InputField
+                      key={producto.id || index}
+                      label="Nombre del Producto"
+                      value={producto.nombre}
+                      onChange={(e) =>
+                        handleChange(
+                          `productos.productos.${index}.nombre`,
+                          e.target.value
+                        )
+                      }
+                    />
+                  )
+                )}
               </Section>
               <Section title="Proyecto">
                 <InputField
@@ -491,14 +526,20 @@ const Form3Modal1: React.FC<ModalProps> = ({
                   label="Resolución Número"
                   value={editedData.productos.proyecto.resolucion.numero}
                   onChange={(e) =>
-                    handleChange("productos.proyecto.resolucion.numero", e.target.value)
+                    handleChange(
+                      "productos.proyecto.resolucion.numero",
+                      e.target.value
+                    )
                   }
                 />
                 <InputField
                   label="Resolución Fecha"
                   value={editedData.productos.proyecto.resolucion.fecha}
                   onChange={(e) =>
-                    handleChange("productos.proyecto.resolucion.fecha", e.target.value)
+                    handleChange(
+                      "productos.proyecto.resolucion.fecha",
+                      e.target.value
+                    )
                   }
                 />
               </Section>
