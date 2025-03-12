@@ -19,7 +19,6 @@ export interface RegistroPI {
   id: string;
   numero: number;
   nombre: string;
-  descripcion: string;
   tipoProducto: string;
   tipoProyecto: string;
 facultades: Facultad[];

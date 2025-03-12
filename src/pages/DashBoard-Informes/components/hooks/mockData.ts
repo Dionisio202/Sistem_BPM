@@ -7,7 +7,6 @@ export const simulatedData : RegistroPI[] = [
       id: "1",
       numero: 1,
       nombre: "Software BPM",
-      descripcion: "Sistema de gestión de procesos de negocio",
       tipoProducto: "Software",
       tipoProyecto: "Investigación",
       facultades: [
@@ -45,7 +44,6 @@ export const simulatedData : RegistroPI[] = [
       id: "2",
       numero: 2,
       nombre: "Mini Película",
-      descripcion: "Cortometraje educativo",
       tipoProducto: "R.Obras Artisticas",
       tipoProyecto: "Vinculación",
       facultades: [
@@ -63,7 +61,6 @@ export const simulatedData : RegistroPI[] = [
       id: "3",
       numero: 3,
       nombre: "Libro: Vida en la UTA",
-      descripcion: "Publicación institucional",
       tipoProducto: "R. Obras Literarias",
       tipoProyecto: "Carrera",
       facultades: [
@@ -80,7 +77,6 @@ export const simulatedData : RegistroPI[] = [
       id: "4",
       numero: 4,
       nombre: "Manual de Programación",
-      descripcion: "Guía técnica",
       tipoProducto: "R. Obras Literarias",
       tipoProyecto: "Investigación",
       facultades: [
@@ -97,7 +93,6 @@ export const simulatedData : RegistroPI[] = [
         id: "5",
         numero: 4,
         nombre: "Manual de Programación",
-        descripcion: "Guía técnica",
         tipoProducto: "R. Obras Literarias",
         tipoProyecto: "Investigación",
         facultades: [

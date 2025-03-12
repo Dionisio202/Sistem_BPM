@@ -37,7 +37,7 @@ const Card: React.FC<CardProps> = ({
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="value" fill="#8884d8" />
+                <Bar dataKey="value" name="Facultades" fill="#8884d8" />
               </BarChart>
             </ResponsiveContainer>
           </div>
