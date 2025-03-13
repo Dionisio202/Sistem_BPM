@@ -38,7 +38,8 @@ interface FormData {
         fecha: string;
       };
     };
-    productos: any[];
+    productos: any[]; // Lista de productos
+    productoSeleccionado: string; // Nuevo campo para el producto seleccionado
     tipoMemorando: string;
   };
 }
@@ -78,7 +79,8 @@ const Form3Modal1: React.FC<ModalProps> = ({
           fecha: "",
         },
       },
-      productos: [],
+      productos: [], // Lista de productos
+      productoSeleccionado: "", // Producto seleccionado
       tipoMemorando: "",
     },
   });
@@ -245,75 +247,6 @@ const Form3Modal1: React.FC<ModalProps> = ({
     });
     setHasMissingData(missingFields.length > 0);
   }, [editedData]);
-  const handleSave = useCallback(
-    async (event: React.MouseEvent<HTMLButtonElement>) => {
-      event.preventDefault();
-      try {
-        setLoading(true);
-  
-        // Validaciones requeridas
-        if (!memoFileBase64 || !intellectualPropertyFileBase64) {
-          throw new Error("Debe subir ambos documentos (memorando y solicitud)");
-        }
-  
-        if (!bonitaData) {
-          throw new Error("No se encontraron los datos de proceso de Bonita");
-        }
-  
-        // Construir payload combinado
-        const payload = {
-          ...editedData.productos,
-          tipo: parseInt(tipoMemorando),
-          documentos: {
-            memo: memoFileBase64,
-            solicitud: intellectualPropertyFileBase64
-          }
-        };
-  
-        // Generar código único combinado
-        const codigoCombinado = `${bonitaData.processId}-${bonitaData.caseId}`;
-  
-        socket.emit(
-          "agregar_producto_datos",
-          {
-            id_registro: codigoCombinado,
-            jsonProductos: JSON.stringify(payload),
-            memorando: editedData.productos.codigoMemorando
-          },
-          (response: any) => {
-            if (response?.success) {
-              console.log("Datos principales guardados:", response);
-              
-              // Si necesitas guardar autores adicionales
-              socket.emit(
-                "set_autores",
-                {
-                  codigo: codigoCombinado,
-                  autores: JSON.stringify(jsonAutores) // Asegurar tener este estado
-                },
-                (autoresResponse: any) => {
-                  if (autoresResponse?.success) {
-                    toast.success("Registro completo guardado exitosamente");
-                    closeModal();
-                  } else {
-                    toast.error("Error al guardar autores adicionales");
-                  }
-                }
-              );
-            } else {
-              toast.error(response?.message || "Error al guardar registro principal");
-            }
-            setLoading(false);
-          }
-        );
-      } catch (error) {
-        setLoading(false);
-        console.error("Error en el proceso de guardado:", error);
-        toast.error((error as Error).message);
-      }
-    },
-    [editedData, memoFileBase64, intellectualPropertyFileBase64, bonitaData, tipoMemorando]
-  );
 
   const handleFileChange = useCallback(
     async (file: File | null, fileType: string) => {
@@ -469,45 +402,6 @@ const Form3Modal1: React.FC<ModalProps> = ({
                   handleChange("productos.lugar", e.target.value)
                 }
               />
-              <Section title="Destinatario">
-                <InputField
-                  label="Nombre"
-                  value={editedData.productos.destinatario.nombre}
-                  onChange={(e) =>
-                    handleChange(
-                      "productos.destinatario.nombre",
-                      e.target.value
-                    )
-                  }
-                />
-                <InputField
-                  label="Título"
-                  value={editedData.productos.destinatario.titulo}
-                  onChange={(e) =>
-                    handleChange(
-                      "productos.destinatario.titulo",
-                      e.target.value
-                    )
-                  }
-                />
-                <InputField
-                  label="Cargo"
-                  value={editedData.productos.destinatario.cargo}
-                  onChange={(e) =>
-                    handleChange("productos.destinatario.cargo", e.target.value)
-                  }
-                />
-                <InputField
-                  label="Institución"
-                  value={editedData.productos.destinatario.institucion}
-                  onChange={(e) =>
-                    handleChange(
-                      "productos.destinatario.institucion",
-                      e.target.value
-                    )
-                  }
-                />
-              </Section>
               <Section title="Solicitante">
                 <InputField
                   label="Nombre"
@@ -523,10 +417,7 @@ const Form3Modal1: React.FC<ModalProps> = ({
                     handleChange("productos.solicitante.cargo", e.target.value)
                   }
                   options={[
-                    { value: "Director", label: "Director" },
-                    { value: "Docente", label: "Docente" },
-                    { value: "Rector", label: "Rector" },
-                    { value: "Decano", label: "Decano" },
+
                   ]}
                 />
                 <SelectField
@@ -541,21 +432,23 @@ const Form3Modal1: React.FC<ModalProps> = ({
                 />
               </Section>
               <Section title="Productos">
-                {editedData.productos.productos.map(
-                  (producto: any, index: number) => (
-                    <InputField
-                      key={producto.id || index}
-                      label="Nombre del Producto"
-                      value={producto.nombre}
-                      onChange={(e) =>
-                        handleChange(
-                          `productos.productos.${index}.nombre`,
-                          e.target.value
-                        )
-                      }
-                    />
-                  )
-                )}
+                <SelectField
+                  label="Seleccione un producto"
+                  value={editedData.productos.productoSeleccionado || ""} // Valor seleccionado
+                  onChange={(e) =>
+                    handleChange(
+                      "productos.productoSeleccionado",
+                      e.target.value
+                    )
+                  }
+                  options={
+                    // Opciones del combobox (todos los nombres de productos)
+                    editedData.productos.productos.map((producto: any) => ({
+                      value: producto.nombre, // Valor de la opción
+                      label: producto.nombre, // Texto mostrado en la opción
+                    }))
+                  }
+                />
               </Section>
               <Section title="Proyecto">
                 <InputField
@@ -604,13 +497,6 @@ const Form3Modal1: React.FC<ModalProps> = ({
             className="bg-gray-500 text-white text-xs px-4 py-2 rounded-lg hover:bg-gray-600 mr-2"
           >
             Cancelar
-          </button>
-          <button
-            onClick={handleSave}
-            className="bg-[#931D21] text-white text-xs px-4 py-2 rounded-lg hover:bg-red-700"
-            disabled={hasMissingData || loading}
-          >
-            {loading ? "Procesando..." : "Guardar Cambios"}
           </button>
         </div>
       </div>
