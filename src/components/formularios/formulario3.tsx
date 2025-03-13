@@ -265,7 +265,7 @@ export default function UploadForm() {
   };
 
   // Función para convertir un archivo a base64
-  const convertFileToBase64 = (file: File) => {
+  const convertFileToBase64 = (file: File ) => {
     return new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
       reader.onloadend = () => {

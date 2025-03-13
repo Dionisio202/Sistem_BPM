@@ -2,7 +2,10 @@ import React, { useState, useEffect, useCallback } from "react";
 import io from "socket.io-client";
 import UploadFile from "../components/UploadFile";
 import { SERVER_BACK_URL } from "../../../config.ts";
-import { ModalProps, TipoProducto } from "../../../interfaces/registros.interface";
+import {
+  ModalProps,
+  TipoProducto,
+} from "../../../interfaces/registros.interface";
 import { Facultad } from "../../../interfaces/facultades.interface.ts";
 import InputField from "./components/InputField.tsx";
 import Section from "./components/Section.tsx";
@@ -86,8 +89,16 @@ const Form3Modal1: React.FC<ModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [facultadSeleccionada, setFacultadSeleccionada] = useState("");
   const [hasMissingData, setHasMissingData] = useState(false);
-  const [intellectualPropertyFileBase64, setIntellectualPropertyFileBase64] = useState<string | null>(null);
+  const [intellectualPropertyFileBase64, setIntellectualPropertyFileBase64] =
+    useState<string | null>(null);
+  const [memoFileBase64, setMemoFileBase64] = useState<string | null>(null);
 
+  //Cargar Codigo de Memorando
+  useEffect(() => {
+    if (editedData.productos.codigoMemorando) {
+      console.log("Código actualizado:", editedData.productos.codigoMemorando);
+    }
+  }, [editedData.productos.codigoMemorando]);
   // Cargar tipos de productos
   useEffect(() => {
     if (showModal) {
@@ -185,38 +196,12 @@ const Form3Modal1: React.FC<ModalProps> = ({
   const handleMemoFileChange = useCallback(async (file: File | null) => {
     if (!file) return;
     try {
-      const memoBase64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => {
-          const result = reader.result as string;
-          const base64String = result.split(",")[1];
-          resolve(base64String);
-        };
-        reader.onerror = (error) => reject(error);
-      });
-
-      socket.emit(
-        "subir_documento",
-        { documento: memoBase64 },
-        (response: any) => {
-          if (response.success) {
-            setEditedData((prev) => ({
-              ...prev,
-              productos: {
-                ...prev.productos,
-                codigoMemorando: response.codigo,
-              },
-            }));
-          } else {
-            console.error("Error al subir el documento:", response.message);
-            toast.error("Error al subir el documento");
-          }
-        }
-      );
-    } catch (err) {
-      console.error("Error procesando el archivo:", err);
-      toast.error("Error al procesar el archivo");
+      const base64 = await convertFileToBase64(file);
+      setMemoFileBase64(base64);
+      toast.success("Memorando cargado correctamente");
+    } catch (error) {
+      console.error("Error al procesar el archivo:", error);
+      toast.error("Error al cargar el memorando");
     }
   }, []);
 
@@ -260,6 +245,75 @@ const Form3Modal1: React.FC<ModalProps> = ({
     });
     setHasMissingData(missingFields.length > 0);
   }, [editedData]);
+  const handleSave = useCallback(
+    async (event: React.MouseEvent<HTMLButtonElement>) => {
+      event.preventDefault();
+      try {
+        setLoading(true);
+  
+        // Validaciones requeridas
+        if (!memoFileBase64 || !intellectualPropertyFileBase64) {
+          throw new Error("Debe subir ambos documentos (memorando y solicitud)");
+        }
+  
+        if (!bonitaData) {
+          throw new Error("No se encontraron los datos de proceso de Bonita");
+        }
+  
+        // Construir payload combinado
+        const payload = {
+          ...editedData.productos,
+          tipo: parseInt(tipoMemorando),
+          documentos: {
+            memo: memoFileBase64,
+            solicitud: intellectualPropertyFileBase64
+          }
+        };
+  
+        // Generar código único combinado
+        const codigoCombinado = `${bonitaData.processId}-${bonitaData.caseId}`;
+  
+        socket.emit(
+          "agregar_producto_datos",
+          {
+            id_registro: codigoCombinado,
+            jsonProductos: JSON.stringify(payload),
+            memorando: editedData.productos.codigoMemorando
+          },
+          (response: any) => {
+            if (response?.success) {
+              console.log("Datos principales guardados:", response);
+              
+              // Si necesitas guardar autores adicionales
+              socket.emit(
+                "set_autores",
+                {
+                  codigo: codigoCombinado,
+                  autores: JSON.stringify(jsonAutores) // Asegurar tener este estado
+                },
+                (autoresResponse: any) => {
+                  if (autoresResponse?.success) {
+                    toast.success("Registro completo guardado exitosamente");
+                    closeModal();
+                  } else {
+                    toast.error("Error al guardar autores adicionales");
+                  }
+                }
+              );
+            } else {
+              toast.error(response?.message || "Error al guardar registro principal");
+            }
+            setLoading(false);
+          }
+        );
+      } catch (error) {
+        setLoading(false);
+        console.error("Error en el proceso de guardado:", error);
+        toast.error((error as Error).message);
+      }
+    },
+    [editedData, memoFileBase64, intellectualPropertyFileBase64, bonitaData, tipoMemorando]
+  );
 
   const handleFileChange = useCallback(
     async (file: File | null, fileType: string) => {
@@ -285,6 +339,8 @@ const Form3Modal1: React.FC<ModalProps> = ({
       reader.onloadend = () => {
         if (typeof reader.result === "string") {
           const base64 = reader.result.split(",")[1];
+          console.log("base 64", base64);
+          toast.success("se convirtio a base 64");
           if (base64) resolve(base64);
           else reject("No se pudo extraer la parte base64 del archivo.");
         } else {
@@ -299,12 +355,6 @@ const Form3Modal1: React.FC<ModalProps> = ({
   const handleSave = useCallback(
     async (event: React.MouseEvent<HTMLButtonElement>) => {
       event.preventDefault();
-
-      if (!intellectualPropertyFileBase64) {
-        toast.error("Por favor, sube el archivo antes de guardar.");
-        return;
-      }
-
       try {
         setLoading(true);
 
@@ -314,36 +364,40 @@ const Form3Modal1: React.FC<ModalProps> = ({
         }, 30000);
 
         socket.emit(
-          "procesar_documento",
-          { documento: intellectualPropertyFileBase64 },
+          "cargar_documento_producto",
+          {
+            documento_productos: intellectualPropertyFileBase64,
+            documento_memorando: memoFileBase64,
+          },
           (response: any) => {
             clearTimeout(timeout);
             setLoading(false);
 
-            console.log("Respuesta del backend:", response);
-
-            if (response && response.success) {
+            if (response?.success) {
               setEditedData((prev) => ({
                 ...prev,
                 productos: {
                   ...prev.productos,
+                  codigoMemorando: response.data.codigo, // Actualización específica
                   ...response.data,
                 },
               }));
               toast.success("Documento mapeado correctamente");
             } else {
-              console.error("Error en la respuesta del servidor:", response?.message);
-              toast.error(response?.message || "Error desconocido");
+              const errorMessage =
+                response?.error || response?.message || "Error desconocido";
+              console.error("Error del servidor:", errorMessage);
+              toast.error(errorMessage);
             }
           }
         );
       } catch (error) {
         setLoading(false);
-        console.error("Error al guardar los documentos:", error);
-        toast.error("Error al procesar los documentos. Inténtalo de nuevo.");
+        console.error("Error al guardar:", error);
+        toast.error("Error al procesar los documentos");
       }
     },
-    [intellectualPropertyFileBase64]
+    [intellectualPropertyFileBase64, memoFileBase64]
   );
 
   if (!showModal) return null;
