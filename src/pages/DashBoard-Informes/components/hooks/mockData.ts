@@ -104,6 +104,123 @@ export const simulatedData : RegistroPI[] = [
         fechaInicio: "2023-10-01",
         fechaFin: "2023-10-30",
         subtareas: []
+      },
+      {
+        id: "6",
+        numero: 4,
+        nombre: "Manual de Programación",
+        tipoProducto: "R. Obras Literarias",
+        tipoProyecto: "Investigación",
+        facultades: [
+          { nombre: "FISEI", carreras: ["Software2"] }
+        ],
+        funcionario: "Jimmy",
+        estado: "En Proceso",
+        progreso: 60,
+        fechaInicio: "2023-10-01",
+        fechaFin: "2023-10-30",
+        subtareas: []
+      },
+      {
+        id: "7",
+        numero: 4,
+        nombre: "Manual de Programación",
+        tipoProducto: "R. Obras Literarias",
+        tipoProyecto: "Investigación",
+        facultades: [
+          { nombre: "FISEI", carreras: ["Software3"] }
+        ],
+        funcionario: "Jimmy",
+        estado: "En Proceso",
+        progreso: 60,
+        fechaInicio: "2023-10-01",
+        fechaFin: "2023-10-30",
+        subtareas: []
+      }
+      ,
+      {
+        id: "8",
+        numero: 4,
+        nombre: "Manual de Programación",
+        tipoProducto: "R. Obras Literarias",
+        tipoProyecto: "Investigación",
+        facultades: [
+          { nombre: "FISEI", carreras: ["Software4"] }
+        ],
+        funcionario: "Jimmy",
+        estado: "En Proceso",
+        progreso: 60,
+        fechaInicio: "2023-10-01",
+        fechaFin: "2023-10-30",
+        subtareas: []
+      }
+      ,
+      {
+        id: "9",
+        numero: 4,
+        nombre: "Manual de Programación",
+        tipoProducto: "R. Obras Literarias",
+        tipoProyecto: "Investigación",
+        facultades: [
+          { nombre: "FISEI", carreras: ["Software5"] }
+        ],
+        funcionario: "Jimmy",
+        estado: "En Proceso",
+        progreso: 60,
+        fechaInicio: "2023-10-01",
+        fechaFin: "2023-10-30",
+        subtareas: []
+      }
+      ,
+      {
+        id: "10",
+        numero: 4,
+        nombre: "Manual de Programación",
+        tipoProducto: "R. Obras Literarias",
+        tipoProyecto: "Investigación",
+        facultades: [
+          { nombre: "FISEI", carreras: ["Software6"] }
+        ],
+        funcionario: "Jimmy",
+        estado: "En Proceso",
+        progreso: 60,
+        fechaInicio: "2023-10-01",
+        fechaFin: "2023-10-30",
+        subtareas: []
+      }
+      ,
+      {
+        id: "11",
+        numero: 4,
+        nombre: "Manual de Programación",
+        tipoProducto: "R. Obras Literarias",
+        tipoProyecto: "Investigación",
+        facultades: [
+          { nombre: "FISEI", carreras: ["Software7"] }
+        ],
+        funcionario: "Jimmy",
+        estado: "En Proceso",
+        progreso: 60,
+        fechaInicio: "2023-10-01",
+        fechaFin: "2023-10-30",
+        subtareas: []
+      }
+      ,
+      {
+        id: "12",
+        numero: 4,
+        nombre: "Manual de Programación",
+        tipoProducto: "R. Obras Literarias",
+        tipoProyecto: "Investigación",
+        facultades: [
+          { nombre: "FISEI", carreras: ["Software8"] }
+        ],
+        funcionario: "Jimmy",
+        estado: "En Proceso",
+        progreso: 60,
+        fechaInicio: "2023-10-01",
+        fechaFin: "2023-10-30",
+        subtareas: []
       }
   ];
   

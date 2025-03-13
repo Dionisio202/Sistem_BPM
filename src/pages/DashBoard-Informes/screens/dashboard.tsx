@@ -233,15 +233,28 @@ const applyFilters = (filters: Filters) => {
 
   return (
     <PDFExport
-      captureIds={["cardprincipal","taskProgress","granttchart"]}
-      filtersData={{
-        year: new Date().getFullYear().toString(),
-        facultad: currentFilters.facultades.join(", "),
-        estado: currentFilters.estado,
-        fechaInicio: currentFilters.fechaInicio,
-        fechaFin: currentFilters.fechaFin,
-      }}
-    >
+    captureIds={["cardprincipal","taskProgress","granttchart","table"]}
+    filtersData={{
+      year: new Date().getFullYear().toString(),
+      facultad: currentFilters.facultades.join(", "),
+      estado: currentFilters.estado,
+      fechaInicio: currentFilters.fechaInicio,
+      fechaFin: currentFilters.fechaFin,
+    }}
+    reportStats={{
+      totalRegistros: totalRegistros,
+      registrosFinalizados: registrosFinalizados,
+      registrosEnProceso: registrosEnProceso,
+      registrosInicio: registrosInicio
+    }}
+    additionalInfo={{
+      universidad: "Universidad Técnica de Ambato",
+      direccion: "Dirección de Innovación y Emprendimiento",
+      departamento: "Departamento de Propiedad Intelectual",
+      responsable: "Administrador del Sistema",
+      fechaGeneracion: new Date().toLocaleDateString("es-ES")
+    }}
+  >
       <div className="flex flex-col min-h-screen">
         <div className="flex">
           <Sidebar />
@@ -283,14 +296,15 @@ const applyFilters = (filters: Filters) => {
                   stackedBarChartData={datosTipoProducto}
                 />
               </div>
-              <div id="taskProgress" >
+              <div id="taskProgress" className="bg-white  rounded-md ">
                 <HorizontalBar Datos={datosCarreras} />
+
               </div>
             </div>
 
             {/* Separador: Detalle de Productos */}
             <Separator title="Detalle de Productos" />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-200 p-3 rounded-lg">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-200 p-3 rounded-lg" >
               <div>
                 <TableProducts 
                   columns={[
@@ -304,9 +318,9 @@ const applyFilters = (filters: Filters) => {
                   data={prepararDatosTabla(registrosFiltrados)} 
                 />
               </div>
-              <div className="space-y-4">
+              <div className="space-y-4" id="table">
                 <h3 className="text-lg font-medium text-gray-700 mb-3">Cantidad por Tipo de Producto</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3" >
                   {productCards.map((card, index) => (
                     <ProductTypeCard key={index} title={card.title} value={card.value} icon={card.icon} />
                   ))}
