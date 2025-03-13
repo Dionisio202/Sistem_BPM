@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import Sidebar from "../components/Sidebar";
 import CardPrincipal from "../components/CardPrincipal";
 import HorizontalBar from "../components/HorizontalBarComponent";
@@ -7,203 +7,255 @@ import NumericCards from "../components/RecordNumber";
 import PDFExport from "../components/PDFExport";
 import Separator from "../components/UI/Separator";
 import FilterPanel from "../components/PanelFiltros";
-import io from "socket.io-client";
-import { SERVER_BACK_URL } from "../../../config";
 import TableProducts from "../components/TableProducts";
-import { text } from "d3";
 import { FiPackage } from "react-icons/fi";
-const socket = io(SERVER_BACK_URL);
+import {Filters, ProductCard} from "../components/interfaces/dashboard.interface";
+import { useDashboardData } from "../components/hooks/useDashboardData";
+import { generarDatosGraficos, prepararDatosGantt, prepararDatosTabla, prepararTarjetasProductos } from "../components/hooks/dataUtils";
+
+const ProductTypeCard: React.FC<ProductCard> = ({ title, value, icon }) => {
+  return (
+    <div className="bg-white rounded-lg shadow-md p-4 flex items-center justify-between">
+      <div>
+        <h3 className="text-sm font-medium text-gray-700">{title}</h3>
+        <p className="text-2xl font-bold mt-1">{value}</p>
+      </div>
+      <div className="bg-blue-100 p-3 rounded-full">
+        {icon || <FiPackage className="h-6 w-6 text-blue-500" />}
+      </div>
+    </div>
+  );
+};
 
 const Dashboard: React.FC = () => {
-  // Datos para los gráficos
-  const [tasks, setTasks] = useState<any[]>([]);
+  // Usar el hook personalizado para cargar los datos
+  const { 
+    todosRegistros, 
+    registrosFiltrados, 
+    setRegistrosFiltrados,
+    datosFiltros,
+    carrerasFiltradas,
+    setCarrerasFiltradas
+  } = useDashboardData();
+  
+  // Estado para los filtros actuales
+  const [currentFilters, setCurrentFilters] = useState<Filters>({
+    estado: "Todos",
+    proyecto: [],
+    producto: [],
+    funcionario: "Todos",
+    facultades: [],
+    carreras: [],
+    fechaInicio: "",
+    fechaFin: "",
+  });
 
-  // Datos para el gráfico de barras horizontales (carreras)
-  const datos = [
-    { key: "Software", value: 100 },
-    { key: "TI", value: 70 },
-    { key: "Administración", value: 60 },
-    { key: "diseño", value: 10 },
-  ];
+  // Aplicar filtros a los datos
+ // Modificar la función applyFilters para incluir el manejo específico de carreras
+const applyFilters = (filters: Filters) => {
+  let registrosFiltrados = todosRegistros.filter(registro => {
+    // Filtro por estado
+    if (filters.estado !== "Todos" && registro.estado !== filters.estado) {
+      return false;
+    }
 
-  // Datos para el gráfico de barras (facultades)
-  const barChartData = [
-    { name: "FDA", value: 10 },
-    { name: "FISEI", value: 20 },
-    { name: "FCHE", value: 1 },
-    { name: "FCS", value: 5 },
-    { name: "Fx1", value: 6 },
-    { name: "Fx2", value: 2 },
-  ];
+    // Filtro por proyecto
+    if (filters.proyecto.length > 0 && !filters.proyecto.includes(registro.tipoProyecto)) {
+      return false;
+    }
 
-  // Datos para el gráfico de barras apiladas
-  const stackedBarChartData = [
-    { name: "R.Obras Literarias", value1: 30, value2: 20, value3: 10 },
-    { name: "R.Publicaciones", value1: 40, value2: 10, value3: 15 },
-    { name: "R.Obras Artisticas", value1: 20, value2: 30, value3: 25 },
-    { name: "R.Software", value1: 20, value2: 30, value3: 25 },
-    { name: "R. P Radio", value1: 20, value2: 30, value3: 25 },
-    { name: "R. Fonogramas", value1: 20, value2: 30, value3: 25 },
-  ];
+    // Filtro por producto
+    if (filters.producto.length > 0 && !filters.producto.includes(registro.tipoProducto)) {
+      return false;
+    }
 
-  // Datos para los filtros
-  const datosFiltros = {
-    estados: ["En Proceso", "Finalizado"],
-    proyectos: ["Investigación", "Vinculación", "Carrera"],
-    productos: ["R. Obras Literarias", "Software", "Libro"],
-    funcionarios: ["Jimmy", "Fanny"],
-    facultades: ["FISEI", "FCHE", "FDA"],
-    carreras: [
-      "Ingeniería Civil",
-      "Ingeniería de Sistemas",
-      "Medicina",
-      "Derecho",
-      "Arquitectura",
-    ],
+    // Filtro por funcionario
+    if (filters.funcionario !== "Todos" && registro.funcionario !== filters.funcionario) {
+      return false;
+    }
+
+    // Filtro por fecha
+    if (filters.fechaInicio || filters.fechaFin) {
+      const fechaFinRegistro = new Date(registro.fechaFin);
+      
+      // Si hay fecha de inicio en el filtro
+      if (filters.fechaInicio) {
+        const startDate = new Date(filters.fechaInicio);
+        if (fechaFinRegistro < startDate) {
+          return false; // El registro finaliza antes del período de filtro
+        }
+      }
+      
+      // Si hay fecha de fin en el filtro
+      if (filters.fechaFin) {
+        const endDate = new Date(filters.fechaFin);
+        if (fechaFinRegistro > endDate) {
+          return false; // El registro finaliza después del período de filtro
+        }
+      }
+    }
+
+    // Filtro por facultades
+    if (filters.facultades.length > 0) {
+      const facultadesRegistro = registro.facultades.map(f => f.nombre);
+      // Verificar si al menos una facultad del registro está en las facultades seleccionadas
+      const tieneAlgunaFacultadFiltrada = facultadesRegistro.some(fac => 
+        filters.facultades.includes(fac)
+      );
+      
+      if (!tieneAlgunaFacultadFiltrada) {
+        return false;
+      }
+    }
+
+    // Filtro por carreras (solo si hay carreras seleccionadas)
+    if (filters.carreras.length > 0) {
+      // Obtener todas las carreras del registro
+      const todasCarrerasRegistro = registro.facultades.flatMap(f => f.carreras);
+      
+      // Verificar si alguna carrera del registro está en las carreras seleccionadas
+      const tieneAlgunaCarreraFiltrada = todasCarrerasRegistro.some(carrera => 
+        filters.carreras.includes(carrera)
+      );
+      
+      if (!tieneAlgunaCarreraFiltrada) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+
+  // Si hay filtros de facultad activos, filtramos los datos de cada registro
+  // para solo mostrar la información de las facultades filtradas
+  if (filters.facultades.length > 0) {
+    registrosFiltrados = registrosFiltrados.map(registro => {
+      // Crear una copia del registro
+      const registroFiltrado = {...registro};
+      
+      // Filtrar solo las facultades seleccionadas
+      registroFiltrado.facultades = registro.facultades.filter(facultad => 
+        filters.facultades.includes(facultad.nombre)
+      );
+      
+      return registroFiltrado;
+    });
+  }
+
+  // Si hay filtros de carrera activos, filtramos los datos de cada registro
+  // para solo mostrar las facultades que contienen esas carreras y solo esas carreras específicas
+  if (filters.carreras.length > 0) {
+    registrosFiltrados = registrosFiltrados.map(registro => {
+      // Crear una copia del registro
+      const registroFiltrado = {...registro};
+      
+      // Usamos filter y map en una sola operación para evitar el problema con null
+      registroFiltrado.facultades = registro.facultades
+        .filter(facultad => {
+          // Verificar si esta facultad tiene alguna de las carreras seleccionadas
+          return facultad.carreras.some(carrera => filters.carreras.includes(carrera));
+        })
+        .map(facultad => {
+          // Para cada facultad que pasó el filtro, creamos una nueva versión
+          // que solo incluye las carreras seleccionadas
+          return {
+            nombre: facultad.nombre,
+            carreras: facultad.carreras.filter(carrera => 
+              filters.carreras.includes(carrera)
+            )
+          };
+        });
+      
+      return registroFiltrado;
+    });
+  }
+
+  setRegistrosFiltrados(registrosFiltrados);
+};
+
+  // Manejar cambios en los filtros
+  const handleFilterChange = (filters: Filters) => {
+    // Actualizar las carreras filtradas según las facultades seleccionadas
+    if (filters.facultades.length > 0) {
+      // Obtener todas las carreras de las facultades seleccionadas
+      const carrerasDeFacultades = filters.facultades.flatMap(facultad => {
+        return datosFiltros.carrerasPorFacultad.get(facultad) || [];
+      });
+      
+      // Eliminar duplicados
+      const carrerasUnicas = [...new Set(carrerasDeFacultades)];
+      setCarrerasFiltradas(carrerasUnicas);
+      
+      // Si hay carreras seleccionadas que ya no están en las facultades seleccionadas, las quitamos
+      const carrerasValidas = filters.carreras.filter(carrera => carrerasUnicas.includes(carrera));
+      
+      // Actualizar el filtro con las carreras válidas
+      filters = {
+        ...filters,
+        carreras: carrerasValidas
+      };
+    } else {
+      // Si no hay facultades seleccionadas, mostrar todas las carreras
+      setCarrerasFiltradas(datosFiltros.carreras);
+    }
+    
+    setCurrentFilters(filters);
+    applyFilters(filters);
   };
+  
+  // Generar datos para la interfaz considerando solo las facultades filtradas
+  const { datosFacultades, datosCarreras, datosTipoProducto, datosProyectos } = 
+    generarDatosGraficos(registrosFiltrados, datosFiltros);
 
-  //Datos para Tabla de Productos
-  const columns = [
-    {
-      header: "N°",
-      accessorKey: "number", // Accede a la propiedad "name" de los datos
-    },
-    {
-      header: "Nombre Producto",
-      accessorKey: "name", // Accede a la propiedad "name" de los datos
-    },
-    {
-      header: "tipo",
-      accessorKey: "description", // Accede a la propiedad "description" de los datos
-    },
-    {
-      header: "Proyecto",
-      accessorKey: "category", // Accede a la propiedad "category" de los datos
-    },
-  ];
-  const data = [
-    {
-      number: 1,
-      name: "Software Bpm",
-      description: "R.Software",
-      category: "Investigación",
-    },
-    {
-      number: 2,
-      name: "Mini Pelicula",
-      description: "R.Obras Artisticas",
-      category: "Vinculación",
-    },
-    {
-      number: 3,
-      name: "Libro: Vida en la UTA",
-      description: "R. Obras Literarias",
-      category: "Carrera",
-    },
-    {
-      number: 4,
-      name: "Libro: Vida en la UTA",
-      description: "R. Obras Literarias",
-      category: "Carrera",
-    },
-    {
-      number: 5,
-      name: "Libro: Vida en la UTA",
-      description: "R. Obras Literarias",
-      category: "Carrera",
-    },
-    {
-      number: 6,
-      name: "Libro: Vida en la UTA",
-      description: "R. Obras Literarias",
-      category: "Carrera",
-    },
-    {
-      number: 7,
-      name: "Libro: Vida en la UTA",
-      description: "R. Obras Literarias",
-      category: "Carrera",
-    },
-    {
-      number: 8,
-      name: "Libro: Vida en la UTA",
-      description: "R. Obras Literarias",
-      category: "Carrera",
-    },
-    {
-      number: 9,
-      name: "Libro: Vida en la UTA",
-      description: "R. Obras Literarias",
-      category: "Carrera",
-    },
-    {
-      number: 10,
-      name: "Libro: Vida en la UTA",
-      description: "R. Obras Literarias",
-      category: "Carrera",
-    },
-    {
-      number: 11,
-      name: "Libro: Vida en la UTA",
-      description: "R. Obras Literarias",
-      category: "Carrera",
-    },
-  ];
-
-  //datos para mis cards
+  // Datos para las tarjetas numéricas
+  const totalRegistros = registrosFiltrados.length;
+  const registrosFinalizados = registrosFiltrados.filter(r => r.estado === "Finalizado").length;
+  const registrosEnProceso = registrosFiltrados.filter(r => r.estado === "En Proceso").length;
+  const registrosInicio = registrosFiltrados.filter(r => r.estado === "Iniciado").length;
 
   const cardsData = [
     {
-      title: "Total Usuarios",
-      value: 150,
-      description: "30% activos",
-      progress: 30,
+      title: "Total Registro de Propiedad Intelectual",
+      value: totalRegistros,
+      description: totalRegistros > 0 ? `${Math.round((registrosFinalizados / totalRegistros) * 100)}%` : "0%",
+      progress: totalRegistros > 0 ? Math.round((registrosFinalizados / totalRegistros) * 100) : 0,
     },
-    {
-      title: "Total Pedidos",
-      value: "500",
-      icon: <FiPackage className="text-2xl" />,
-    },
+    
   ];
 
   const smallCardsData = [
-    { title: "Completados", value: 120 },
-    { title: "Pendientes", value: 30 },
+    { title: "Finalizados", value: registrosFinalizados },
+    { title: "Iniciados", value: registrosInicio},
+    { title: "En progreso", value:registrosEnProceso}
   ];
 
-  const projectCategories = [
-    { name: "Vinculación", count: 50 },
-    { name: "Investigación", count: 70 },
-    { name: "Carrera", count: 30 },
-  ];
-
-  // Obtener tareas para el gráfico de Gantt
-  useEffect(() => {
-    socket.emit("obtener_tareas_gantt", {}, (response: any) => {
-      if (response.success) {
-        setTasks(response.data);
-      } else {
-        console.error("Error al obtener tareas para Gantt:", response.message);
-      }
-    });
-  }, []);
-
-  // Manejar cambios en los filtros
-  const handleFilterChange = (filters) => {
-    console.log("Filtros aplicados:", filters);
-  };
+  // Tarjetas de productos
+  const productCards = prepararTarjetasProductos(registrosFiltrados, datosFiltros.productos);
 
   return (
     <PDFExport
-      captureIds={["taskProgress"]}
-      filtersData={{
-        year: "2023",
-        facultad: "UTA",
-        estado: "ssd",
-        fechaInicio: "sdd",
-        fechaFin: "dsd",
-      }}
-    >
+    captureIds={["cardprincipal","taskProgress","granttchart","table"]}
+    filtersData={{
+      year: new Date().getFullYear().toString(),
+      facultad: currentFilters.facultades.join(", "),
+      estado: currentFilters.estado,
+      fechaInicio: currentFilters.fechaInicio,
+      fechaFin: currentFilters.fechaFin,
+    }}
+    reportStats={{
+      totalRegistros: totalRegistros,
+      registrosFinalizados: registrosFinalizados,
+      registrosEnProceso: registrosEnProceso,
+      registrosInicio: registrosInicio
+    }}
+    additionalInfo={{
+      universidad: "Universidad Técnica de Ambato",
+      direccion: "Dirección de Innovación y Emprendimiento",
+      departamento: "Departamento de Propiedad Intelectual",
+      responsable: "Administrador del Sistema",
+      fechaGeneracion: new Date().toLocaleDateString("es-ES")
+    }}
+  >
       <div className="flex flex-col min-h-screen">
         <div className="flex">
           <Sidebar />
@@ -216,43 +268,64 @@ const Dashboard: React.FC = () => {
               productos={datosFiltros.productos}
               funcionarios={datosFiltros.funcionarios}
               facultades={datosFiltros.facultades}
-              carreras={datosFiltros.carreras}
+              carreras={carrerasFiltradas}
+              currentFilters={currentFilters}
             />
 
             {/* Tarjetas numéricas */}
-            <div className="flex-grow md:ml-15 space-y-2 ml=0">
+            <div className="flex-grow space-y-2 ml=0 justify-center" >
+              <div  className="flex flex-wrap justify-center">
               <NumericCards
                 cardsData={cardsData}
                 smallCardsData={smallCardsData}
-                projectCategories={projectCategories}
+                projectCategories={datosProyectos}
+                
               />
+              </div>
             </div>
 
             {/* Separador: Distribución de Registros */}
             <Separator title="Distribución de Registros Universidad Técnica de Ambato" />
 
             {/* Gráficos principales */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-200 p-3 rounded-lg">
-              <div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-200 p-3 rounded-lg" >
+              <div id="cardprincipal">
                 <CardPrincipal
                   title="Panel General"
                   className="w-full text-center text-sm border border-gray-300 bg-gray-800 rounded-lg p-4 shadow-sm"
-                  barChartData={barChartData}
-                  stackedBarChartData={stackedBarChartData}
+                  barChartData={datosFacultades}
+                  stackedBarChartData={datosTipoProducto}
                 />
               </div>
-              <div id="taskProgress">
-                <HorizontalBar Datos={datos} />
+              <div id="taskProgress" className="bg-white  rounded-md ">
+                <HorizontalBar Datos={datosCarreras} />
+
               </div>
             </div>
 
             {/* Separador: Detalle de Productos */}
             <Separator title="Detalle de Productos" />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-200 p-3 rounded-lg">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-200 p-3 rounded-lg" >
               <div>
-                <TableProducts columns={columns} data={data} />
+                <TableProducts 
+                  columns={[
+                    { header: "N°", accessorKey: "number" },
+                    { header: "Nombre Producto", accessorKey: "name" },
+                    { header: "Tipo", accessorKey: "description" },
+                    { header: "Proyecto", accessorKey: "category" },
+                    { header: "Facultades", accessorKey: "facultades" },
+                    { header: "Carreras", accessorKey: "carreras" }
+                  ]} 
+                  data={prepararDatosTabla(registrosFiltrados)} 
+                />
               </div>
-              <div>
+              <div className="space-y-4" id="table">
+                <h3 className="text-lg font-medium text-gray-700 mb-3">Cantidad por Tipo de Producto</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3" >
+                  {productCards.map((card, index) => (
+                    <ProductTypeCard key={index} title={card.title} value={card.value} icon={card.icon} />
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -260,8 +333,8 @@ const Dashboard: React.FC = () => {
             <Separator title="Seguimiento de Registros" />
 
             {/* Gráfico de Gantt */}
-            <div className="p-3">
-              <GanttChart tasks={tasks} />
+            <div className="p-3" id="granttchart">
+              <GanttChart tasks={prepararDatosGantt(registrosFiltrados)} />
             </div>
           </main>
         </div>

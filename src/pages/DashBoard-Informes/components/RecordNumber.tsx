@@ -1,6 +1,5 @@
 import React from "react";
-import { FaDownload } from "react-icons/fa";
-import { FiPackage } from "react-icons/fi";
+import { FiBox } from "react-icons/fi";
 
 // Tipos para los datos de las tarjetas
 interface CardData {
@@ -19,6 +18,7 @@ interface SmallCardData {
 interface ProjectCategory {
   name: string;
   count: number;
+  icon?: React.ReactNode;
 }
 
 interface DashboardCardsProps {
@@ -58,10 +58,23 @@ const CardComponent: React.FC<CardData> = ({
 // Componente reutilizable para tarjetas pequeñas
 const SmallCardComponent: React.FC<SmallCardData> = ({ title, value }) => {
   return (
-    <div className="bg-white text-center p-4 rounded-lg w-32 shadow-md">
+    <div className="bg-white text-center p-4 rounded-lg w-32 h-18 shadow-md">
       <div>
         <p className="text-gray-600">{title}</p>
-        <p className="text-2xl font-bold">{value}</p>
+        <p className="text-xl font-bold">{value}</p>
+      </div>
+    </div>
+  );
+};
+
+// Componente para las categorías de proyectos - rediseñado
+const CategoryCard: React.FC<ProjectCategory> = ({ name, count, icon }) => {
+  return (
+    <div className="bg-gray-700 text-white rounded-lg shadow-md flex flex-col items-center justify-center p-4 w-36">
+      <div className="text-center">
+        {icon || <FiBox className="text-2xl mx-auto" />}
+        <p className="text-2xl font-bold mt-1">{count}</p>
+        <p className="text-xs mt-1">{name}</p>
       </div>
     </div>
   );
@@ -73,40 +86,30 @@ const DashboardCards: React.FC<DashboardCardsProps> = ({
   projectCategories,
 }) => {
   return (
-    <div className="p-4 bg-gray-100 flex flex-wrap gap-8">
+    <div className="p-4 flex flex-wrap gap-6">
       {/* Tarjeta principal */}
       <CardComponent {...cardsData[0]} />
 
       {/* Estado de registros */}
-      <div className="flex flex-col gap-2">
+      <div className="grid grid-cols-1 gap-1">
         {smallCardsData.map((card, index) => (
           <SmallCardComponent key={index} {...card} />
         ))}
       </div>
 
       {/* Total de proyectos */}
-      <CardComponent {...cardsData[1]} />
+      <div className="bg-[#0a0a2a] text-white p-6 rounded-xl w-64 shadow-lg flex items-center justify-center">
+        <h3 className="text-lg font-semibold">Total de Proyectos :</h3>
+      </div>
 
-      {/* Categorías de proyectos */}
-      <div className="flex gap-2">
+      {/* Categorías de proyectos - CORREGIDO */}
+      <div className="flex gap-4">
         {projectCategories.map((item) => (
-          <div
-            key={item.name}
-            className="bg-gray-700 text-white p-2 rounded-lg flex flex-col items-center w-32 shadow-md"
-          >
-            <div className="flex flex-col items-center">
-              <FiPackage className="text-2xl" />
-              <span className="text-xl font-bold mt-2">{item.count}</span>
-              <p className="text-sm">{item.name}</p>
-            </div>
-          </div>
+          <CategoryCard key={item.name} {...item} />
         ))}
       </div>
 
-      {/* Botón de descarga */}
-      <button className="bg-red-600 text-white p-3 rounded-lg flex items-center mt-2 hover:bg-red-700 transition-colors">
-        Descargar Informe <FaDownload className="ml-2" />
-      </button>
+      
     </div>
   );
 };

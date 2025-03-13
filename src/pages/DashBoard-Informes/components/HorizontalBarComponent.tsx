@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { scaleBand, scaleLinear, max } from "d3";
 import { ProcesoDatos } from "./interfaces/proceso.interface";
 
@@ -7,34 +7,43 @@ interface HorizontalBarProps {
 }
 
 const HorizontalBar: React.FC<HorizontalBarProps> = ({ Datos }) => {
-  // Ordenamos los datos por valor (de mayor a menor)
   const sortedData = [...Datos].sort((a, b) => b.value - a.value);
+  const maxValue = max(sortedData, d => d.value) ?? 0;
 
-  // Escalas
+  // 1. Tick values dinámicos
+  const tickValues = useMemo(() => 
+    Array.from({ length: maxValue + 1 }, (_, i) => i), 
+    [maxValue]
+  );
+
+  // 2. Calcular margen derecho basado en el ancho del número más grande
+  const maxTickWidth = Math.max(...tickValues.map(t => `${t}`.length)) * 8;
+  const marginRight = Math.max(40, maxTickWidth + 15);
+
+  // Resto de márgenes
+  const longestWord = max(sortedData.map((d) => d.key.length)) ?? 1;
+  const marginTop = 5;
+  const marginBottom = 30;
+  const marginLeft = longestWord * 7;
+
+  // Dimensiones
+  const chartHeight = 610;
+  const totalHeight = chartHeight + marginTop + marginBottom;
+
+  // Escalas modificadas
   const yScale = scaleBand<string>()
     .domain(sortedData.map((d) => d.key))
-    .range([0, 100])
+    .range([0, chartHeight])
     .padding(0.6);
 
   const xScale = scaleLinear<number>()
-    .domain([0, max(sortedData, (d) => d.value) ?? 0])
-    .range([0, 100]);
-
-  // Calculamos el ancho máximo de las etiquetas del eje Y
-  const longestWord = max(sortedData.map((d) => d.key.length)) ?? 1;
-
-  // Función para determinar el color de la barra
-  const getBarColor = (width: number) => {
-    if (width > 50) return "bg-pink-300 dark:bg-pink-600";
-    if (width > 25) return "bg-purple-300 dark:bg-purple-500";
-    if (width > 10) return "bg-indigo-300 dark:bg-indigo-500";
-    return "bg-sky-300 dark:bg-sky-500";
-  };
+    .domain([0, maxValue])
+    .range([0, 100]); // Mantenemos rango porcentual
 
   return (
-    <div className="bg-white p-4 md:m-1/4 w-full h-[730px]">
-      {/* Descripción del gráfico */}
-      <div className="mb-4">
+    <div className="bg-white p-4 md:m-1/4 w-full h-[730px] relative">
+      {/* Título y descripción */}
+      <div className="mb-6">
         <h2 className="text-xl font-semibold text-gray-800">
           Registros por Carrera
         </h2>
@@ -42,111 +51,139 @@ const HorizontalBar: React.FC<HorizontalBarProps> = ({ Datos }) => {
       </div>
 
       {/* Contenedor del gráfico */}
-      <div
-        className="relative w-full h-150"
-        style={
-          {
-            "--marginTop": "10px",
-            "--marginRight": "30px",
-            "--marginBottom": "10px",
-            "--marginLeft": `${longestWord * 7}px`,
-          } as React.CSSProperties
-        }
-      >
-        {/* Área del gráfico */}
-        <div className="absolute inset-0 z-10 h-[calc(100%-var(--marginTop)-var(--marginBottom))] translate-y-[var(--marginTop)] w-[calc(100%-var(--marginLeft)-var(--marginRight))] translate-x-[var(--marginLeft)] overflow-visible">
-          {/* Barras del gráfico */}
+      <div className="relative w-full" style={{ height: `${totalHeight}px` }}>
+        {/* Eje Y (Etiquetas) */}
+        <div 
+          className="absolute left-0 top-0 overflow-visible" 
+          style={{ 
+            height: `${chartHeight}px`, 
+            width: `${marginLeft}px`, 
+            marginTop: `${marginTop}px`
+          }}
+        >
+          {sortedData.map((entry) => {
+            const yPos = yScale(entry.key)!;
+            const barHeight = yScale.bandwidth();
+            
+            return (
+              <span
+                key={entry.key}
+                className="absolute text-xs text-gray-500 w-full text-right pr-2"
+                style={{
+                  top: `${yPos + barHeight / 2}px`,
+                  transform: "translateY(-50%)"
+                }}
+              >
+                {entry.key}
+              </span>
+            );
+          })}
+        </div>
+
+        {/* Líneas de cuadrícula */}
+        <div 
+          className="absolute overflow-visible" 
+          style={{ 
+            height: `${chartHeight}px`, 
+            left: `${marginLeft}px`, 
+            top: `${marginTop}px`, 
+            right: `${marginRight}px`,
+            zIndex: 1
+          }}
+        >
+          {tickValues.map((value) => (
+            <div 
+              key={value} 
+              className="absolute h-full border-l border-gray-200 border-dashed"
+              style={{
+                left: `${xScale(value)}%`,
+                width: `${100 - xScale(value)}%`, // Nueva propiedad
+                overflow: 'hidden'
+              }}
+            />
+          ))}
+        </div>
+
+        {/* Área principal del gráfico */}
+        <div 
+          className="absolute overflow-visible" 
+          style={{ 
+            height: `${chartHeight}px`, 
+            left: `${marginLeft}px`, 
+            top: `${marginTop}px`, 
+            right: `${marginRight}px`,
+            zIndex: 2
+          }}
+        >
+          {/* Barras horizontales */}
           {sortedData.map((d) => {
             const barWidth = xScale(d.value);
             const barHeight = yScale.bandwidth();
-            const barColor = getBarColor(barWidth);
-
+            const yPos = yScale(d.key)!;
+            
+            // Verificamos si hay suficiente espacio para el valor dentro de la barra
+            const valueWidth = String(d.value).length * 8; // Ancho aproximado del texto
+            const spaceForValue = (barWidth / 100) * (100 - marginLeft - marginRight);
+            const valueInsideBar = spaceForValue > valueWidth + 20; // 20px de margen
+            
             return (
-              <div key={d.key}>
+              <div key={d.key} className="relative">
+                {/* Barra principal */}
                 <div
-                  className={`absolute left-0 ${barColor} transition-all duration-200 ease-in-out hover:opacity-80`}
+                  className="absolute left-0 bg-pink-600 transition-all duration-200 ease-in-out hover:opacity-80"
                   style={{
-                    top: `${yScale(d.key)}%`,
+                    top: `${yPos}px`,
                     width: `${barWidth}%`,
-                    height: `${barHeight}%`,
+                    height: `${barHeight}px`,
                   }}
                   aria-label={`${d.key}: ${d.value}`}
-                  role="img"
                 />
-                {/* Punta de la barra */}
+                
+                {/* Valor numérico */}
                 <div
-                  className={`absolute ${barColor} rounded-sm`}
+                  className={`absolute text-xs font-medium ${valueInsideBar ? 'text-white' : 'text-pink-600'}`}
                   style={{
-                    left: `${barWidth}%`,
-                    top: `${yScale(d.key)! + barHeight / 2}%`,
-                    transform: "translate(-100%, -50%)",
-                    width: "12px",
-                    height: "9px",
+                    left: valueInsideBar ? `${barWidth - 5}%` : `${barWidth + 1}%`,
+                    top: `${yPos + barHeight / 2}px`,
+                    transform: "translateY(-50%)",
+                    textAlign: valueInsideBar ? 'right' : 'left',
+                    paddingRight: valueInsideBar ? '8px' : '0',
+                    paddingLeft: valueInsideBar ? '0' : '4px'
                   }}
-                />
+                >
+                  {d.value}
+                </div>
               </div>
             );
           })}
+        </div>
 
-          {/* Líneas de la cuadrícula */}
-          <svg
-            className="h-full w-full"
-            viewBox="0 0 100 100"
-            preserveAspectRatio="none"
-          >
-            {xScale
-              .ticks(8)
-              .map(xScale.tickFormat(8, "d"))
-              .map((active) => (
-                <g
-                  transform={`translate(${xScale(+active)},0)`}
-                  className="text-gray-300/80 dark:text-gray-800/80"
-                  key={active}
-                >
-                  <line
-                    y1={0}
-                    y2={100}
-                    stroke="currentColor"
-                    strokeDasharray="6,5"
-                    strokeWidth={0.5}
-                    vectorEffect="non-scaling-stroke"
-                  />
-                </g>
-              ))}
-          </svg>
-
-          {/* Eje X (Valores) */}
-          {xScale.ticks(4).map((value) => (
+   {/* Eje X modificado */}
+   <div 
+          className="absolute overflow-visible" 
+          style={{ 
+            height: `${marginBottom}px`, 
+            left: `${marginLeft}px`, 
+            top: `${marginTop + chartHeight}px`, 
+            right: `${marginRight}px`
+          }}
+        >
+          {tickValues.map((value) => (
             <div
               key={value}
-              className="absolute text-xs -translate-x-1/2 tabular-nums text-gray-400"
+              className="absolute text-xs text-gray-500"
               style={{
                 left: `${xScale(value)}%`,
-                top: "100%",
+                transform: `translateX(${value === maxValue ? '-100%' : '-50%'})`,
+                whiteSpace: 'nowrap'
               }}
             >
               {value}
             </div>
           ))}
         </div>
-
-        {/* Eje Y (Etiquetas) */}
-        <div className="h-[calc(100%-var(--marginTop)-var(--marginBottom))] w-[var(--marginLeft)] translate-y-[var(--marginTop)] overflow-visible">
-          {sortedData.map((entry) => (
-            <span
-              key={entry.key}
-              className="absolute text-xs text-gray-400 -translate-y-1/2 w-full text-right pr-2"
-              style={{
-                top: `${yScale(entry.key)! + yScale.bandwidth() / 2}%`,
-              }}
-            >
-              {entry.key}
-            </span>
-          ))}
-        </div>
       </div>
     </div>
   );
 };
-
 export default HorizontalBar;

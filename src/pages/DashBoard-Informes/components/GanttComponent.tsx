@@ -3,12 +3,31 @@ import { ExpandMore, ExpandLess } from "@mui/icons-material";
 import { GanttChartProps, Task, TaskFile } from "./interfaces/ganttprops.interface";
 
 // Progress bar for main tasks (without date offset)
-const ProgressBar: React.FC<{ progress: number }> = ({ progress }) => (
-  <div
-    className="bg-blue-300 rounded h-full"
-    style={{ width: `${progress}%` }}
-  />
-);
+const ProgressBar: React.FC<{ progress: number }> = ({ progress }) => {
+  // Determine color based on progress value - usando colores más suaves
+  const getBarColor = () => {
+    if (progress === 100) return "bg-green-300"; // Verde más suave cuando está completo (100%)
+    if (progress > 50) return "bg-yellow-200";    // Amarillo más suave cuando está entre 51-99%
+    return "bg-blue-200";                        // Azul más suave por defecto (0-50%)
+  };
+
+  return (
+    <div className="h-full w-full relative rounded overflow-hidden">
+      {/* Progress bar */}
+      <div
+        className={`${getBarColor()} rounded h-full flex items-center justify-center`}
+        style={{ width: `${progress}%` }}
+      />
+      
+      {/* Percentage text overlay */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className={`text-xs font-semibold ${progress > 40 ? "text-gray-700" : "text-gray-700"}`}>
+          {progress}%
+        </span>
+      </div>
+    </div>
+  );
+};
 
 // Component for file icon (documents only)
 const FileIcon: React.FC<{ file: TaskFile }> = ({ file }) => {
@@ -20,7 +39,7 @@ const FileIcon: React.FC<{ file: TaskFile }> = ({ file }) => {
       window.open(viewerUrl, '_blank');
     } else {
       // Si no hay path, muestra un alert con el ID del documento
-      alert(`Documento sin archivo asociado. ID: ${file.id}`);
+      alert(`Documento sin archivo asociado. Codigo de Memorando: ${file.name}`);
     }
   };
 
@@ -52,13 +71,61 @@ const FileSection: React.FC<{ files?: TaskFile[] }> = ({ files = [] }) => {
 };
 
 // Helper function to format dates
-const formatDate = (dateString:any) => {
-  if (!dateString) return "—";
+const formatDate = (dateString: string | Date | null | undefined): string => {
+  if (dateString === null || dateString === undefined) {
+    return "—";
+  }
+  
+  // Additional check for Unix epoch date (which likely indicates a null date was converted)
+  if (dateString instanceof Date && dateString.getTime() === 0) {
+    return "—";
+  }
   try {
-    return new Date(dateString).toLocaleDateString();
+    // Si es objeto Date, convertir a string ISO
+    if (dateString instanceof Date) {
+      dateString = dateString.toISOString().split('T')[0];
+    }
+    
+    // Asegurémonos de trabajar con el formato ISO YYYY-MM-DD
+    if (typeof dateString === 'string') {
+      // Extraer sólo la parte de la fecha si incluye tiempo (YYYY-MM-DDT...)
+      if (dateString.includes('T')) {
+        dateString = dateString.split('T')[0];
+      }
+      
+      // Si es formato ISO (YYYY-MM-DD)
+      if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        const [year, month, day] = dateString.split('-');
+        
+        // Convertir los valores a números enteros
+        const yearNum = parseInt(year, 10);
+        const monthNum = parseInt(month, 10);
+        const dayNum = parseInt(day, 10);
+        
+        // Validar que la fecha sea correcta
+        if (yearNum > 0 && monthNum >= 1 && monthNum <= 12 && dayNum >= 1 && dayNum <= 31) {
+          return `${dayNum.toString().padStart(2, '0')}/${monthNum.toString().padStart(2, '0')}/${yearNum}`;
+        }
+      }
+    }
+    
+    // Si el formato no es como esperábamos o no es un string, intentamos con el enfoque tradicional
+    // pero utilizando UTC para evitar problemas de zona horaria
+    const date = new Date(dateString);
+    
+    if (isNaN(date.getTime())) {
+      return "Fecha inválida";
+    }
+    
+    // Usamos UTC para evitar ajustes de zona horaria
+    const dia = date.getUTCDate().toString().padStart(2, '0');
+    const mes = (date.getUTCMonth() + 1).toString().padStart(2, '0');
+    const anio = date.getUTCFullYear();
+    
+    return `${dia}/${mes}/${anio}`;
   } catch (error) {
-    console.error("Error formatting date:", error);
-    return dateString;
+    console.error("Error formatting date:", error, dateString);
+    return typeof dateString === 'string' ? dateString : "Fecha inválida";
   }
 };
 
@@ -117,12 +184,19 @@ const TaskRow: React.FC<{
 
         {/* Status */}
         <div className="flex-1 min-w-[130px] flex-shrink-0">
-          <p className={`text-sm rounded-full px-2 py-1 inline-block transition-all duration-200
-            ${isSubtask 
-              ? (task.status === "Completado" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800")
-              : (task.progress === 100 ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800")}`}>
-            {isSubtask ? task.status : (task.progress === 100 ? "Completada" : "En progreso")}
-          </p>
+        <p className={`text-sm rounded-full px-2 py-1 inline-block transition-all duration-200
+  ${isSubtask 
+    ? (task.status === "Finalizado" ? "bg-green-100 text-green-800" : 
+       task.status === "En Proceso" ? "bg-yellow-100 text-yellow-800" : 
+       "bg-blue-100 text-blue-800") // Color para "iniciado"
+    : (task.status === "Finalizado" ? "bg-green-100 text-green-800" : 
+       task.status === "En Proceso" ? "bg-yellow-100 text-yellow-800" : 
+       "bg-blue-100 text-blue-800")}`}> 
+  {isSubtask ? 
+    task.status : 
+    task.status === "iniciado" ? "Iniciado" : task.status // Cambiar a mayúscula inicial
+  }
+</p>
         </div>
 
         {/* Conditional: Show progress bar or files */}
@@ -130,7 +204,7 @@ const TaskRow: React.FC<{
           {isSubtask ? (
             <FileSection files={task.files} />
           ) : (
-            <div className="bg-blue-500 rounded h-full w-full">
+            <div className="rounded h-full w-full">
               <ProgressBar progress={task.progress || 0} />
             </div>
           )}
@@ -170,7 +244,7 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks }) => {
   return (
     <div className="bg-white rounded-lg shadow-lg p-6">
       <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">
-        Gantt - Registro Propiedad Intelectual
+        Registro Propiedad Intelectual
       </h2>
 
       {/* Header */}
