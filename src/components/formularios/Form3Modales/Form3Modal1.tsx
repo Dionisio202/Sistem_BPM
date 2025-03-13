@@ -45,7 +45,7 @@ interface FormData {
 }
 
 interface Rol {
-  id_rol: number;
+  id: number;
   nombre: string;
 }
 
@@ -416,9 +416,10 @@ const Form3Modal1: React.FC<ModalProps> = ({
                   onChange={(e) =>
                     handleChange("productos.solicitante.cargo", e.target.value)
                   }
-                  options={[
-
-                  ]}
+                  options={roles.map((rol) => ({
+                    value: rol.id.toString(),
+                    label: rol.nombre,
+                  }))}
                 />
                 <SelectField
                   label="Facultad"
