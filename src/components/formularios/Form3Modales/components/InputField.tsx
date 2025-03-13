@@ -2,6 +2,7 @@ interface InputFieldProps {
     label: string;
     value: string;
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    type?: string;
   }
   
   const InputField: React.FC<InputFieldProps> = ({ label, value, onChange }) => (

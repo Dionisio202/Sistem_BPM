@@ -267,6 +267,12 @@ const Form3Modal2: React.FC<Form3Modal2Props> = ({
         return autorSinPropiedadesUI;
       });
 
+      // Mostrar el JSON de los datos en la consola
+      console.log(
+        "Datos preparados para guardar:",
+        JSON.stringify(datosParaGuardar, null, 2)
+      );
+
       // Si hay una función de retorno definida, la llamamos con los datos
       if (onSaveData) {
         onSaveData(datosParaGuardar);
@@ -414,7 +420,7 @@ const Form3Modal2: React.FC<Form3Modal2Props> = ({
                       <select
                         id={`facultad-${index}`}
                         onChange={(e) => manejarCambioFacultad(index, e)}
-                        value={autor.facultad_seleccionada || ""}
+                        value={autor.facultad_seleccionada ?? ""}
                         className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-[#931D21] focus:border-[#931D21] text-xs sm:text-sm"
                       >
                         <option value="">Seleccione una facultad</option>
@@ -441,7 +447,7 @@ const Form3Modal2: React.FC<Form3Modal2Props> = ({
                         <select
                           id={`carrera-${index}`}
                           onChange={(e) => manejarCambioCarrera(index, e)}
-                          value={autor.carrera_seleccionada || ""}
+                          value={autor.carrera_seleccionada ?? ""}
                           className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-[#931D21] focus:border-[#931D21] text-xs sm:text-sm"
                         >
                           <option value="">Seleccione una carrera</option>
