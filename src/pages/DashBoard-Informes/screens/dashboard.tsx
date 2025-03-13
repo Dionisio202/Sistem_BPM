@@ -225,7 +225,8 @@ const applyFilters = (filters: Filters) => {
 
   const smallCardsData = [
     { title: "Finalizados", value: registrosFinalizados },
-    { title: "Iniciados-En progreso", value: `${registrosInicio}-${registrosEnProceso}`},
+    { title: "Iniciados", value: registrosInicio},
+    { title: "En progreso", value:registrosEnProceso}
   ];
 
   // Tarjetas de productos

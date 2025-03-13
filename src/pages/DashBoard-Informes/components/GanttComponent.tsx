@@ -3,12 +3,31 @@ import { ExpandMore, ExpandLess } from "@mui/icons-material";
 import { GanttChartProps, Task, TaskFile } from "./interfaces/ganttprops.interface";
 
 // Progress bar for main tasks (without date offset)
-const ProgressBar: React.FC<{ progress: number }> = ({ progress }) => (
-  <div
-    className="bg-blue-300 rounded h-full"
-    style={{ width: `${progress}%` }}
-  />
-);
+const ProgressBar: React.FC<{ progress: number }> = ({ progress }) => {
+  // Determine color based on progress value - usando colores más suaves
+  const getBarColor = () => {
+    if (progress === 100) return "bg-green-300"; // Verde más suave cuando está completo (100%)
+    if (progress > 50) return "bg-yellow-200";    // Amarillo más suave cuando está entre 51-99%
+    return "bg-blue-200";                        // Azul más suave por defecto (0-50%)
+  };
+
+  return (
+    <div className="h-full w-full relative rounded overflow-hidden">
+      {/* Progress bar */}
+      <div
+        className={`${getBarColor()} rounded h-full flex items-center justify-center`}
+        style={{ width: `${progress}%` }}
+      />
+      
+      {/* Percentage text overlay */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className={`text-xs font-semibold ${progress > 40 ? "text-gray-700" : "text-gray-700"}`}>
+          {progress}%
+        </span>
+      </div>
+    </div>
+  );
+};
 
 // Component for file icon (documents only)
 const FileIcon: React.FC<{ file: TaskFile }> = ({ file }) => {
@@ -185,7 +204,7 @@ const TaskRow: React.FC<{
           {isSubtask ? (
             <FileSection files={task.files} />
           ) : (
-            <div className="bg-blue-500 rounded h-full w-full">
+            <div className="rounded h-full w-full">
               <ProgressBar progress={task.progress || 0} />
             </div>
           )}

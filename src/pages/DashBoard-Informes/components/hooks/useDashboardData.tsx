@@ -38,7 +38,7 @@ export const useDashboardData = () => {
       
       // Usar socket para obtener los datos
       socket.emit("obtener_registro", {}, (response: { success: boolean, data: RegistroPI[], message?: string }) => {
-        if (!response.success && response.data) {
+        if (response.success && response.data) {
           // Establecer los datos recibidos
           setTodosRegistros(response.data);
           setRegistrosFiltrados(response.data);

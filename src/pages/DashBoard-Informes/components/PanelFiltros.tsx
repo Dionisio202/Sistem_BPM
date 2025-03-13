@@ -357,10 +357,10 @@ export default function FilterPanel({
       </div>
 
       {/* Botón para limpiar filtros */}
-      <div className="mt-6">
+      <div className="mt-6 justify-center flex">
         <button
           onClick={clearAllFilters}
-          className="bg-red-600 text-white px-4 py-2 rounded w-full hover:bg-red-700 transition-colors"
+          className="bg-red-600 text-white px-4 py-2 rounded w-2xs hover:bg-red-700 transition-colors justify-center"
         >
           Limpiar Todos los Filtros
         </button>

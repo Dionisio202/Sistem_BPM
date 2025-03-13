@@ -1,39 +1,47 @@
 import React, { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
-import Table from "../components/Table";
+import Example from "../components/Table";
 
 const Reports: React.FC = () => {
-    // @ts-ignore
   const [sidebarOpen, setSidebarOpen] = useState(true);
-
-  // Escuchar los cambios en el sidebar mediante un evento personalizado
+  
+  // Listen for sidebar toggle events and check screen size on mount
   useEffect(() => {
     const handleSidebarChange = (e: CustomEvent) => {
       setSidebarOpen(e.detail.isOpen);
     };
-
-    window.addEventListener('sidebarToggle' as any, handleSidebarChange);
     
-    // También detectar si se está en móvil al inicio
-    if (window.innerWidth < 768) {
-      setSidebarOpen(false);
-    }
-
+    // Set sidebar closed by default on mobile
+    const handleResize = () => {
+      setSidebarOpen(window.innerWidth >= 768);
+    };
+    
+    // Initialize based on current screen size
+    handleResize();
+    
+    // Add event listeners
+    window.addEventListener('sidebarToggle' as any, handleSidebarChange);
+    window.addEventListener('resize', handleResize);
+    
     return () => {
       window.removeEventListener('sidebarToggle' as any, handleSidebarChange);
+      window.removeEventListener('resize', handleResize);
     };
   }, []);
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <div className="flex">
-        <Sidebar /> {/* Sidebar donde se navegan las rutas */}
-        <main className="flex-grow p-1 space-y-2 ml-0 md:ml-15 ">
-          <div className="flex justify-end bg-gray-100 p-2 rounded-lg w-full h-full">
-            <Table />
-          </div>
-        </main>
+    <div className="flex h-screen overflow-hidden">
+      <div className={`${sidebarOpen ? 'w-10' : 'w-10'} transition-all duration-300 ease-in-out`}>
+        <Sidebar />
       </div>
+      
+      <main className="flex-1 overflow-hidden bg-gray-50">
+        <div className="h-full w-full ">
+          <div className="h-full bg-white rounded-lg shadow-sm">
+            <Example />
+          </div>
+        </div>
+      </main>
     </div>
   );
 };

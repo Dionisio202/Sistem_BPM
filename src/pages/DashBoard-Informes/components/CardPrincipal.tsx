@@ -21,6 +21,9 @@ const Card: React.FC<CardProps> = ({
   pieChartData,
   pieChartColors = ["#8884d8", "#82ca9d", "#ff8042"],
 }) => {
+  // Project type names to replace value1, value2, value3
+  const projectTypeNames = ["Investigación", "Vinculación", "Carrera"];
+
   return (
     <div className={`bg-white rounded-lg w-full h-180 p-2 ${className}`}>
       <div className="space-y-1">
@@ -58,10 +61,10 @@ const Card: React.FC<CardProps> = ({
                 <YAxis type="category" dataKey="name" />
                 <Tooltip />
                 <Legend />
-                {/* Barras apiladas */}
-                <Bar dataKey="value1" stackId="a" fill="#8884d8" />
-                <Bar dataKey="value2" stackId="a" fill="#82ca9d" />
-                <Bar dataKey="value3" stackId="a" fill="#ff8042" />
+                {/* Barras apiladas con nombres personalizados */}
+                <Bar dataKey="value1" name={projectTypeNames[0]} stackId="a" fill="#8884d8" />
+                <Bar dataKey="value2" name={projectTypeNames[1]} stackId="a" fill="#82ca9d" />
+                <Bar dataKey="value3" name={projectTypeNames[2]} stackId="a" fill="#ff8042" />
               </BarChart>
             </ResponsiveContainer>
           </div>

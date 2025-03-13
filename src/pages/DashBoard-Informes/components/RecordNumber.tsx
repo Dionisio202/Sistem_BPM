@@ -58,10 +58,10 @@ const CardComponent: React.FC<CardData> = ({
 // Componente reutilizable para tarjetas pequeñas
 const SmallCardComponent: React.FC<SmallCardData> = ({ title, value }) => {
   return (
-    <div className="bg-white text-center p-4 rounded-lg w-32 shadow-md">
+    <div className="bg-white text-center p-4 rounded-lg w-32 h-18 shadow-md">
       <div>
         <p className="text-gray-600">{title}</p>
-        <p className="text-2xl font-bold">{value}</p>
+        <p className="text-xl font-bold">{value}</p>
       </div>
     </div>
   );
@@ -91,7 +91,7 @@ const DashboardCards: React.FC<DashboardCardsProps> = ({
       <CardComponent {...cardsData[0]} />
 
       {/* Estado de registros */}
-      <div className="grid grid-cols-1 gap-3">
+      <div className="grid grid-cols-1 gap-1">
         {smallCardsData.map((card, index) => (
           <SmallCardComponent key={index} {...card} />
         ))}

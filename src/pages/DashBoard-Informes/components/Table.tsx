@@ -24,50 +24,49 @@ const Example = () => {
   useEffect(() => {
     const socket = io(SERVER_BACK_URL);
 
-    // Emitir el evento 'datos_proceso' y manejar la respuesta
     socket.emit("datos_proceso", (response: SocketResponse) => {
-      console.log(
-        "Respuesta completa del servidor:",
-        JSON.stringify(response, null, 2)
-      );
-
-      // Validar la respuesta
       if (response.success && response.jsonData) {
         try {
-          // Parsear el campo jsonData a un objeto JavaScript
           const jsonData = JSON.parse(response.jsonData);
-
-          console.log("Datos recibidos:", jsonData);
-
-          // Convertir JSON a filas para la tabla
-const newData: TablaTarea[] = jsonData.Funcionarios.flatMap(
-  (funcionario: Funcionario) =>
-    funcionario.Caso.flatMap((caso: Caso) =>
-      Array.isArray(caso.NombreTarea)
-        ? caso.NombreTarea.map((tarea: Tarea) => ({
-            NombreProceso: "Registro Propiedad Intelectual",
-            NombreTarea: tarea.Nombre,
-            Progreso: tarea.Progreso,
-            EstadoDeProceso: tarea.EstadoDeProceso,
-            TipoProductos: tarea.TipoProductos,
-            NombreProductos: tarea.NombreProductos,
-            NombreProyecto: tarea.NombreProyecto,
-            Facultad: tarea.Facultad,
-            Carrera: tarea.Carrera || "No especificado", // Nueva propiedad agregada
-            TipoProyecto: tarea.TipoProyecto || "No especificado", // Nueva propiedad agregada
-            MemorandoInicial: tarea.MemorandoInicial,
-            NumeroCaso: caso.NumeroCaso,
-            FechaRegistro: caso.FechaRegistro,
-            FechaFinalizacion: caso.FechaFinalizacion || "",
-            ProgresoGeneral: caso.ProgresoGeneral,
-            EstadoProcesoGeneral: caso.EstadoProcesoGeneral,
-            Funcionario: funcionario.Nombre,
-            Autores: tarea.Autores || "", // nueva propiedad agregada
-          }))
-        : []
-    )
-);
-
+          const newData: TablaTarea[] = [];
+          
+          if (jsonData.Procesos && Array.isArray(jsonData.Procesos)) {
+            jsonData.Procesos.forEach((proceso: any) => {
+              const nombreProceso = proceso.NombreProceso;
+              
+              if (proceso.Funcionarios && Array.isArray(proceso.Funcionarios)) {
+                proceso.Funcionarios.forEach((funcionario: Funcionario) => {
+                  if (funcionario.Caso && Array.isArray(funcionario.Caso)) {
+                    funcionario.Caso.forEach((caso: Caso) => {
+                      if (caso.Tareas && Array.isArray(caso.Tareas)) {
+                        caso.Tareas.forEach((tarea: Tarea) => {
+                          newData.push({
+                            NombreProceso: nombreProceso,
+                            NombreTarea: tarea.Nombre,
+                            EstadoDeProceso: tarea.EstadoDeProceso,
+                            TipoProductos: tarea.TipoProductos,
+                            NombreProductos: tarea.NombreProductos,
+                            NombreProyecto: tarea.NombreProyecto,
+                            Facultad: tarea.Facultad || "No especificado",
+                            Carrera: tarea.Carrera || "No especificado",
+                            TipoProyecto: tarea.TipoProyecto || "No especificado",
+                            MemorandoInicial: tarea.DocumentoPrincipal ? tarea.DocumentoPrincipal.MemorandoInicial : "",
+                            NumeroCaso: caso.NumeroCaso,
+                            FechaRegistro: caso.FechaRegistro,
+                            FechaFinalizacion: caso.FechaFinalizacion || "",
+                            ProgresoGeneral: caso.ProgresoGeneral,
+                            EstadoProcesoGeneral: caso.EstadoProcesoGeneral,
+                            Funcionario: funcionario.Nombre,
+                            Autores: tarea.Autores || "",
+                          });
+                        });
+                      }
+                    });
+                  }
+                });
+              }
+            });
+          }
 
           setData(newData);
           setLoading(false);
@@ -83,13 +82,11 @@ const newData: TablaTarea[] = jsonData.Funcionarios.flatMap(
       }
     });
 
-    // Manejo de errores del socket
     socket.on("connect_error", (err) => {
       setError("Error de conexión: " + err.message);
       setLoading(false);
     });
 
-    // Desconectar el socket al desmontar el componente
     return () => {
       socket.disconnect();
     };
@@ -100,14 +97,13 @@ const newData: TablaTarea[] = jsonData.Funcionarios.flatMap(
     { accessorKey: "Funcionario", header: "Funcionario", size: 150 },
     { accessorKey: "NumeroCaso", header: "Número de Caso", size: 100 },
     { accessorKey: "NombreTarea", header: "Nombre de Tarea", size: 100 },
-    { accessorKey: "Progreso", header: "Progreso", size: 100 },
-    { accessorKey: "EstadoDeProceso", header: "Estado de Proceso", size: 120 },
+    { accessorKey: "EstadoDeProceso", header: "Estado de Tarea", size: 120 },
     { accessorKey: "TipoProductos", header: "Tipo de Productos", size: 120 },
     { accessorKey: "NombreProductos", header: "Nombre de Productos", size: 150 },
     { accessorKey: "NombreProyecto", header: "Nombre del Proyecto", size: 150 },
     { accessorKey: "Facultad", header: "Facultad", size: 120 },
-    { accessorKey: "Carrera", header: "Carrera", size: 120 }, // Nueva columna
-    { accessorKey: "TipoProyecto", header: "Tipo de Proyecto", size: 120 }, // Nueva columna
+    { accessorKey: "Carrera", header: "Carrera", size: 120 },
+    { accessorKey: "TipoProyecto", header: "Tipo de Proyecto", size: 120 },
     { accessorKey: "MemorandoInicial", header: "Memorando Inicial", size: 120 },
     { accessorKey: "FechaRegistro", header: "Fecha de Registro", size: 120 },
     { accessorKey: "FechaFinalizacion", header: "Fecha de Finalización", size: 120 },
@@ -116,19 +112,38 @@ const newData: TablaTarea[] = jsonData.Funcionarios.flatMap(
     { accessorKey: "Autores", header: "Autores", size: 200 },
   ], []);
   
-
   const table = useMaterialReactTable({
     columns,
     data,
+    enableFullScreenToggle: true,
+    initialState: {
+      density: 'compact', // Makes the rows more compact
+      columnVisibility: {
+        // Hide less important columns by default to fit more content
+        Facultad: false,
+        Carrera: false,
+        TipoProyecto: false,
+        FechaFinalizacion: false,
+      },
+    },
+    muiTableContainerProps: {
+      sx: { 
+        height: 'calc(100% - 58px)', // Subtracting export card height
+        maxHeight: '100%',
+      },
+    },
     muiTableHeadCellProps: {
       style: {
         backgroundColor: "#1F2937",
         color: "#ffffff",
+        position: "sticky",
+        top: 0,
+        zIndex: 1,
       },
     },
     muiTableBodyCellProps: {
       style: {
-        verticalAlign: "top", // Alinea el contenido hacia arriba
+        verticalAlign: "top",
       },
     },
     muiPaginationProps: {
@@ -137,27 +152,26 @@ const newData: TablaTarea[] = jsonData.Funcionarios.flatMap(
         color: "#ffffff",
       },
     },
-    muiFilterTextFieldProps: {
-      style: {
-        backgroundColor: "#1F2937",
-        color: "#ffffff",
-      },
+    muiToolbarAlertBannerProps: {
+      color: 'info',
     },
+    positionToolbarAlertBanner: 'bottom',
   });
 
   const filteredData = useMemo(() => {
-    const rows = table.getFilteredRowModel().rows.map((row) => row.original);
-    console.log("Datos filtrados en el componente principal:", rows); // Verifica los datos filtrados
-    return rows;
-  }, [table.getFilteredRowModel()]); // Dependencia del modelo de filas filtradas
+    return table.getFilteredRowModel().rows.map((row) => row.original);
+  }, [table.getFilteredRowModel()]);
 
-  if (loading) return <div>Cargando...</div>;
-  if (error) return <div>Error: {error}</div>;
+  if (loading) return <div className="flex h-full items-center justify-center">Cargando...</div>;
+  if (error) return <div className="flex h-full items-center justify-center text-red-500">Error: {error}</div>;
 
   return (
-    <div>
-      <ExportCard filteredData={filteredData} />
-      <div className="h-[95vh] w-full max-w-6xl overflow-y-auto mx-auto p-1 border border-gray-200 shadow-lg rounded-lg">
+    <div className="flex flex-col h-full">
+      <div className="bg-slate-800 text-white p-4">
+        <h1 className="text-xl font-bold mb-2">TAREAS DE PROPIEDAD INTELECTUAL - GENERACIÓN DE REPORTES</h1>
+        <ExportCard filteredData={filteredData} />
+      </div>
+      <div className="flex-1 overflow-hidden">
         <MaterialReactTable table={table} />
       </div>
     </div>
