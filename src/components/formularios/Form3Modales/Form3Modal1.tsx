@@ -145,7 +145,7 @@ const Form3Modal1: React.FC<ModalProps> = ({
       socket.emit("obtener_facultades_carreras", (response: any) => {
         if (response.success && response.data && response.data.length > 0) {
           try {
-            const parsedData = JSON.parse(response.data[0].ResultadoJSON);
+            const parsedData = JSON.parse(response.data);
             setFacultadesCarreras(parsedData);
           } catch (parseError) {
             console.error("Error al parsear facultades:", parseError);
