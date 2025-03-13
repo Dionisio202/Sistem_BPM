@@ -5,6 +5,7 @@ import io from "socket.io-client";
 import Title from "../components/TitleProps";
 import { ToastContainer, toast } from "react-toastify";
 import { SERVER_BACK_URL } from "../../../config.ts";
+import InputField from "./components/InputField.tsx";
 const socket = io(SERVER_BACK_URL); // Conecta con el backend
 
 interface Carrera {
@@ -44,15 +45,17 @@ interface Form3Modal2Props extends ModalProps {
   onSaveData?: (data: Autor[]) => void; // Función para devolver los datos editados
 }
 
-const Form3Modal2: React.FC<Form3Modal2Props> = ({ 
+const Form3Modal2: React.FC<Form3Modal2Props> = ({
   closeModal,
-  initialData = [], 
-  onSaveData 
+  initialData = [],
+  onSaveData,
 }) => {
   const [hasMissingData, setHasMissingData] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [authorDataFileBase64, setAuthorDataFileBase64] = useState<string | null>(null);
-  const [autores, setAutores] = useState<Autor[]>(initialData); 
+  const [authorDataFileBase64, setAuthorDataFileBase64] = useState<
+    string | null
+  >(null);
+  const [autores, setAutores] = useState<Autor[]>(initialData);
   const [facultades, setFacultades] = useState<Facultad[]>([]);
   const [roles, setRoles] = useState<any[]>([]);
   const [dataModified, setDataModified] = useState(false);
@@ -62,7 +65,7 @@ const Form3Modal2: React.FC<Form3Modal2Props> = ({
     socket.emit("obtener_facultades_carreras", (response: any) => {
       if (response.success) {
         setFacultades(JSON.parse(response.data));
-        
+
         // Si hay datos iniciales, intentamos asignar las facultades y carreras
         if (initialData.length > 0) {
           const autoresConDatos = initialData.map((autor) => {
@@ -70,7 +73,7 @@ const Form3Modal2: React.FC<Form3Modal2Props> = ({
             if (autor.facultad_seleccionada && autor.carrera_seleccionada) {
               return autor;
             }
-            
+
             // Intentamos encontrar la facultad basada en la carrera
             const autorProcesado = { ...autor };
             if (autor.id_facultad_carrera) {
@@ -88,14 +91,14 @@ const Form3Modal2: React.FC<Form3Modal2Props> = ({
             }
             return autorProcesado;
           });
-          
+
           setAutores(autoresConDatos);
         }
       } else {
         console.error(response.error);
       }
     });
-    
+
     socket.emit("obtener_rol", (response: any) => {
       if (response.success === true) {
         setRoles(response.data);
@@ -157,9 +160,9 @@ const Form3Modal2: React.FC<Form3Modal2Props> = ({
             const autorProcesado: Autor = {
               ...autor,
               facultad_seleccionada: null,
-              carrera_seleccionada: null
+              carrera_seleccionada: null,
             };
-            
+
             // Intenta buscar la facultad y carrera para este autor
             if (autor.id_facultad_carrera) {
               for (const facultad of facultades) {
@@ -173,10 +176,10 @@ const Form3Modal2: React.FC<Form3Modal2Props> = ({
                 }
               }
             }
-            
+
             return autorProcesado;
           });
-          
+
           setAutores(autoresConDatos);
           setDataModified(true);
           toast.success(response.message);
@@ -230,26 +233,37 @@ const Form3Modal2: React.FC<Form3Modal2Props> = ({
   const handleSave = async () => {
     if (autores.length === 0 && !authorDataFileBase64) {
       setHasMissingData(true);
-      toast.warning("No hay datos para guardar. Por favor, carga un archivo o asegúrate de tener autores definidos.");
+      toast.warning(
+        "No hay datos para guardar. Por favor, carga un archivo o asegúrate de tener autores definidos."
+      );
       return;
     }
 
     // Verificar que todos los autores tengan facultad, carrera y rol seleccionados
     const autorIncompleto = autores.some(
-      (autor) => !autor.facultad_seleccionada || !autor.carrera_seleccionada || !autor.id_rol
+      (autor) =>
+        !autor.facultad_seleccionada ||
+        !autor.carrera_seleccionada ||
+        !autor.id_rol
     );
 
     if (autorIncompleto) {
-      toast.warning("Por favor, completa todos los datos de los autores antes de guardar.");
+      toast.warning(
+        "Por favor, completa todos los datos de los autores antes de guardar."
+      );
       return;
     }
 
     setLoading(true);
     try {
       // Preparar los datos para guardar
-      const datosParaGuardar = autores.map(autor => {
+      const datosParaGuardar = autores.map((autor) => {
         // Quitar las propiedades de UI antes de guardar
-        const { facultad_seleccionada, carrera_seleccionada, ...autorSinPropiedadesUI } = autor;
+        const {
+          facultad_seleccionada,
+          carrera_seleccionada,
+          ...autorSinPropiedadesUI
+        } = autor;
         return autorSinPropiedadesUI;
       });
 
@@ -285,136 +299,214 @@ const Form3Modal2: React.FC<Form3Modal2Props> = ({
   };
 
   return (
-    <div className="flex flex-col items-center p-1 bg-gradient-to-r to-gray-100 min-h-screen">
-      <div className="w-full max-w-4xl bg-white p-8 rounded-xl shadow-xl border border-gray-700">
-        <Title
-          text="Atención de Solicitud de Registro de Propiedad Intelectual"
-          size="2xl"
-          className="text-center text-gray-800 mb-3 text-lg"
-        />
-        <h1 className="text-sm font-bold text-center text-gray-900 mb-9">
-          Revisión y Análisis de Requerimiento
-        </h1>
-        <UploadFile
-          id="author-data-file"
-          onFileChange={(file) => handleFileChange(file)}
-          label="Cargar Datos informativos de autores"
-        />
-        
-        {/* Lista de Autores */}
-        {autores.length > 0 && (
-          <div className="mt-6">
-            <h2 className="text-lg font-semibold mb-4">Lista de Autores:</h2>
-            <div className="space-y-6">
-              {autores.map((autor, index) => (
-                <div key={index} className="p-4 border rounded-lg shadow-sm bg-gray-50">
-                  <h3 className="font-semibold text-base mb-2">Autor {index + 1}</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm"><strong>Nombre:</strong> {autor.nombre}</p>
-                      <p className="text-sm"><strong>Identificación:</strong> {autor.identificacion}</p>
-                      <p className="text-sm"><strong>Correo:</strong> {autor.correo}</p>
+    <div className="fixed inset-0 bg-gray-700/50 backdrop-blur-md flex justify-center items-center p-4">
+      <div className="bg-amber-50 rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-zinc-800">
+          {/* Título principal */}
+          <Title
+            text="Atención de Solicitud de Registro de Propiedad Intelectual"
+            size="2xl"
+            className="text-center text-gray-800 mb-3 text-lg sm:text-xl md:text-2xl"
+          />
+          {/* Subtítulo */}
+          <h1 className="text-sm font-bold text-center text-gray-900 mb-6 sm:mb-8 md:mb-9">
+            Revisión y Análisis de Requerimiento
+          </h1>
+
+          {/* Campo para cargar archivos */}
+          <UploadFile
+            id="author-data-file"
+            onFileChange={(file) => handleFileChange(file)}
+            label="Cargar Datos informativos de autores"
+          />
+
+          {/* Lista de Autores */}
+          {autores.length > 0 && (
+            <div className="mt-6">
+              <h2 className="text-lg font-semibold mb-4">Lista de Autores:</h2>
+              <div className="space-y-4 sm:space-y-6">
+                {autores.map((autor, index) => (
+                  <div
+                    key={index}
+                    className="p-4 border rounded-lg shadow-sm bg-gray-50"
+                  >
+                    <h3 className="font-semibold text-base mb-2">
+                      Autor {index + 1}
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <InputField
+                          label="Nombre"
+                          value={autor.nombre}
+                          onChange={(e) => {
+                            const nuevosAutores = [...autores];
+                            nuevosAutores[index].nombre = e.target.value;
+                            setAutores(nuevosAutores);
+                            setDataModified(true);
+                          }}
+                        />
+                        <InputField
+                          label="Identificación"
+                          value={autor.identificacion}
+                          onChange={(e) => {
+                            const nuevosAutores = [...autores];
+                            nuevosAutores[index].identificacion =
+                              e.target.value;
+                            setAutores(nuevosAutores);
+                            setDataModified(true);
+                          }}
+                        />
+                        <InputField
+                          label="Correo"
+                          value={autor.correo}
+                          onChange={(e) => {
+                            const nuevosAutores = [...autores];
+                            nuevosAutores[index].correo = e.target.value;
+                            setAutores(nuevosAutores);
+                            setDataModified(true);
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <InputField
+                          label="Teléfono"
+                          value={autor.telefono}
+                          onChange={(e) => {
+                            const nuevosAutores = [...autores];
+                            nuevosAutores[index].telefono = e.target.value;
+                            setAutores(nuevosAutores);
+                            setDataModified(true);
+                          }}
+                        />
+                        <InputField
+                          label="Dirección"
+                          value={autor.direccion}
+                          onChange={(e) => {
+                            const nuevosAutores = [...autores];
+                            nuevosAutores[index].direccion = e.target.value;
+                            setAutores(nuevosAutores);
+                            setDataModified(true);
+                          }}
+                        />
+                        <InputField
+                          label="Participación"
+                          value={autor.porcentaje_participacion.toString()}
+                          onChange={(e) => {
+                            const nuevosAutores = [...autores];
+                            nuevosAutores[index].porcentaje_participacion =
+                              parseFloat(e.target.value);
+                            setAutores(nuevosAutores);
+                            setDataModified(true);
+                          }}
+                          type="number"
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm"><strong>Teléfono:</strong> {autor.telefono}</p>
-                      <p className="text-sm"><strong>Dirección:</strong> {autor.direccion}</p>
-                      <p className="text-sm"><strong>Participación:</strong> {autor.porcentaje_participacion}%</p>
-                    </div>
-                  </div>
-                  
-                  {/* Selección de Facultad */}
-                  <div className="mt-4">
-                    <label htmlFor={`facultad-${index}`} className="block text-sm font-medium text-gray-700">
-                      Seleccione una Facultad:
-                    </label>
-                    <select
-                      id={`facultad-${index}`}
-                      onChange={(e) => manejarCambioFacultad(index, e)}
-                      value={autor.facultad_seleccionada || ""}
-                      className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-[#931D21] focus:border-[#931D21] text-xs"
-                    >
-                      <option value="">Seleccione una facultad</option>
-                      {facultades.map((facultad) => (
-                        <option
-                          key={facultad.id_facultad}
-                          value={facultad.id_facultad}
-                        >
-                          {facultad.nombre_facultad}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  {/* Selección de Carrera */}
-                  {autor.facultad_seleccionada && (
+
+                    {/* Selección de Facultad */}
                     <div className="mt-4">
-                      <label htmlFor={`carrera-${index}`} className="block text-sm font-medium text-gray-700">
-                        Seleccione una Carrera:
+                      <label
+                        htmlFor={`facultad-${index}`}
+                        className="block text-sm font-medium text-gray-700"
+                      >
+                        Seleccione una Facultad:
                       </label>
                       <select
-                        id={`carrera-${index}`}
-                        onChange={(e) => manejarCambioCarrera(index, e)}
-                        value={autor.carrera_seleccionada || ""}
-                        className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-[#931D21] focus:border-[#931D21] text-xs"
+                        id={`facultad-${index}`}
+                        onChange={(e) => manejarCambioFacultad(index, e)}
+                        value={autor.facultad_seleccionada || ""}
+                        className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-[#931D21] focus:border-[#931D21] text-xs sm:text-sm"
                       >
-                        <option value="">Seleccione una carrera</option>
-                        {facultades
-                          .find(
-                            (fac) => fac.id_facultad === autor.facultad_seleccionada
-                          )
-                          ?.Carreras.map((carrera) => (
-                            <option
-                              key={carrera.id_carrera}
-                              value={carrera.id_carrera}
-                            >
-                              {carrera.nombre_carrera}
-                            </option>
-                          ))}
+                        <option value="">Seleccione una facultad</option>
+                        {facultades.map((facultad) => (
+                          <option
+                            key={facultad.id_facultad}
+                            value={facultad.id_facultad}
+                          >
+                            {facultad.nombre_facultad}
+                          </option>
+                        ))}
                       </select>
                     </div>
-                  )}
-                  
-                  {/* Selección de Rol */}
-                  <div className="mt-4">
-                    <label htmlFor={`rol-${index}`} className="block text-sm font-medium text-gray-700">
-                      Seleccione un Rol:
-                    </label>
-                    <select
-                      id={`rol-${index}`}
-                      value={autor.id_rol || ""}
-                      onChange={(e) => handleRoleChange(index, e)}
-                      className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-[#931D21] focus:border-[#931D21] text-xs"
-                      disabled={loading}
-                    >
-                      <option value="">Seleccione un cargo</option>
-                      {roles.map((rol) => (
-                        <option key={rol.id} value={rol.id}>
-                          {rol.nombre}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
-        {/* Botones */}
-        <div className="flex justify-end p-4 mt-6 bg-gray-50 border-t border-gray-200">
-          <button
-            onClick={closeModal}
-            className="bg-gray-500 text-white text-xs px-4 py-2 rounded-lg hover:bg-gray-600 mr-2"
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={handleSave}
-            className="bg-[#931D21] text-white text-xs px-4 py-2 rounded-lg hover:bg-red-700"
-            disabled={loading}
-          >
-            {loading ? "Procesando..." : "Guardar Cambios"}
-          </button>
+                    {/* Selección de Carrera */}
+                    {autor.facultad_seleccionada && (
+                      <div className="mt-4">
+                        <label
+                          htmlFor={`carrera-${index}`}
+                          className="block text-sm font-medium text-gray-700"
+                        >
+                          Seleccione una Carrera:
+                        </label>
+                        <select
+                          id={`carrera-${index}`}
+                          onChange={(e) => manejarCambioCarrera(index, e)}
+                          value={autor.carrera_seleccionada || ""}
+                          className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-[#931D21] focus:border-[#931D21] text-xs sm:text-sm"
+                        >
+                          <option value="">Seleccione una carrera</option>
+                          {facultades
+                            .find(
+                              (fac) =>
+                                fac.id_facultad === autor.facultad_seleccionada
+                            )
+                            ?.Carreras.map((carrera) => (
+                              <option
+                                key={carrera.id_carrera}
+                                value={carrera.id_carrera}
+                              >
+                                {carrera.nombre_carrera}
+                              </option>
+                            ))}
+                        </select>
+                      </div>
+                    )}
+
+                    {/* Selección de Rol */}
+                    <div className="mt-4">
+                      <label
+                        htmlFor={`rol-${index}`}
+                        className="block text-sm font-medium text-gray-700"
+                      >
+                        Seleccione un Rol:
+                      </label>
+                      <select
+                        id={`rol-${index}`}
+                        value={autor.id_rol || ""}
+                        onChange={(e) => handleRoleChange(index, e)}
+                        className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-[#931D21] focus:border-[#931D21] text-xs sm:text-sm"
+                        disabled={loading}
+                      >
+                        <option value="">Seleccione un cargo</option>
+                        {roles.map((rol) => (
+                          <option key={rol.id} value={rol.id}>
+                            {rol.nombre}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Botones */}
+          <div className="flex justify-end p-4 mt-6 bg-gray-50 border-t border-gray-200">
+            <button
+              onClick={closeModal}
+              className="bg-gray-500 text-white text-xs sm:text-sm px-4 py-2 rounded-lg hover:bg-gray-600 mr-2"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleSave}
+              className="bg-[#931D21] text-white text-xs sm:text-sm px-4 py-2 rounded-lg hover:bg-red-700"
+              disabled={loading}
+            >
+              {loading ? "Procesando..." : "Guardar Cambios"}
+            </button>
+          </div>
         </div>
       </div>
       <ToastContainer />
