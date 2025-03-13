@@ -26,13 +26,13 @@ export default function UploadForm() {
   const closeModal2 = () => setIsModal2Open(false);
 
   // Función para manejar el guardado de datos
-  const handleSave = (data) => {
+  const handleSave = (data:any) => {
     console.log("Datos guardados:", data);
     setFormData(data); // Actualizar los datos del formulario
     closeModal1(); // Cierra el modal después de guardar
   };
 
-  const handleTipoMemorandoChange = (e) => {
+  const handleTipoMemorandoChange = (e:any) => {
     setTipoMemorando(e.target.value);
   };
 
