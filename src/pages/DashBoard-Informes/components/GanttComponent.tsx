@@ -53,8 +53,14 @@ const FileSection: React.FC<{ files?: TaskFile[] }> = ({ files = [] }) => {
 
 // Helper function to format dates
 const formatDate = (dateString: string | Date | null | undefined): string => {
-  if (!dateString) return "—";
+  if (dateString === null || dateString === undefined) {
+    return "—";
+  }
   
+  // Additional check for Unix epoch date (which likely indicates a null date was converted)
+  if (dateString instanceof Date && dateString.getTime() === 0) {
+    return "—";
+  }
   try {
     // Si es objeto Date, convertir a string ISO
     if (dateString instanceof Date) {
@@ -159,12 +165,19 @@ const TaskRow: React.FC<{
 
         {/* Status */}
         <div className="flex-1 min-w-[130px] flex-shrink-0">
-          <p className={`text-sm rounded-full px-2 py-1 inline-block transition-all duration-200
-            ${isSubtask 
-              ? (task.status === "Completado" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800")
-              : (task.progress === 100 ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800")}`}>
-            {isSubtask ? task.status : (task.progress === 100 ? "Completada" : "En progreso")}
-          </p>
+        <p className={`text-sm rounded-full px-2 py-1 inline-block transition-all duration-200
+  ${isSubtask 
+    ? (task.status === "Finalizado" ? "bg-green-100 text-green-800" : 
+       task.status === "En Proceso" ? "bg-yellow-100 text-yellow-800" : 
+       "bg-blue-100 text-blue-800") // Color para "iniciado"
+    : (task.status === "Finalizado" ? "bg-green-100 text-green-800" : 
+       task.status === "En Proceso" ? "bg-yellow-100 text-yellow-800" : 
+       "bg-blue-100 text-blue-800")}`}> 
+  {isSubtask ? 
+    task.status : 
+    task.status === "iniciado" ? "Iniciado" : task.status // Cambiar a mayúscula inicial
+  }
+</p>
         </div>
 
         {/* Conditional: Show progress bar or files */}

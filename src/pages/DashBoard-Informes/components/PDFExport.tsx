@@ -1,8 +1,8 @@
-// PDFExport.tsx
 import React, { ReactNode } from "react";
 import html2canvas from "html2canvas-pro";
 import { jsPDF } from "jspdf";
 import logo from "../../../assets/img/logoUTA.png";
+import { FaDownload } from "react-icons/fa";
 
 interface PDFExportProps {
   children: ReactNode;
@@ -32,6 +32,7 @@ const PDFExport: React.FC<PDFExportProps> = ({
       })
       .replace(/^(\d{2})/, "$1 de");
   };
+  
   const buildSubtitle = () => {
     const parts = [];
 
@@ -52,15 +53,58 @@ const PDFExport: React.FC<PDFExportProps> = ({
     return parts.join(" ");
   };
 
+  // Helper function to wait before capturing to ensure components are rendered
+  const waitForElementRender = (ms: number) => {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  };
+  
+  const captureElement = async (elementId: string) => {
+    const element = document.getElementById(elementId);
+    if (!element) return null;
+    
+    // Wait for a moment to ensure components are fully rendered
+    await waitForElementRender(300);
+    
+    // Use improved html2canvas options
+    const canvas = await html2canvas(element, {
+      scale: 2, // Higher resolution
+      useCORS: true, // Allow cross-origin images
+      allowTaint: true, // Allow tainting with cross-origin content
+      backgroundColor: null, // Transparent background
+      logging: false, // Disable logging
+      imageTimeout: 0, // No timeout for images
+      onclone: (documentClone) => {
+        // This gives us access to the cloned document before capture
+        // We can make modifications if needed
+        const clonedElement = documentClone.getElementById(elementId);
+        if (clonedElement) {
+          // Force all SVG elements to be visible in the clone
+          const svgElements = clonedElement.querySelectorAll('svg');
+          svgElements.forEach(svg => {
+            svg.style.visibility = 'visible';
+            svg.style.display = 'block';
+          });
+          
+          // Ensure text elements are visible
+          const textElements = clonedElement.querySelectorAll('text');
+          textElements.forEach(text => {
+            text.style.visibility = 'visible';
+            text.style.fontFamily = 'Arial, sans-serif';
+          });
+        }
+        return documentClone;
+      }
+    });
+    
+    return canvas;
+  };
+
   const exportToPDF = async () => {
-    const pdf = new jsPDF("p", "pt", "a4"); // 'pt' para puntos, 'a4' tamaño de la página
+    const pdf = new jsPDF("l", "pt", "a4"); // 'l' for landscape
     const pdfWidth = pdf.internal.pageSize.getWidth(); // ancho de la página en puntos
 
     // === 1) Agregas el encabezado (texto e imagen, si deseas) en la primera página
     // ----------------------------------------------------------
-    // Ejemplo: Añadir un logo en la esquina superior izquierda
-    // Ajusta x, y, width y height según tus necesidades
-    // Si tu imagen está en base64, la puedes colocar directamente
     pdf.addImage(logo, "PNG", 40, 15, 60, 60);
 
     // Luego, agregas texto
@@ -74,6 +118,7 @@ const PDFExport: React.FC<PDFExportProps> = ({
     pdf.text("REPORTE DE REGISTRO DE PROPIEDAD INTELECTUAL", pdfWidth / 2, 60, {
       align: "center",
     });
+    
     pdf.setFontSize(10);
     pdf.setTextColor(100, 100, 100);
 
@@ -93,31 +138,32 @@ const PDFExport: React.FC<PDFExportProps> = ({
     pdf.setLineWidth(0.5);
     pdf.line(40, 70, pdfWidth - 40, 70); // (x1, y1, x2, y2)
 
-    // === 2) Ahora, debajo del encabezado, vas iterando y añadiendo el contenido capturado
+    // === 2) Capturar cada elemento con mejoras
     // ----------------------------------------------------------
-    // Para evitar que se “pise” con el encabezado, podrías
-    // iniciar la imagen un poco más abajo (por ejemplo, y=100)
-
     const startY = 100; // posición vertical de inicio
-    let currentPage = 0; // para saber cuándo agregar página
 
     for (let i = 0; i < captureIds.length; i++) {
-      const element = document.getElementById(captureIds[i]);
-      if (element) {
-        // Capturamos el contenido con html2canvas
-        const canvas = await html2canvas(element, { scale: 2 });
+      // Capture each element with our improved function
+      const canvas = await captureElement(captureIds[i]);
+      
+      if (canvas) {
         const imgData = canvas.toDataURL("image/png");
 
-        // Calculamos un ancho de imagen que se ajuste al PDF
-        // y alto proporcional
-        const desiredWidth = 300;
-        const desiredHeight = 300;
+        // Dimensiones predeterminadas
+        let desiredWidth = 300;
+        let desiredHeight = 300;
+        
+        // Si es la imagen con ID "taskProgress", hacerla más ancha
+        if (captureIds[i] === "granttchart") {
+          desiredWidth = 800; // Ancho mayor para esta imagen específica
+          desiredHeight = 300; // Altura ajustada
+        }
 
         // Si i > 0, añadimos una nueva página
         if (i > 0) {
           pdf.addPage();
-          currentPage++;
-          // En cada nueva página, si deseas repetir el encabezado, puedes volver a dibujarlo:
+          
+          // En cada nueva página, si deseas repetir el encabezado
           pdf.setFontSize(14);
           pdf.setTextColor(60, 60, 60);
           pdf.text(
@@ -142,10 +188,14 @@ const PDFExport: React.FC<PDFExportProps> = ({
           pdf.line(40, 70, pdfWidth - 40, 70);
         }
 
-        // Agregar la imagen en la posición (x=40, y=startY) para dejar margen
-        pdf.addImage(imgData, "PNG", 160, startY, desiredWidth, desiredHeight);
+        // Calcular la posición x para centrar la imagen según su ancho
+        const xPosition = (pdfWidth - desiredWidth) / 2;
+
+        // Agregar la imagen en la posición calculada
+        pdf.addImage(imgData, "PNG", xPosition, startY, desiredWidth, desiredHeight);
       }
     }
+    
     const generateFileName = () => {
       const cleanText = (text: string) =>
         text
@@ -180,26 +230,19 @@ const PDFExport: React.FC<PDFExportProps> = ({
 
     pdf.save(generateFileName());
   };
+  
   return (
     <div>
       {children}
-      <button
-        onClick={exportToPDF}
-        style={{
-          backgroundColor: "#007bff",
-          color: "#fff",
-          padding: "10px 20px",
-          fontSize: "16px",
-          margin: "20px auto",
-          display: "block",
-          border: "none",
-          borderRadius: "4px",
-          cursor: "pointer",
-          zIndex: 1000,
-        }}
-      >
-        Exportar a PDF
-      </button>
+      {/* Botón de descarga con el nuevo diseño y centrado */}
+      <div className="flex justify-center mt-5 mb-5">
+        <button
+          onClick={exportToPDF}
+          className="bg-red-600 text-white p-4 rounded-lg flex items-center justify-center hover:bg-red-700 transition-colors"
+        >
+          Exportar a PDF <FaDownload className="ml-2" />
+        </button>
+      </div>
     </div>
   );
 };

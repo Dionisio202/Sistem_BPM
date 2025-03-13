@@ -83,7 +83,7 @@ const Card: React.FC<CardProps> = ({
                   dataKey="value"
                   label
                 >
-                  {pieChartData.map((entry, index) => (
+                  {pieChartData.map((_entry, index) => (
                     <Cell
                       key={`cell-${index}`}
                       fill={pieChartColors[index % pieChartColors.length]}

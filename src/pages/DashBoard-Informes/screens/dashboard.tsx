@@ -211,7 +211,8 @@ const applyFilters = (filters: Filters) => {
   const totalRegistros = registrosFiltrados.length;
   const registrosFinalizados = registrosFiltrados.filter(r => r.estado === "Finalizado").length;
   const registrosEnProceso = registrosFiltrados.filter(r => r.estado === "En Proceso").length;
-  
+  const registrosInicio = registrosFiltrados.filter(r => r.estado === "Iniciado").length;
+
   const cardsData = [
     {
       title: "Total Registro de Propiedad Intelectual",
@@ -219,11 +220,12 @@ const applyFilters = (filters: Filters) => {
       description: totalRegistros > 0 ? `${Math.round((registrosFinalizados / totalRegistros) * 100)}%` : "0%",
       progress: totalRegistros > 0 ? Math.round((registrosFinalizados / totalRegistros) * 100) : 0,
     },
+    
   ];
 
   const smallCardsData = [
     { title: "Finalizados", value: registrosFinalizados },
-    { title: "En progreso", value: registrosEnProceso },
+    { title: "Iniciados-En progreso", value: `${registrosInicio}-${registrosEnProceso}`},
   ];
 
   // Tarjetas de productos
@@ -231,7 +233,7 @@ const applyFilters = (filters: Filters) => {
 
   return (
     <PDFExport
-      captureIds={["taskProgress"]}
+      captureIds={["cardprincipal","taskProgress","granttchart"]}
       filtersData={{
         year: new Date().getFullYear().toString(),
         facultad: currentFilters.facultades.join(", "),
@@ -257,20 +259,23 @@ const applyFilters = (filters: Filters) => {
             />
 
             {/* Tarjetas numéricas */}
-            <div className="flex-grow md:ml-15 space-y-2 ml=0">
+            <div className="flex-grow space-y-2 ml=0 justify-center" >
+              <div  className="flex flex-wrap justify-center">
               <NumericCards
                 cardsData={cardsData}
                 smallCardsData={smallCardsData}
                 projectCategories={datosProyectos}
+                
               />
+              </div>
             </div>
 
             {/* Separador: Distribución de Registros */}
             <Separator title="Distribución de Registros Universidad Técnica de Ambato" />
 
             {/* Gráficos principales */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-200 p-3 rounded-lg">
-              <div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-200 p-3 rounded-lg" >
+              <div id="cardprincipal">
                 <CardPrincipal
                   title="Panel General"
                   className="w-full text-center text-sm border border-gray-300 bg-gray-800 rounded-lg p-4 shadow-sm"
@@ -278,7 +283,7 @@ const applyFilters = (filters: Filters) => {
                   stackedBarChartData={datosTipoProducto}
                 />
               </div>
-              <div id="taskProgress">
+              <div id="taskProgress" >
                 <HorizontalBar Datos={datosCarreras} />
               </div>
             </div>
@@ -313,7 +318,7 @@ const applyFilters = (filters: Filters) => {
             <Separator title="Seguimiento de Registros" />
 
             {/* Gráfico de Gantt */}
-            <div className="p-3">
+            <div className="p-3" id="granttchart">
               <GanttChart tasks={prepararDatosGantt(registrosFiltrados)} />
             </div>
           </main>
