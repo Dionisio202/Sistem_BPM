@@ -1,21 +1,52 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import io from "socket.io-client";
 import Button from "../UI/button";
 import Title from "./components/TitleProps";
 import ModalP from "./components/ModalP";
 import { FaFileAlt, FaRegFilePdf } from "react-icons/fa";
 import Form3Modal1 from "./Form3Modales/Form3Modal1";
 import Form3Modal2 from "./Form3Modales/Form3Modal2";
-
+import { SERVER_BACK_URL } from "../../config.ts";
+import { toast } from "react-toastify";
+import { temporalData } from "../../interfaces/actividad.interface.ts";
+import { useCombinedBonitaData } from "../bonita/hooks/obtener_datos_bonita.tsx";
+import { useSaveTempState } from "../bonita/hooks/datos_temprales";
+const socket = io(SERVER_BACK_URL);
 export default function UploadForm() {
   // Estados para controlar la apertura y cierre de los modales
   const [isModal1Open, setIsModal1Open] = useState(false);
   const [isModal2Open, setIsModal2Open] = useState(false);
-  
+  const { usuario, bonitaData, tareaActual } = useCombinedBonitaData();
   // Estado para manejar el tipo de memorando
   const [tipoMemorando, setTipoMemorando] = useState("Tipo A");
   
   // Estado para almacenar los datos del formulario (para ser compartido entre modales)
   const [formData, setFormData] = useState({});
+  const { startAutoSave, saveFinalState } = useSaveTempState(socket);
+  const [json, setJson] = useState<temporalData | null>(null);
+  const [formDataAutores, setFormDataAutores] = useState({});
+  useEffect(() => {
+    if (bonitaData && usuario) {
+      socket.emit("comprobar_estado_registro", { id_registro: `${bonitaData.processId}-${bonitaData.caseId}` }, (response: any) => {
+        if (response.success ) {
+          console.log(response.data);
+          setFormDataAutores(response.data);
+        } else {
+          toast.error(response.message);
+          console.log(response.error);
+        }
+      });
+      const data: temporalData = {
+        id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
+        id_tarea: parseInt(bonitaData.taskId),
+        jsonData: JSON.stringify("No Form Data"),
+        id_funcionario: parseInt(usuario.user_id),
+        nombre_tarea: tareaActual?.name ?? "",
+      };
+      setJson(data);
+      startAutoSave(data, 10000, "En Proceso");
+    }
+  }, [bonitaData, usuario, startAutoSave, tareaActual]);
 
   // Funciones para abrir los modales
   const openModal1 = () => setIsModal1Open(true);
@@ -98,10 +129,9 @@ export default function UploadForm() {
             Siguiente
           </Button>
           <Button
-            className="bg-blue-600 text-white rounded-lg px-6 py-2 hover:bg-blue-700 transition-colors duration-200"
-            onClick={() => console.log("Guardar")}
+            className="bg-[#931D21] text-white rounded-lg px-6 py-2 hover:bg-blue-700 transition-colors duration-200"
+            onClick={handleSave}
           >
-            Guardar
           </Button>
         </div>
       </div>
@@ -115,6 +145,7 @@ export default function UploadForm() {
         <Form3Modal1
           showModal={isModal1Open}
           closeModal={closeModal1}
+          modalData={formData} // Pasamos los datos del formulario aquí
           onSave={handleSave}
           tipoMemorando={tipoMemorando}
           handleTipoMemorandoChange={handleTipoMemorandoChange}
@@ -130,7 +161,7 @@ export default function UploadForm() {
         <Form3Modal2
           showModal={isModal2Open}
           closeModal={closeModal2}
-          modalData={formData} // Pasamos los datos del formulario aquí
+          modalData={formDataAutores} // Pasamos los datos del formulario aquí
           onSave={handleSave}
           tipoMemorando={tipoMemorando}
           handleTipoMemorandoChange={handleTipoMemorandoChange}
