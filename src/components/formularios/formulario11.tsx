@@ -32,7 +32,7 @@ const Formulario11: React.FC = () => {
         id_tarea: parseInt(bonitaData.taskId),
         jsonData: JSON.stringify("No Form Data"),
         id_funcionario: parseInt(usuario.user_id),
-        nombre_tarea: tareaActual?.name || "",
+        nombre_tarea: tareaActual?.name ?? "",
       };
       setJson(data);
       startAutoSave(data, 10000, "En Proceso");
@@ -44,18 +44,29 @@ const Formulario11: React.FC = () => {
       toast.error("Debes subir el archivo antes de continuar.");
       return;
     }
+    if (!json) {
+      toast.error("No hay datos para guardar.");
+      return;
+    }
+    
     try {
       setLoading(true); // Activar el estado de loading
-      if (json) {
-        await saveFinalState(json);
-      } else {
-        console.error("❌ Error: json is null");
+      const saveResponse = await saveFinalState(json);
+      // Verificar que la respuesta sea válida y exitosa
+      if (!saveResponse || typeof saveResponse.success !== "boolean") {
+        throw new Error("Respuesta inválida al guardar el estado final.");
       }
-
+  
+      if (!saveResponse.success) {
+        throw new Error(
+          saveResponse.message || 
+          "No se pudo guardar el estado final. Inténtelo de nuevo."
+        );
+      }
       await bonita.changeTask();
       setProcessAdvanced(true);
     } catch (error) {
-      console.error("Error al cambiar la tarea:", error);
+      console.error("Error en handleNext:", error);
     } finally {
       setLoading(false); // Desactivar el estado de loading
     }

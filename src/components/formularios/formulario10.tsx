@@ -95,23 +95,29 @@ export default function ConfirmationScreen() {
       toast.error("Debes seleccionar ambos documentos para continuar.");
       return;
     }
-    if (bonitaData && usuario) {
-      try {
-        setLoading(true); // Activar el estado de loading
 
-        if (json) {
-          await saveFinalState(json);
-        } else {
-          console.error("❌ Error: json is null");
-        }
+    if (!json) {
+      toast.error("No hay datos para guardar.");
+      return;
+    }
 
-        await bonita.changeTask();
-        setProcessAdvanced(true);
-      } catch (error) {
-        console.error("Error guardando estado final:", error);
-      } finally {
-        setLoading(false); // Desactivar el estado de loading
+    try {
+      setLoading(true); // Activar el estado de loading
+      const saveResponse = await saveFinalState(json);
+      if (!saveResponse || typeof saveResponse.success !== "boolean") {
+        throw new Error("Respuesta inválida al guardar el estado final.");
       }
+      if (!saveResponse.success) {
+        throw new Error(
+          saveResponse.message ||
+            "No se pudo guardar el estado final. Inténtelo de nuevo."
+        );
+      }
+      await bonita.changeTask();
+      setProcessAdvanced(true);
+    } catch (error) {
+    } finally {
+      setLoading(false); // Desactivar el estado de loading
     }
   };
 

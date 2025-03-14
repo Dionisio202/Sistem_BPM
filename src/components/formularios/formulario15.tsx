@@ -9,7 +9,7 @@ import { SERVER_BACK_URL } from "../../config.ts";
 import { useSaveTempState } from "../bonita/hooks/datos_temprales";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { useCombinedBonitaData } from "../bonita/hooks/obtener_datos_bonita.tsx";
-import { ToastContainer} from "react-toastify";
+import { ToastContainer, toast } from "react-toastify";
 
 const socket = io(SERVER_BACK_URL);
 
@@ -29,16 +29,33 @@ export default function Formulario6() {
     useState<StaticDocument | null>(null);
   const bonita: BonitaUtilities = new BonitaUtilities();
   const [json, setJson] = useState<temporalData | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [processAdvanced, setProcessAdvanced] = useState(false);
   const handleNext = async () => {
+    if (!json) {
+      toast.error("No hay datos para guardar.");
+      return;
+    }
     try {
-      if (json) {
-        await saveFinalState(json);
-      } else {
-        console.error("❌ Error: json is null");
+      setLoading(true); // Activar el estado de loading
+      const saveResponse = await saveFinalState(json);
+      // Verificar que la respuesta sea válida y exitosa
+      if (!saveResponse || typeof saveResponse.success !== "boolean") {
+        throw new Error("Respuesta inválida al guardar el estado final.");
+      }
+
+      if (!saveResponse.success) {
+        throw new Error(
+          saveResponse.message ||
+            "No se pudo guardar el estado final. Inténtelo de nuevo."
+        );
       }
       await bonita.changeTask();
+      setProcessAdvanced(true);
     } catch (error) {
-      console.error("Error al cambiar la tarea:", error);
+      console.error("Error en handleNext:", error);
+    } finally {
+      setLoading(false); 
     }
   };
   // Obtener usuario autenticado
@@ -97,11 +114,12 @@ export default function Formulario6() {
           onSelect={handleViewDocument}
           defaultLabel="Selecciona un documento"
         />
-        <Button
-            className="w-full bg-[#931D21] hover:bg-[#7A171A] text-white py-2 rounded-lg font-semibold hover:scale-105 transition-transform duration-300 disabled:opacity-50"
+         <Button
+          className="w-full bg-[#931D21] hover:bg-[#7A171A] text-white py-2 rounded-lg font-semibold hover:scale-105 transition-transform duration-300 disabled:opacity-50"
           onClick={handleNext}
+          disabled={loading} // Deshabilitar si no se ha subido el archivo
         >
-          Siguiente
+          {loading ? "Cargando..." : "Siguiente Proceso"}
         </Button>
       </div>
 
