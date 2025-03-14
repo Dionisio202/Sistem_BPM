@@ -11,6 +11,8 @@ import { toast } from "react-toastify";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { useCombinedBonitaData } from "../bonita/hooks/obtener_datos_bonita.tsx";
 import { useSaveTempState } from "../bonita/hooks/datos_temprales";
+//@ts-ignore
+import BonitaUtilities from "../bonita/bonita-utilities";
 
 interface Autor {
   id_persona: number | null;
@@ -34,6 +36,7 @@ interface Autor {
 const socket = io(SERVER_BACK_URL);
 
 export default function UploadForm() {
+  const bonita: BonitaUtilities = new BonitaUtilities();
   const [isModal1Open, setIsModal1Open] = useState(false);
   const [isModal2Open, setIsModal2Open] = useState(false);
   const { usuario, bonitaData, tareaActual } = useCombinedBonitaData();
@@ -93,7 +96,7 @@ export default function UploadForm() {
     toast.success("Productos guardados exitosamente");
   };
 
-  const handleFinalSave = () => {
+  const handleFinalSave = async () => {
     if (!json) {
       toast.error("Error de configuración del proceso");
       return;
@@ -180,10 +183,7 @@ export default function UploadForm() {
     );
 
     toast.success("Proceso guardado exitosamente");
-    console.log("Datos finales:", {
-      autores: formDataAutores,
-      productos: formDataProductos,
-    });
+    await bonita.changeTask();
   };
 
   return (
