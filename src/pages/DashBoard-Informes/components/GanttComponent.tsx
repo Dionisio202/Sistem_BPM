@@ -29,17 +29,77 @@ const ProgressBar: React.FC<{ progress: number }> = ({ progress }) => {
   );
 };
 
+// Create a custom styled alert
+function showCustomAlert(message:any) {
+  // Create overlay
+  const overlay = document.createElement('div');
+  overlay.style.position = 'fixed';
+  overlay.style.top = '0';
+  overlay.style.left = '0';
+  overlay.style.width = '100%';
+  overlay.style.height = '100%';
+  overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+  overlay.style.zIndex = '1000';
+  overlay.style.display = 'flex';
+  overlay.style.justifyContent = 'center';
+  overlay.style.alignItems = 'center';
+
+  // Create alert box
+  const alertBox = document.createElement('div');
+  alertBox.style.backgroundColor = '#fff';
+  alertBox.style.borderRadius = '8px';
+  alertBox.style.padding = '20px';
+  alertBox.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)';
+  alertBox.style.maxWidth = '400px';
+  alertBox.style.width = '80%';
+  alertBox.style.textAlign = 'center';
+
+  // Create header
+  const header = document.createElement('h3');
+  header.textContent = 'Información del Documento';
+  header.style.color = '#0056b3';
+  header.style.marginTop = '0';
+
+  // Create message
+  const messageElement = document.createElement('p');
+  messageElement.textContent = message;
+  messageElement.style.margin = '15px 0';
+
+  // Create OK button
+  const okButton = document.createElement('button');
+  okButton.textContent = 'OK';
+  okButton.style.backgroundColor = '#2196F3';
+  okButton.style.color = 'white';
+  okButton.style.border = 'none';
+  okButton.style.borderRadius = '4px';
+  okButton.style.padding = '8px 30px';
+  okButton.style.cursor = 'pointer';
+  okButton.style.fontSize = '16px';
+  okButton.onclick = function() {
+    document.body.removeChild(overlay);
+  };
+
+  // Append elements
+  alertBox.appendChild(header);
+  alertBox.appendChild(messageElement);
+  alertBox.appendChild(okButton);
+  overlay.appendChild(alertBox);
+
+  // Add to body
+  document.body.appendChild(overlay);
+}
+
 // Component for file icon (documents only)
 const FileIcon: React.FC<{ file: TaskFile }> = ({ file }) => {
   const handleFileClick = () => {
     // Verifica si el archivo tiene un path/código de almacenamiento
-    if (file.path) {
+    if (file.path&&file.path.length>2) {
       // Abre una nueva ventana/pestaña con DocumentViewer
       const viewerUrl = `/document-viewer?key=${encodeURIComponent(file.path)}&title=${encodeURIComponent(file.path)}`;
       window.open(viewerUrl, '_blank');
     } else {
       // Si no hay path, muestra un alert con el ID del documento
-      alert(`Documento sin archivo asociado. Codigo de Memorando: ${file.name}`);
+      showCustomAlert(`Codigo de Memorando: ${file.name}`);
     }
   };
 
