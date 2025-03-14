@@ -181,8 +181,15 @@ export default function UploadForm() {
         }
       }
     );
-
     toast.success("Proceso guardado exitosamente");
+    // guardado final
+    saveFinalState({
+      ...json,
+      jsonData: JSON.stringify({
+        autores: formDataAutores,
+        productos: formDataProductos,
+      }),
+    });
     await bonita.changeTask();
   };
 
