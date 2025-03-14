@@ -9,14 +9,11 @@ import Section from "./components/Section.tsx";
 import SelectField from "./components/Selectfield.tsx";
 import { ToastContainer, toast } from "react-toastify";
 import Button from "../../UI/button.tsx";
-import { Producto } from "../../../interfaces/registros.interface";
 interface ModalProps {
   showModal: boolean;
   closeModal: () => void;
-  onSave: (productos: Producto[]) => void;
-  tipoMemorando: string;
-  initialData: Producto[];
-  handleTipoMemorandoChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+  onSave: (productos: any[]) => void;
+  initialData: any;
 }
 const socket = io(SERVER_BACK_URL);
 
@@ -58,8 +55,6 @@ const Form3Modal1: React.FC<ModalProps> = ({
   showModal,
   onSave,
   closeModal,
-  tipoMemorando,
-  handleTipoMemorandoChange,
 }) => {
   const [editedData, setEditedData] = useState<FormData>({
     productos: {
@@ -211,6 +206,23 @@ const Form3Modal1: React.FC<ModalProps> = ({
       toast.error("Error al cargar el memorando");
     }
   }, []);
+  const handleTipoMemorandoChange = useCallback(
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
+      const tipoSeleccionado = tiposProductos.find(
+        (tipo) => tipo.id.toString() === e.target.value
+      );
+      if (tipoSeleccionado) {
+        setEditedData((prev) => ({
+          ...prev,
+          productos: {
+            ...prev.productos,
+            tipoMemorando: tipoSeleccionado.id.toString(),
+          },
+        }));
+      }
+    },
+    [tiposProductos]
+  );
 
   const handleChange = useCallback((path: string, value: string) => {
     const keys = path.split(".");
@@ -401,7 +413,7 @@ const Form3Modal1: React.FC<ModalProps> = ({
               />
               <SelectField
                 label="Tipo de Registro"
-                value={tipoMemorando}
+                value={editedData.productos.tipoMemorando}
                 onChange={handleTipoMemorandoChange}
                 options={tiposProductos.map((tipo) => ({
                   value: tipo.id.toString(),

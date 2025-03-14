@@ -141,7 +141,7 @@ export default function UploadForm() {
       {
         id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
         jsonProductos: JSON.stringify(formDataProductos), // Se envía como cadena
-        memorando: formDataProductos.productos.codigoMemorando,
+        memorando: tipoMemorando,
       },
       (response: any) => {
         if (response.success) {
@@ -156,7 +156,7 @@ export default function UploadForm() {
             "set_autores",
             {
               codigo: codigoCombinado,
-              autores: JSON.stringify(jsonAutroes),
+              autores: JSON.stringify(formDataAutores),
             },
             (response: any) => {
               if (response.success) {
@@ -259,9 +259,7 @@ export default function UploadForm() {
           showModal={isModal1Open}
           closeModal={closeModal1}
           onSave={handleSaveProductos}
-          tipoMemorando={tipoMemorando}
           initialData={formDataProductos}
-          handleTipoMemorandoChange={(e) => setTipoMemorando(e.target.value)}
         />
       </ModalP>
 
