@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import io from "socket.io-client";
-import UploadFile from "./components/UploadFile"; // Componente para cargar archivos
-// @ts-ignore
+import UploadFile from "./components/UploadFile";
+//@ts-ignore
 import BonitaUtilities from "../bonita/bonita-utilities";
 import Title from "./components/TitleProps";
 import Button from "../UI/button";
@@ -10,26 +10,26 @@ import { useSaveTempState } from "../bonita/hooks/datos_temprales";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { useCombinedBonitaData } from "../bonita/hooks/obtener_datos_bonita.tsx";
 import { ToastContainer, toast } from "react-toastify";
-// Crear instancia de socket
+
 const socket = io(SERVER_BACK_URL);
 
 export default function UploadForm() {
-    const { startAutoSave, saveFinalState } = useSaveTempState(socket);
-    const { usuario, bonitaData, tareaActual } = useCombinedBonitaData();
+  const { startAutoSave, saveFinalState } = useSaveTempState(socket);
+  const { usuario, bonitaData, tareaActual } = useCombinedBonitaData();
   const [memoCode, setMemoCode] = useState("");
-  const [notificaciones, setNotificaciones] = useState<string[]>([]);
   const [file, setFile] = useState<File | null>(null);
   const [json, setJson] = useState<temporalData | null>(null);
-  // Estado para controlar el envío
   const [isSubmitted, setIsSubmitted] = useState(false);
-  // Estado para guardar la última certificación presupuestaria
-  const [lastCertification, setLastCertification] = useState<{ fecha_doc: string; yaPasoUnAño: boolean } | null>(null);
-  // Permite forzar la subida de un nuevo documento aun cuando ya exista uno previo
+  const [lastCertification, setLastCertification] = useState<{
+    fecha_doc: string;
+    yaPasoUnAño: boolean;
+  } | null>(null);
   const [forceNewUpload, setForceNewUpload] = useState(false);
-
+  const [loading, setLoading] = useState(false);
+  //@ts-ignore
+  const [processAdvanced, setProcessAdvanced] = useState(false);
   const bonita = new BonitaUtilities();
 
-  // Obtener usuario autenticado
   useEffect(() => {
     if (bonitaData && usuario) {
       const data: temporalData = {
@@ -37,18 +37,19 @@ export default function UploadForm() {
         id_tarea: parseInt(bonitaData.taskId),
         jsonData: JSON.stringify("No Form Data"),
         id_funcionario: parseInt(usuario.user_id),
-        nombre_tarea: tareaActual?.name || "",
+        nombre_tarea: tareaActual?.name ?? "",
       };
       setJson(data);
       startAutoSave(data, 10000, "En Proceso");
     }
   }, [bonitaData, usuario, startAutoSave, tareaActual]);
 
-  // Obtener la última certificación presupuestaria usando el endpoint /last-document
   useEffect(() => {
     const fetchLastDocument = async () => {
       try {
-        const response = await fetch(`${SERVER_BACK_URL}/api/last-document?id_tipo_documento=5`);
+        const response = await fetch(
+          `${SERVER_BACK_URL}/api/last-document?id_tipo_documento=5`
+        );
         if (response.ok) {
           const data = await response.json();
           setLastCertification(data);
@@ -63,7 +64,6 @@ export default function UploadForm() {
     fetchLastDocument();
   }, [isSubmitted]);
 
-  // Función para calcular el tiempo restante hasta cumplir un año
   const calculateRemainingTime = (fecha_doc: string) => {
     const fechaDocumento = new Date(fecha_doc);
     const fechaActual = new Date();
@@ -72,44 +72,58 @@ export default function UploadForm() {
     const remainingMs = unAñoMs - diffMs;
     if (remainingMs <= 0) return "0 días";
     const days = Math.floor(remainingMs / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((remainingMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const hours = Math.floor(
+      (remainingMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+    );
     return `${days} días y ${hours} horas`;
   };
 
-  // Manejar el cambio del archivo del memorando usando Socket.io
   const handleMemoFileChange = useCallback(async (file: File | null) => {
     if (!file) return;
 
-    // Convertir el archivo a base64
     const memoBase64 = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
       reader.readAsDataURL(file);
       reader.onload = () => {
         const result = reader.result as string;
-        const base64String = result.split(",")[1]; // Solo la parte base64
+        const base64String = result.split(",")[1];
         resolve(base64String);
       };
       reader.onerror = (error) => reject(error);
     });
 
-    // Emitir el evento "subir_documento" y procesar el callback
-    socket.emit("subir_documento", { documento: memoBase64 }, (response: any) => {
-      if (response.success) {
-        setMemoCode(response.codigo);
-        setNotificaciones((prev) => [...prev, "Documento mapeado correctamente."]);
-      } else {
-        console.error("Error al subir el documento:", response.message);
-        toast.error("Error al subir el documento");
+    socket.emit(
+      "subir_documento",
+      { documento: memoBase64 },
+      (response: any) => {
+        if (response.success) {
+          setMemoCode(response.codigo);
+        } else {
+          console.error("Error al subir el documento:", response.message);
+          toast.error("Error al subir el documento");
+        }
       }
-    });
+    );
   }, []);
 
   const handleNext = useCallback(async () => {
     try {
-      if (json) {
-      const saveResponse =  await saveFinalState(json);
+      setLoading(true);
+
+      // Verificar si hay una certificación subida
+      if (!lastCertification) {
+        throw new Error("No se ha subido una certificación presupuestaria.");
+      }
+
+      // Verificar si hay datos para guardar
+      if (!json) {
+        throw new Error("No hay datos para guardar.");
+      }
+
+      // Guardar el estado final
+      const saveResponse = await saveFinalState(json);
       if (!saveResponse || typeof saveResponse.success !== "boolean") {
-        throw new Error("Respuesta inválida al guardar el estado final");
+        throw new Error("Respuesta inválida al guardar el estado final.");
       }
       if (!saveResponse.success) {
         throw new Error(
@@ -117,19 +131,20 @@ export default function UploadForm() {
             "No se pudo guardar el estado final. Inténtelo de nuevo."
         );
       }
-      } else {
-        console.error("❌ Error: json is null");
-      }
+
+      // Cambiar la tarea en Bonita
       await bonita.changeTask();
+      setProcessAdvanced(true);
     } catch (error) {
-      console.error("Error al cambiar la tarea:", error);
+      console.error("Error en handleNext:", error);
+    } finally {
+      setLoading(false);
     }
-  }, [bonita]);
+  }, [json, saveFinalState, bonita, lastCertification]);
 
   const handleSubmit = useCallback(
     async (event: React.FormEvent) => {
       event.preventDefault();
-
       if (!memoCode) {
         toast.error("Por favor, ingrese el código del memorando.");
         return;
@@ -139,35 +154,29 @@ export default function UploadForm() {
         return;
       }
 
-      // Extraer el nombre del archivo sin extensión
-      const fileName = file?.name ?? "";
-      const dotIndex = fileName.lastIndexOf(".");
-      const baseName = dotIndex !== -1 ? fileName.substring(0, dotIndex) : fileName;
-
-      // Convertir el archivo a base64
-      const fileBase64 = await new Promise<string>((resolve, reject) => {
-        if (!file) return resolve("");
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => {
-          const result = reader.result as string;
-          const base64String = result.split(",")[1];
-          resolve(base64String);
-        };
-        reader.onerror = (error) => reject(error);
-      });
-
-      // Construir el payload para enviar al back-end
-      const payload = {
-        nombre: `${baseName}_${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}.pdf`,
-        id_registro_per: `${bonitaData?.processId}-${bonitaData?.caseId}`,
-        id_tipo_documento: "5",
-        document: fileBase64,
-        memorando: memoCode,
-        id_tarea_per:`${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}`,
-      };
-
       try {
+        setLoading(true);
+        const fileBase64 = await new Promise<string>((resolve, reject) => {
+          if (!file) return resolve("");
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = () => {
+            const result = reader.result as string;
+            const base64String = result.split(",")[1];
+            resolve(base64String);
+          };
+          reader.onerror = (error) => reject(error);
+        });
+
+        const payload = {
+          nombre: `${file?.name ?? ""}_${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}.pdf`,
+          id_registro_per: `${bonitaData?.processId}-${bonitaData?.caseId}`,
+          id_tipo_documento: "5",
+          document: fileBase64,
+          memorando: memoCode,
+          id_tarea_per: `${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}`,
+        };
+
         const response = await fetch(`${SERVER_BACK_URL}/api/get-document`, {
           method: "POST",
           headers: {
@@ -183,15 +192,14 @@ export default function UploadForm() {
         const data = await response.json();
         console.log("Respuesta del servidor:", data);
 
-        // Mostrar mensaje de confirmación
         setIsSubmitted(true);
-        setNotificaciones((prev) => [...prev, "Datos enviados correctamente."]);
         toast.success("Datos enviados correctamente.");
-        // Reiniciamos la opción de forzar nueva subida tras el envío
         setForceNewUpload(false);
       } catch (error) {
         console.error("Error en la solicitud:", error);
         toast.error("Ocurrió un error al enviar los datos.");
+      } finally {
+        setLoading(false);
       }
     },
     [memoCode, file, bonitaData, forceNewUpload, lastCertification]
@@ -199,7 +207,10 @@ export default function UploadForm() {
 
   return (
     <div className="flex flex-col items-center p-6 bg-gray-100 min-h-screen">
-      <form onSubmit={handleSubmit} className="w-full max-w-lg bg-white p-6 rounded-lg shadow-lg">
+      <form
+        onSubmit={handleSubmit}
+        className="w-full max-w-lg bg-white p-6 rounded-lg shadow-lg"
+      >
         <Title
           text="Solicitud de Certificación Presupuestaria"
           size="2xl"
@@ -209,13 +220,17 @@ export default function UploadForm() {
           Subir código y documento emitido para certificación.
         </h1>
 
-        { (lastCertification && !lastCertification.yaPasoUnAño && !forceNewUpload) ? (
+        {lastCertification &&
+        !lastCertification.yaPasoUnAño &&
+        !forceNewUpload ? (
           <div className="mb-4 p-4 border rounded bg-gray-50">
-           <p>
-    Certificación presupuestaria subida el: {lastCertification.fecha_doc.split("T")[0]}
-</p>
             <p>
-              Faltan: {calculateRemainingTime(lastCertification.fecha_doc)} para cumplir 1 año.
+              Certificación presupuestaria subida el:{" "}
+              {lastCertification.fecha_doc.split("T")[0]}
+            </p>
+            <p>
+              Faltan: {calculateRemainingTime(lastCertification.fecha_doc)} para
+              cumplir 1 año.
             </p>
             <Button
               type="button"
@@ -266,29 +281,28 @@ export default function UploadForm() {
           </>
         )}
 
+        {!lastCertification && (
+          <p className="text-red-500 text-sm mt-2">
+            Debe subir una certificación presupuestaria antes de avanzar.
+          </p>
+        )}
+
         <Button
           className="mt-5 bg-[#931D21] text-white rounded-lg px-6 min-w-full hover:bg-blue-700 transition-colors duration-200"
           onClick={handleNext}
+          disabled={loading || !lastCertification}
         >
-          Siguiente Proceso
+          {loading ? (
+            <div className="flex items-center">
+              <span className="mr-2">Avanzando...</span>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+            </div>
+          ) : (
+            "Siguiente Proceso"
+          )}
         </Button>
       </form>
-
-      <div className="mt-6 w-full max-w-lg">
-        <h2 className="text-lg font-semibold">Notificaciones</h2>
-        <ul className="bg-white p-4 rounded-lg shadow">
-          {notificaciones.length === 0 ? (
-            <li className="text-gray-500">No hay notificaciones aún.</li>
-          ) : (
-            notificaciones.map((noti, index) => (
-              <li key={index} className="text-green-600">
-                {noti}
-              </li>
-            ))
-          )}
-        </ul>
-      </div>
-      <ToastContainer/>
+      <ToastContainer />
     </div>
   );
 }

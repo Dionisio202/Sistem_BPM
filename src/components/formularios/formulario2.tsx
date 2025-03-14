@@ -142,19 +142,6 @@ export default function WebPage() {
     setSelectedDocument(document);
   };
 
-  // Marcar o desmarcar documento
-  const handleCheckboxChange = (documentType: keyof typeof staticDocuments) => {
-    setSelectedDocs((prev) => {
-      const newSelectedDocs = new Set(prev);
-      if (newSelectedDocs.has(documentType)) {
-        newSelectedDocs.delete(documentType);
-      } else {
-        newSelectedDocs.add(documentType);
-      }
-      return newSelectedDocs;
-    });
-  };
-
   const documentList = [
     { type: "datos", label: "Formato datos informativos de autores" },
     { type: "otroDocumento", label: "Formato Solicitud de registro" },
@@ -184,16 +171,6 @@ export default function WebPage() {
                   <tr key={doc.type} className="border-b hover:bg-gray-50">
                     <td className="px-4 py-1 text-xs">{doc.label}</td>
                     <td className="px-4 py-1 text-xs flex items-center space-x-4">
-                      <input
-                        type="checkbox"
-                        checked={selectedDocs.has(doc.type)}
-                        onChange={() =>
-                          handleCheckboxChange(
-                            doc.type as keyof typeof staticDocuments
-                          )
-                        }
-                        className="h-4 w-4"
-                      />
                       <button
                         onClick={() =>
                           handleViewDocument(

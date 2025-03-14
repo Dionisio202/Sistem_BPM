@@ -30,7 +30,7 @@ import Dash from "./pages/DashBoard-Informes/screens/dashboard"
 import Reports from "./pages/DashBoard-Informes/screens/reports"
 import Trazabilidad from "./pages/trazabilidad-documentos/trazabilidad";
 import DocumentViewerPage from "./pages/DashBoard-Informes/screens/DocumentViewPage";
-
+import Formulario33 from "./components/formularios/formulario33";
 const App = () => {
   return (
     <div className="flex flex-col min-h-screen">
@@ -59,6 +59,7 @@ const App = () => {
             <Route path="/Formulario19" element={<Formulario19 />} />
             <Route path="/Formulario20" element={<Formulario20 />} />
             <Route path="/Formulario21" element={<Formulario21 />} />
+            <Route path="/Formulario33" element={<Formulario33 />} />
             <Route path="/Reporteria" element={<Dashboard />} />
             <Route path="/Dashboard" element={<Dash/>} />
             <Route path="/Reports" element={<Reports />} />
