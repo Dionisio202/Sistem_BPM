@@ -10,7 +10,7 @@ import { SERVER_BACK_URL } from "../../config.ts";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { useCombinedBonitaData } from "../bonita/hooks/obtener_datos_bonita.tsx";
 import { ToastContainer, toast } from "react-toastify";
-
+import Button from "../UI/button.tsx";
 const socket = io(SERVER_BACK_URL);
 
 export default function ConfirmationScreen() {
@@ -22,7 +22,7 @@ export default function ConfirmationScreen() {
   const [json, setJson] = useState<temporalData | null>(null);
   const bonita: BonitaUtilities = new BonitaUtilities();
   const [loading, setLoading] = useState(false); // Estado para manejar el loading
-    // @ts-ignore
+  // @ts-ignore
 
   const [processAdvanced, setProcessAdvanced] = useState(false);
   const handleChange = (name: string, checked: boolean) => {
@@ -91,17 +91,24 @@ export default function ConfirmationScreen() {
       toast.error("Debes confirmar la firma del oficio para continuar.");
       return;
     }
-
     if (bonitaData && usuario) {
+      if (!json) {
+        toast.error("No hay datos para guardar.");
+        return;
+      }
       try {
         setLoading(true); // Activar el estado de loading
-
-        if (json) {
-          await saveFinalState(json);
-        } else {
-          console.error("❌ Error: json is null");
+        const saveResponse = await saveFinalState(json);
+        // Verificar que la respuesta sea válida y exitosa
+        if (!saveResponse || typeof saveResponse.success !== "boolean") {
+          throw new Error("Respuesta inválida al guardar el estado final.");
         }
-
+        if (!saveResponse.success) {
+          throw new Error(
+            saveResponse.message ||
+              "No se pudo guardar el estado final. Inténtelo de nuevo."
+          );
+        }
         await bonita.changeTask();
         setProcessAdvanced(true);
       } catch (error) {
@@ -131,14 +138,13 @@ export default function ConfirmationScreen() {
         </div>
 
         {/* Botón Siguiente */}
-        <button
-          type="submit"
+        <Button
           className="w-full bg-[#931D21] hover:bg-[#7A171A] text-white py-2 rounded-lg font-semibold hover:scale-105 transition-transform duration-300 disabled:opacity-50"
           onClick={handleNext}
-          disabled={loading || !selectedDocuments.oficio} // Deshabilitar si no está seleccionado el checkbox
+          disabled={loading || !selectedDocuments.oficio} // Deshabilitar si no se ha subido el archivo
         >
-          {loading ? "Cargando..." : "Siguiente"}
-        </button>
+          {loading ? "Cargando..." : "Siguiente Proceso"}
+        </Button>
       </form>
       <ToastContainer />
     </CardContainer>

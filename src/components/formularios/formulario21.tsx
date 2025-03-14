@@ -1,14 +1,13 @@
 import { useState, useEffect, useRef } from "react";
-import DocumentViewer from "../files/DocumentViewer"; // 
+import DocumentViewer from "../files/DocumentViewer"; //
 import io from "socket.io-client";
 import { SERVER_BACK_URL } from "../../config.ts";
-import CardContainer from "./components/CardContainer.tsx";
 import { useSaveTempState } from "../bonita/hooks/datos_temprales";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { EmailInput } from "./components/EmailInput.tsx";
 import { useCombinedBonitaData } from "../bonita/hooks/obtener_datos_bonita.tsx";
 import { ToastContainer } from "react-toastify";
-
+import Title from "./components/TitleProps.tsx";
 const socket = io(SERVER_BACK_URL);
 
 type DocumentType = {
@@ -26,10 +25,10 @@ const staticDocuments: Record<string, DocumentType> = {
 };
 
 export default function ConfirmationScreen() {
-  const { usuario, bonitaData, tareaActual} = useCombinedBonitaData();
+  const { usuario, bonitaData, tareaActual } = useCombinedBonitaData();
   const [json, setJson] = useState<temporalData | null>(null);
   const urlSave = `${SERVER_BACK_URL}/api/save-document`;
- 
+
   const [, setCodigoAlmacenamiento] = useState<string>("");
   const [selectedDocument, setSelectedDocument] = useState<DocumentType>(
     staticDocuments.datos
@@ -53,7 +52,6 @@ export default function ConfirmationScreen() {
       startAutoSave(data, 10000, "En Proceso");
     }
   }, [bonitaData, usuario, startAutoSave, tareaActual]);
-
 
   // 🔹 Emitir el evento socket para obtener el código de almacenamiento cuando la data de Bonita esté disponible
   useEffect(() => {
@@ -85,24 +83,27 @@ export default function ConfirmationScreen() {
   }, [bonitaData]);
 
   return (
-    <div className="w-full max-w-2xl mx-auto p-6 bg-white rounded-lg shadow-lg">
-      <CardContainer title="Certificado">
-        <div className="flex flex-col space-y-6 h-full">
+    <div className="flex justify-center items-center min-h-screen bg-gray-100 p-4">
+      <div className="w-full max-w-4xl mx-auto p-8 bg-white rounded-lg shadow-lg">
+      <Title text="Entrega Certificado Titulo de Registro" className="text-center mb-6" />
+        <div className="flex flex-col space-y-8">
           {/* Sección para visualizar el documento usando DocumentViewer */}
-          <div className="w-full h-full  pl-6 mt-0.5">
-            <DocumentViewer
-              keyDocument={selectedDocument.key}
-              title={selectedDocument.title}
-              documentName={selectedDocument.nombre}
-              mode="view"
-              fileType="pdf"
-              documentType="pdf"
-              callbackUrl={urlSave}
-            />
+          <div className="w-full flex justify-center">
+            <div className="w-full h-full">
+              <DocumentViewer
+                keyDocument={selectedDocument.key}
+                title={selectedDocument.title}
+                documentName={selectedDocument.nombre}
+                mode="view"
+                fileType="pdf"
+                documentType="pdf"
+                callbackUrl={urlSave}
+              />
+            </div>
           </div>
 
           {/* Sección para el EmailInput */}
-          <div className="flex-1 w-full h-full">
+          <div className="w-full">
             <EmailInput
               json={json}
               socket={socket}
@@ -113,8 +114,8 @@ export default function ConfirmationScreen() {
             />
           </div>
         </div>
-        <ToastContainer/>
-      </CardContainer>
+        <ToastContainer />
+      </div>
     </div>
   );
 }

@@ -21,24 +21,37 @@ export default function ConfirmationScreen() {
   const [file, setFile] = useState<File | null>(null);
   const [isDocumentUploaded, setIsDocumentUploaded] = useState(false); // Estado para controlar si el documento ha sido subido
   const bonita = new BonitaUtilities();
-    // @ts-ignore
+  // @ts-ignore
+  const [loading, setLoading] = useState(false);
   const [processAdvanced, setProcessAdvanced] = useState(false);
   const handleNext = async () => {
     if (!isDocumentUploaded) {
       toast.error("Por favor, suba el documento antes de continuar.");
       return;
     }
-
+    if (!json) {
+      toast.error("No hay datos para guardar.");
+      return;
+    }
     try {
-      if (json) {
-        await saveFinalState(json);
-      } else {
-        console.error("❌ Error: json is null");
+      setLoading(true); // Activar el estado de loading
+      const saveResponse = await saveFinalState(json);
+      // Verificar que la respuesta sea válida y exitosa
+      if (!saveResponse || typeof saveResponse.success !== "boolean") {
+        throw new Error("Respuesta inválida al guardar el estado final.");
+      }
+      if (!saveResponse.success) {
+        throw new Error(
+          saveResponse.message ||
+            "No se pudo guardar el estado final. Inténtelo de nuevo."
+        );
       }
       await bonita.changeTask();
       setProcessAdvanced(true);
     } catch (error) {
-      console.error("Error al cambiar la tarea:", error);
+      console.error("Error guardando estado final:", error);
+    } finally {
+      setLoading(false); // Desactivar el estado de loading
     }
   };
 
@@ -133,8 +146,9 @@ export default function ConfirmationScreen() {
         <Button
           className="w-full bg-[#931D21] hover:bg-[#7A171A] text-white py-2 rounded-lg font-semibold hover:scale-105 transition-transform duration-300 disabled:opacity-50"
           onClick={handleNext}
+          disabled={loading} // Deshabilitar si no se ha subido el archivo
         >
-          Siguiente Proceso
+          {loading ? "Cargando..." : "Siguiente Proceso"}
         </Button>
       </div>
       <ToastContainer />

@@ -289,7 +289,7 @@ export default function UploadForm() {
         )}
 
         <Button
-          className="mt-5 bg-[#931D21] text-white rounded-lg px-6 min-w-full hover:bg-blue-700 transition-colors duration-200"
+         className="w-full bg-[#931D21] hover:bg-[#7A171A] text-white py-2 rounded-lg font-semibold hover:scale-105 transition-transform duration-300 disabled:opacity-50"
           onClick={handleNext}
           disabled={loading || !lastCertification}
         >

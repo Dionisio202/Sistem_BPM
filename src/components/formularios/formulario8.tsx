@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import io from "socket.io-client";
 import CardContainer from "./components/CardContainer";
-import UploadFile from "./components/UploadFile"; // Componente para cargar archivos
+import UploadFile from "./components/UploadFile";
 // @ts-ignore
 import BonitaUtilities from "../bonita/bonita-utilities";
 import Title from "./components/TitleProps";
@@ -11,8 +11,20 @@ import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { useCombinedBonitaData } from "../bonita/hooks/obtener_datos_bonita.tsx";
 import { ToastContainer, toast } from "react-toastify";
 
-// Crear la instancia de Socket.io
 const socket = io(SERVER_BACK_URL);
+
+// Función auxiliar para convertir archivos a base64
+const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => {
+      const result = reader.result as string;
+      resolve(result.split(",")[1]);
+    };
+    reader.onerror = (error) => reject(error);
+  });
+};
 
 export default function MemoCodeForm() {
   const { startAutoSave, saveFinalState } = useSaveTempState(socket);
@@ -20,13 +32,12 @@ export default function MemoCodeForm() {
   const [memoCode, setMemoCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [fileUploaded, setFileUploaded] = useState(false); // Estado para rastrear si el archivo se ha subido
+  const [fileUploaded, setFileUploaded] = useState(false);
   const bonita: BonitaUtilities = new BonitaUtilities();
-  const id_tipo_documento = 3; // Valor de ejemplo, reemplazar según corresponda
+  const id_tipo_documento = 3;
   const [json, setJson] = useState<temporalData | null>(null);
-    // @ts-ignore
   const [processAdvanced, setProcessAdvanced] = useState(false);
-  // Obtener usuario autenticado
+
   useEffect(() => {
     if (bonitaData && usuario) {
       const data: temporalData = {
@@ -41,20 +52,18 @@ export default function MemoCodeForm() {
     }
   }, [bonitaData, usuario, startAutoSave, tareaActual]);
 
-  // Función para manejar la carga del archivo del memorando y obtener el código mediante Socket.io
   const handleMemoFileChange = useCallback(
     async (file: File | null) => {
       if (!file) {
         setError("Debes seleccionar un archivo para continuar.");
         return;
       }
-
       try {
         setLoading(true);
         setError("");
-        setFileUploaded(false); // Reiniciar el estado de subida del archivo
+        setFileUploaded(false);
+        setMemoCode(""); // Resetear el código al subir un nuevo archivo
 
-        // Convertir el archivo a base64
         const memoBase64 = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
           reader.readAsDataURL(file);
@@ -66,7 +75,6 @@ export default function MemoCodeForm() {
           reader.onerror = (error) => reject(error);
         });
 
-        // Emitir el evento "subir_documento" a través del socket
         socket.emit(
           "subir_documento",
           {
@@ -75,20 +83,53 @@ export default function MemoCodeForm() {
             id_registro: `${bonitaData?.processId}-${bonitaData?.caseId}`,
           },
           (response: any) => {
-            if (response.success) {
+            // Verificar si la respuesta es exitosa Y el código no es "no encontrado" o similar
+            if (
+              response.success &&
+              response.codigo &&
+              !response.codigo.toLowerCase().includes("no encontrado") &&
+              response.codigo.trim() !== ""
+            ) {
               setMemoCode(response.codigo);
-              setFileUploaded(true); // Marcar el archivo como subido correctamente
-              toast.success("Archivo subido correctamente.");
+              setFileUploaded(true);
+              toast.success("Archivo subido correctamente. Puede Continuar");
             } else {
-              setError("No se pudo obtener el código del memorando.");
-              toast.error("Error al subir el archivo.");
+              // Si la respuesta indica éxito pero el código tiene formato incorrecto
+              if (
+                response.success &&
+                response.codigo &&
+                (response.codigo.toLowerCase().includes("no encontrado") ||
+                  response.codigo.trim() === "")
+              ) {
+                setError(
+                  "El documento subido no es válido o no se puede procesar."
+                );
+                setMemoCode("");
+                setFileUploaded(false);
+                toast.error(
+                  "Documento inválido. Por favor, suba un documento válido."
+                );
+              } else {
+                // Error general
+                setError(
+                  response.message ||
+                    "No se pudo obtener el código del memorando."
+                );
+                setMemoCode("");
+                setFileUploaded(false);
+                toast.error("Error al subir el archivo.");
+              }
             }
             setLoading(false);
           }
         );
       } catch (err) {
         console.error("Error al obtener el código del memorando:", err);
-        setError("Error al obtener el código del memorando. Intente nuevamente.");
+        toast.error(
+          "Error al obtener el código del memorando. Intente nuevamente."
+        );
+        setMemoCode("");
+        setFileUploaded(false);
         toast.error("Error al procesar el archivo.");
         setLoading(false);
       }
@@ -96,26 +137,48 @@ export default function MemoCodeForm() {
     [id_tipo_documento, bonitaData]
   );
 
-  // Función para continuar con el proceso usando el código obtenido
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     try {
+      setLoading(true);
       setError("");
-      // Validar que el archivo se haya subido y el código esté disponible
+
+      // Validaciones iniciales
       if (!fileUploaded || !memoCode) {
-        toast.error("Debes subir el archivo y obtener el código para continuar.");
-        return;
+        throw new Error(
+          "Debes subir el archivo y obtener el código para continuar."
+        );
       }
-      // Guardar el estado final
-      if (json) {
-        await saveFinalState(json);
-      } else {
-        console.error("❌ Error: json is null");
+
+      if (!json) {
+        throw new Error("No hay datos para guardar.");
       }
+
+      // PRIORIDAD 1: Guardar estado final y verificar respuesta
+      const saveResponse = await saveFinalState(json);
+
+      // Verificar que la respuesta sea válida y exitosa
+      if (!saveResponse || typeof saveResponse.success !== "boolean") {
+        throw new Error("Respuesta inválida al guardar el estado final.");
+      }
+
+      if (!saveResponse.success) {
+        throw new Error(
+          saveResponse.message ||
+            "No se pudo guardar el estado final. Inténtelo de nuevo."
+        );
+      }
+
+      // PRIORIDAD 2: Solo si el guardado fue exitoso, cambiar tarea en Bonita
       await bonita.changeTask();
       setProcessAdvanced(true);
-      // Enviar el código del memorando al endpoint de guardado
+
+      // Guardar memorando
+      if (!bonitaData) {
+        throw new Error("No se encuentran datos del proceso Bonita.");
+      }
+
       const response = await fetch(
-        `${SERVER_BACK_URL}/api/save-memorando?key=${memoCode}&id_tipo_documento=${id_tipo_documento}&id_registro=${bonitaData?.processId}-${bonitaData?.caseId}&id_tarea_per=${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}`
+        `${SERVER_BACK_URL}/api/save-memorando?key=${memoCode}&id_tipo_documento=${id_tipo_documento}&id_registro=${bonitaData.processId}-${bonitaData.caseId}&id_tarea_per=${bonitaData.processId}-${bonitaData.caseId}-${bonitaData.taskId}`
       );
 
       if (!response.ok) {
@@ -125,12 +188,19 @@ export default function MemoCodeForm() {
       const data = await response.json();
       console.log("Memorando guardado:", data);
       toast.success("Memorando guardado correctamente.");
-    } catch (err) {
-      setError("Error al guardar el memorando. Verifica el código e intenta nuevamente.");
-      console.error("Error:", err);
-      toast.error("Error al guardar el memorando.");
+    } catch (error) {
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [
+    json,
+    saveFinalState,
+    bonita,
+    fileUploaded,
+    memoCode,
+    id_tipo_documento,
+    bonitaData,
+  ]);
 
   return (
     <CardContainer title="Contrato Cesión de Derechos Patrimoniales">
@@ -139,7 +209,6 @@ export default function MemoCodeForm() {
         className="text-center text-gray-800 mb-3 text-lg"
       />
       <div className="flex flex-col space-y-4">
-        {/* Componente para cargar el archivo del memorando */}
         <div>
           <label htmlFor="memoFile" className="block font-semibold">
             Suba el archivo del memorando para obtener el código
@@ -151,7 +220,6 @@ export default function MemoCodeForm() {
           />
         </div>
 
-        {/* Input para visualizar/editar el código obtenido */}
         <div>
           <label htmlFor="memoCode" className="block font-semibold">
             Código del memorando generado
@@ -172,7 +240,7 @@ export default function MemoCodeForm() {
           type="button"
           className="w-full bg-[#931D21] hover:bg-[#7A171A] text-white py-2 rounded-lg font-semibold hover:scale-105 transition-transform duration-300 disabled:opacity-50"
           onClick={handleSubmit}
-          disabled={loading || !memoCode || !fileUploaded} // Deshabilitar si no hay código o el archivo no se ha subido
+          disabled={loading || !memoCode || !fileUploaded}
         >
           {loading ? "Enviando..." : "Siguiente"}
         </button>

@@ -37,7 +37,7 @@ export default function WebPage() {
   // @ts-ignore
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
   const bonita: BonitaUtilities = new BonitaUtilities();
-    // @ts-ignore
+  // @ts-ignore
 
   const [codigoalmacenamiento, setCodigoAlmacenamiento] = useState<string>("");
   const [selectedDocument, setSelectedDocument] = useState<DocumentType>(
@@ -45,7 +45,7 @@ export default function WebPage() {
   );
   const [loading, setLoading] = useState(false); // Estado para manejar el loading
   const [fileUploaded, setFileUploaded] = useState(false); // Estado para rastrear si el archivo se ha subido
-    // @ts-ignore
+  // @ts-ignore
   const [processAdvanced, setProcessAdvanced] = useState(false);
   const handleCodigoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setCodigo(e.target.value);
@@ -121,7 +121,10 @@ export default function WebPage() {
             setFileUploaded(true); // Marcar el archivo como subido
             toast.success("Archivo subido correctamente.");
           } else {
-            console.error("Error al obtener el código del memorando:", response.message);
+            console.error(
+              "Error al obtener el código del memorando:",
+              response.message
+            );
             toast.error("Error al subir el archivo.");
           }
         }
@@ -136,23 +139,38 @@ export default function WebPage() {
   const handleSiguiente = async () => {
     // Validar que el código esté ingresado o que el archivo se haya subido
     if (codigo.trim() === "" && !fileUploaded) {
-      toast.error("Debes ingresar el código del memorando o subir el archivo para continuar.");
+      toast.error(
+        "Debes ingresar el código del memorando o subir el archivo para continuar."
+      );
+      return;
+    }
+    if (!json) {
+      toast.error("No hay datos para guardar.");
       return;
     }
 
     try {
       setLoading(true); // Activar el estado de loading
-
-      if (json) {
-        await saveFinalState(json);
-      } else {
-        console.error("❌ Error: json is null");
+      const saveResponse = await saveFinalState(json);
+      // Verificar que la respuesta sea válida y exitosa
+      if (!saveResponse || typeof saveResponse.success !== "boolean") {
+        throw new Error("Respuesta inválida al guardar el estado final.");
       }
 
+      if (!saveResponse.success) {
+        throw new Error(
+          saveResponse.message ||
+            "No se pudo guardar el estado final. Inténtelo de nuevo."
+        );
+      }
       await bonita.changeTask();
       setProcessAdvanced(true);
       const response = await fetch(
-        `${SERVER_BACK_URL}/api/save-memorando?key=${codigo}&id_tipo_documento=${3}&id_registro=${bonitaData?.processId}-${bonitaData?.caseId}&id_tarea_per=${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}`
+        `${SERVER_BACK_URL}/api/save-memorando?key=${codigo}&id_tipo_documento=${3}&id_registro=${
+          bonitaData?.processId
+        }-${bonitaData?.caseId}&id_tarea_per=${bonitaData?.processId}-${
+          bonitaData?.caseId
+        }-${bonitaData?.taskId}`
       );
 
       if (!response.ok) {
