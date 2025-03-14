@@ -27,46 +27,75 @@ const Example = () => {
     socket.emit("datos_proceso", (response: SocketResponse) => {
       if (response.success && response.jsonData) {
         try {
+          // Parse the JSON string into a JavaScript object
           const jsonData = JSON.parse(response.jsonData);
           const newData: TablaTarea[] = [];
           
-          if (jsonData.Procesos && Array.isArray(jsonData.Procesos)) {
-            jsonData.Procesos.forEach((proceso: any) => {
-              const nombreProceso = proceso.NombreProceso;
-              
-              if (proceso.Funcionarios && Array.isArray(proceso.Funcionarios)) {
-                proceso.Funcionarios.forEach((funcionario: Funcionario) => {
-                  if (funcionario.Caso && Array.isArray(funcionario.Caso)) {
-                    funcionario.Caso.forEach((caso: Caso) => {
-                      if (caso.Tareas && Array.isArray(caso.Tareas)) {
-                        caso.Tareas.forEach((tarea: Tarea) => {
-                          newData.push({
-                            NombreProceso: nombreProceso,
-                            NombreTarea: tarea.Nombre,
-                            EstadoDeProceso: tarea.EstadoDeProceso,
-                            TipoProductos: tarea.TipoProductos,
-                            NombreProductos: tarea.NombreProductos,
-                            NombreProyecto: tarea.NombreProyecto,
-                            Facultad: tarea.Facultad || "No especificado",
-                            Carrera: tarea.Carrera || "No especificado",
-                            TipoProyecto: tarea.TipoProyecto || "No especificado",
-                            MemorandoInicial: tarea.DocumentoPrincipal ? tarea.DocumentoPrincipal.MemorandoInicial : "",
-                            NumeroCaso: caso.NumeroCaso,
-                            FechaRegistro: caso.FechaRegistro,
-                            FechaFinalizacion: caso.FechaFinalizacion || "",
-                            ProgresoGeneral: caso.ProgresoGeneral,
-                            EstadoProcesoGeneral: caso.EstadoProcesoGeneral,
-                            Funcionario: funcionario.Nombre,
-                            Autores: tarea.Autores || "",
+          // Handle the structure of the JSON data from the stored procedure
+          jsonData.forEach((proceso: any) => {
+            const nombreProceso = proceso.NombreProceso;
+            
+            if (proceso.Funcionarios && Array.isArray(proceso.Funcionarios)) {
+              proceso.Funcionarios.forEach((funcionario: Funcionario) => {
+                if (funcionario.Caso && Array.isArray(funcionario.Caso)) {
+                  funcionario.Caso.forEach((caso: Caso) => {
+                    // @ts-ignore
+                    const productoInfo = caso.Producto || {};
+                    
+                    // Extract and format faculty and career information
+                    let facultadesList = "No especificado";
+                    let carrerasList = "No especificado";
+                    
+                    if (productoInfo.Facultades && productoInfo.Facultades.length > 0) {
+                      // Create a list of all faculties
+                      facultadesList = productoInfo.Facultades.map((fac: any) => fac.Facultad).join(", ");
+                      
+                      // Create a list of all careers from all faculties
+                      const allCarreras: string[] = [];
+                      productoInfo.Facultades.forEach((fac: any) => {
+                        if (fac.Carreras && fac.Carreras.length > 0) {
+                          fac.Carreras.forEach((car: any) => {
+                            allCarreras.push(car.Carrera);
                           });
-                        });
+                        }
+                      });
+                      
+                      if (allCarreras.length > 0) {
+                        carrerasList = allCarreras.join(", ");
                       }
-                    });
-                  }
-                });
-              }
-            });
-          }
+                    }
+                    
+                    // @ts-ignore
+                    const docPrincipal = caso.DocumentoPrincipal || {};
+                    
+                    if (caso.Tareas && Array.isArray(caso.Tareas)) {
+                      caso.Tareas.forEach((tarea: Tarea) => {
+                        newData.push({
+                          NombreProceso: nombreProceso,
+                          NombreTarea: tarea.Nombre,
+                          EstadoDeProceso: tarea.EstadoDeProceso,
+                          TipoProductos: productoInfo.TipoProductos || "",
+                          NombreProductos: productoInfo.NombreProductos || "",
+                          NombreProyecto: productoInfo.NombreProyecto || "",
+                          Facultad: facultadesList,
+                          Carrera: carrerasList,
+                          TipoProyecto: productoInfo.TipoProyecto || "No especificado",
+                          MemorandoInicial: docPrincipal.MemorandoInicial || "",
+                          NumeroCaso: caso.NumeroCaso,
+                          FechaRegistro: caso.FechaRegistro,
+                          FechaFinalizacion: caso.FechaFinalizacion || "",
+                          ProgresoGeneral: caso.ProgresoGeneral,
+                          EstadoProcesoGeneral: caso.EstadoProcesoGeneral,
+                          Funcionario: funcionario.Nombre,
+                          Autores: productoInfo.Autores || "",
+                        });
+                      });
+                    }
+                  });
+                }
+              });
+            }
+          });
 
           setData(newData);
           setLoading(false);
@@ -101,8 +130,8 @@ const Example = () => {
     { accessorKey: "TipoProductos", header: "Tipo de Productos", size: 120 },
     { accessorKey: "NombreProductos", header: "Nombre de Productos", size: 150 },
     { accessorKey: "NombreProyecto", header: "Nombre del Proyecto", size: 150 },
-    { accessorKey: "Facultad", header: "Facultad", size: 120 },
-    { accessorKey: "Carrera", header: "Carrera", size: 120 },
+    { accessorKey: "Facultad", header: "Facultades", size: 180 },
+    { accessorKey: "Carrera", header: "Carreras", size: 180 },
     { accessorKey: "TipoProyecto", header: "Tipo de Proyecto", size: 120 },
     { accessorKey: "MemorandoInicial", header: "Memorando Inicial", size: 120 },
     { accessorKey: "FechaRegistro", header: "Fecha de Registro", size: 120 },
@@ -119,9 +148,7 @@ const Example = () => {
     initialState: {
       density: 'compact', // Makes the rows more compact
       columnVisibility: {
-        // Hide less important columns by default to fit more content
-        Facultad: false,
-        Carrera: false,
+        // Make Facultad and Carrera visible by default since they're important
         TipoProyecto: false,
         FechaFinalizacion: false,
       },
