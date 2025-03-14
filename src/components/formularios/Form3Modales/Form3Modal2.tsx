@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
 import UploadFile from "../components/UploadFile";
-import { ModalProps } from "../../../interfaces/registros.interface";
 import io from "socket.io-client";
 import Title from "../components/TitleProps";
 import { ToastContainer, toast } from "react-toastify";
 import { SERVER_BACK_URL } from "../../../config.ts";
 import InputField from "./components/InputField.tsx";
+
 const socket = io(SERVER_BACK_URL); // Conecta con el backend
 
 interface Carrera {
@@ -38,23 +38,22 @@ interface Autor {
   carrera_seleccionada?: number | null; // Para seguimiento de UI
 }
 
-// Extendemos la interfaz ModalProps para incluir la función de retorno de datos
-interface Form3Modal2Props extends ModalProps {
+interface Form3Modal2Props {
+  showModal: boolean;
   closeModal: () => void;
-  initialData?: Autor[]; // Datos iniciales que pueden ser pasados al modal
-  onSaveData?: (data: Autor[]) => void; // Función para devolver los datos editados
+  initialData?: Autor[];
+  onSave?: (data: Autor[]) => void;
 }
+
 
 const Form3Modal2: React.FC<Form3Modal2Props> = ({
   closeModal,
   initialData = [],
-  onSaveData,
+  onSave,
 }) => {
   const [hasMissingData, setHasMissingData] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [authorDataFileBase64, setAuthorDataFileBase64] = useState<
-    string | null
-  >(null);
+  const [authorDataFileBase64, setAuthorDataFileBase64] = useState< string | null>(null);
   const [autores, setAutores] = useState<Autor[]>(initialData);
   const [facultades, setFacultades] = useState<Facultad[]>([]);
   const [roles, setRoles] = useState<any[]>([]);
@@ -176,10 +175,8 @@ const Form3Modal2: React.FC<Form3Modal2Props> = ({
                 }
               }
             }
-
             return autorProcesado;
           });
-
           setAutores(autoresConDatos);
           setDataModified(true);
           toast.success(response.message);
@@ -236,7 +233,6 @@ const Form3Modal2: React.FC<Form3Modal2Props> = ({
       toast.warning(
         "No hay datos para guardar. Por favor, carga un archivo o asegúrate de tener autores definidos."
       );
-      return;
     }
 
     // Verificar que todos los autores tengan facultad, carrera y rol seleccionados
@@ -258,45 +254,13 @@ const Form3Modal2: React.FC<Form3Modal2Props> = ({
     try {
       // Preparar los datos para guardar
       const datosParaGuardar = autores.map((autor) => {
-        // Quitar las propiedades de UI antes de guardar
-        const {
-          facultad_seleccionada,
-          carrera_seleccionada,
-          ...autorSinPropiedadesUI
-        } = autor;
-        return autorSinPropiedadesUI;
+        const { facultad_seleccionada, carrera_seleccionada, ...rest } = autor;
+        return rest as Autor; // Eliminar propiedades de UI
       });
-
-      // Mostrar el JSON de los datos en la consola
-      console.log(
-        "Datos preparados para guardar:",
-        JSON.stringify(datosParaGuardar, null, 2)
-      );
-
-      // Si hay una función de retorno definida, la llamamos con los datos
-      if (onSaveData) {
-        onSaveData(datosParaGuardar);
-      }
-
-      // Opcional: guardar en el backend si es necesario
-      if (dataModified) {
-        socket.emit(
-          "guardar_autores",
-          { autores: datosParaGuardar },
-          (response: any) => {
-            if (response.success) {
-              toast.success("Datos de autores guardados correctamente.");
-              closeModal();
-            } else {
-              toast.error(response.message || "Error al guardar los datos.");
-            }
-          }
-        );
-      } else {
-        // Si no hay cambios, simplemente cerramos el modal
-        toast.success("No hay cambios que guardar.");
-        closeModal();
-      }
+      setAutores(datosParaGuardar);
+      if (onSave) onSave(datosParaGuardar);
+      toast.success("Datos guardados correctamente");
+      closeModal();
     } catch (error) {
       toast.error(`Error al guardar los datos: ${error}`);
     } finally {

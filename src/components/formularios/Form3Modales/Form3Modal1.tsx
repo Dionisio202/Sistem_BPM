@@ -2,17 +2,22 @@ import React, { useState, useEffect, useCallback } from "react";
 import io from "socket.io-client";
 import UploadFile from "../components/UploadFile";
 import { SERVER_BACK_URL } from "../../../config.ts";
-import {
-  ModalProps,
-  TipoProducto,
-} from "../../../interfaces/registros.interface";
+import { TipoProducto } from "../../../interfaces/registros.interface";
 import { Facultad } from "../../../interfaces/facultades.interface.ts";
 import InputField from "./components/InputField.tsx";
 import Section from "./components/Section.tsx";
 import SelectField from "./components/Selectfield.tsx";
 import { ToastContainer, toast } from "react-toastify";
 import Button from "../../UI/button.tsx";
-
+import { Producto } from "../../../interfaces/registros.interface";
+interface ModalProps {
+  showModal: boolean;
+  closeModal: () => void;
+  onSave: (productos: Producto[]) => void;
+  tipoMemorando: string;
+  initialData: Producto[];
+  handleTipoMemorandoChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+}
 const socket = io(SERVER_BACK_URL);
 
 interface FormData {
@@ -272,8 +277,6 @@ const Form3Modal1: React.FC<ModalProps> = ({
       reader.onloadend = () => {
         if (typeof reader.result === "string") {
           const base64 = reader.result.split(",")[1];
-          console.log("base 64", base64);
-          toast.success("se convirtio a base 64");
           if (base64) resolve(base64);
           else reject("No se pudo extraer la parte base64 del archivo.");
         } else {
@@ -285,7 +288,7 @@ const Form3Modal1: React.FC<ModalProps> = ({
     });
   }, []);
 
-  const handleSave = useCallback(
+  const handleLoad = useCallback(
     async (event: React.MouseEvent<HTMLButtonElement>) => {
       event.preventDefault();
       try {
@@ -333,6 +336,17 @@ const Form3Modal1: React.FC<ModalProps> = ({
     [intellectualPropertyFileBase64, memoFileBase64]
   );
 
+  const handleSave = useCallback(() => {
+    checkMissingData();
+    if (hasMissingData) {
+      toast.error("Por favor complete los campos requeridos");
+      return;
+    }
+    //@ts-ignore
+    onSave(editedData.productos);
+    closeModal();
+  }, [editedData, hasMissingData, checkMissingData, onSave, closeModal]);
+
   if (!showModal) return null;
 
   return (
@@ -372,10 +386,10 @@ const Form3Modal1: React.FC<ModalProps> = ({
                 />
                 <Button
                   className="bg-[#931D21] text-white rounded-lg px-6 py-2 hover:bg-blue-700 transition-colors duration-200"
-                  onClick={handleSave}
+                  onClick={handleLoad}
                   disabled={loading || !intellectualPropertyFileBase64}
                 >
-                  {loading ? "Procesando..." : "Guardar"}
+                  {loading ? "Procesando..." : "Cargar"}
                 </Button>
               </div>
               <InputField
@@ -499,6 +513,15 @@ const Form3Modal1: React.FC<ModalProps> = ({
           >
             Cancelar
           </button>
+          {/*Boton de Guardado*/}
+          <button
+            onClick={handleSave}
+            className="bg-[#931D21] text-white text-xs sm:text-sm px-4 py-2 rounded-lg hover:bg-red-700"
+            disabled={loading}
+          >
+            {loading ? "Procesando..." : "Guardar Cambios"}
+          </button>
+          {}
         </div>
       </div>
       <ToastContainer />

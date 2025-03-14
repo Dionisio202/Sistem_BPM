@@ -11,60 +11,187 @@ import { toast } from "react-toastify";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { useCombinedBonitaData } from "../bonita/hooks/obtener_datos_bonita.tsx";
 import { useSaveTempState } from "../bonita/hooks/datos_temprales";
+interface Autor {
+  id_persona: number | null;
+  id_rol: number;
+  id_facultad_carrera: number;
+  ciudad: string | null;
+  identificacion: string;
+  nombre: string;
+  telefono: string;
+  fecha_nacimiento: Date | null;
+  direccion: string;
+  correo: string;
+  id_autor_producto?: number;
+  id_producto?: number;
+  id_autor?: number;
+  porcentaje_participacion: number;
+  facultad_seleccionada?: number | null; // Para seguimiento de UI
+  carrera_seleccionada?: number | null; // Para seguimiento de UI
+}
+
 const socket = io(SERVER_BACK_URL);
+
 export default function UploadForm() {
-  // Estados para controlar la apertura y cierre de los modales
+  // Estados para controlar modales
   const [isModal1Open, setIsModal1Open] = useState(false);
   const [isModal2Open, setIsModal2Open] = useState(false);
+
+  // Datos de Bonita
   const { usuario, bonitaData, tareaActual } = useCombinedBonitaData();
-  // Estado para manejar el tipo de memorando
+
+  // Estados para datos
   const [tipoMemorando, setTipoMemorando] = useState("Tipo A");
-  
-  // Estado para almacenar los datos del formulario (para ser compartido entre modales)
-  const [formData, setFormData] = useState({});
-  const { startAutoSave, saveFinalState } = useSaveTempState(socket);
   const [json, setJson] = useState<temporalData | null>(null);
-  const [formDataAutores, setFormDataAutores] = useState({});
+  const [formDataAutores, setFormDataAutores] = useState<Autor[]>([]);
+  const [formDataProductos, setFormDataProductos] = useState<[]>([]);
+
+  // Auto-guardado
+  const { startAutoSave, saveFinalState } = useSaveTempState(socket);
+
   useEffect(() => {
     if (bonitaData && usuario) {
-      socket.emit("comprobar_estado_registro", { id_registro: `${bonitaData.processId}-${bonitaData.caseId}` }, (response: any) => {
-        if (response.success ) {
-          console.log(response.data);
-          setFormDataAutores(response.data);
-        } else {
-          toast.error(response.message);
-          console.log(response.error);
+      const registroId = `${bonitaData.processId}-${bonitaData.caseId}`;
+
+      // Cargar datos existentes solo si no hay datos locales
+      socket.emit(
+        "comprobar_estado_registro",
+        { id_registro: registroId },
+        (response: any) => {
+          if (response.success && !formDataAutores.length) {
+            setFormDataAutores(response.data.autores || []);
+            setFormDataProductos(response.data.productos || []);
+          }
         }
-      });
+      );
+
+      // Configurar auto-guardado
       const data: temporalData = {
-        id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
+        id_registro: registroId,
         id_tarea: parseInt(bonitaData.taskId),
-        jsonData: JSON.stringify("No Form Data"),
+        jsonData: JSON.stringify({
+          autores: formDataAutores,
+          productos: formDataProductos,
+        }),
         id_funcionario: parseInt(usuario.user_id),
         nombre_tarea: tareaActual?.name ?? "",
       };
       setJson(data);
       startAutoSave(data, 10000, "En Proceso");
     }
-  }, [bonitaData, usuario, startAutoSave, tareaActual]);
+  }, [bonitaData, usuario, tareaActual]);
 
-  // Funciones para abrir los modales
+  // Manejadores de modales
   const openModal1 = () => setIsModal1Open(true);
   const openModal2 = () => setIsModal2Open(true);
-
-  // Funciones para cerrar los modales
   const closeModal1 = () => setIsModal1Open(false);
   const closeModal2 = () => setIsModal2Open(false);
 
-  // Función para manejar el guardado de datos
-  const handleSave = (data:any) => {
-    console.log("Datos guardados:", data);
-    setFormData(data); // Actualizar los datos del formulario
-    closeModal1(); // Cierra el modal después de guardar
+  // Manejadores de datos
+  const handleSaveAutores = (autores: Autor[]) => {
+    setFormDataAutores(autores);
+    closeModal2();
+    toast.success("Autores guardados exitosamente");
   };
 
-  const handleTipoMemorandoChange = (e:any) => {
-    setTipoMemorando(e.target.value);
+  const handleSaveProductos = (productos: any) => {
+    console.log("Productos recibidos:", productos);
+    setFormDataProductos(productos);
+    closeModal1();
+    toast.success("Productos guardados exitosamente");
+  };
+
+  const handleFinalSave = () => {
+    if (!json) {
+      toast.error("Error de configuración del proceso");
+      return;
+    }
+
+    if (formDataAutores.length === 0 || formDataProductos.length === 0) {
+      toast.error("Complete ambos formularios primero");
+      return;
+    }
+
+    // Validar porcentajes de participación
+    const totalParticipacion = formDataAutores.reduce(
+      (acc, autor) => acc + autor.porcentaje_participacion,
+      0
+    );
+
+    if (totalParticipacion !== 100) {
+      toast.error("La suma de porcentajes debe ser 100%");
+      return;
+    }
+
+    // Guardar estado final
+    console.log("autores", formDataAutores);
+    console.log("productos", formDataProductos);
+    // saveFinalState({
+    //   ...json,
+    //   jsonData: JSON.stringify({
+    //     autores: formDataAutores,
+    //     productos: formDataProductos,
+    //   }),
+    // });
+    if (!bonitaData) {
+      throw new Error("No se encontraron los datos de Bonita.");
+    }
+    socket.emit(
+      "agregar_producto_datos",
+      {
+        id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
+        jsonProductos: JSON.stringify(formDataProductos), // Se envía como cadena
+        memorando: formDataProductos.productos.codigoMemorando,
+      },
+      (response: any) => {
+        if (response.success) {
+          const codigoCombinado =
+            bonitaData.processId + "-" + bonitaData.caseId;
+          console.log("📢 ID", codigoCombinado);
+          console.log("📢 Datos editados guardados correctamente:", response);
+          toast.success("Datos Verificados y Guardados Correctamente");
+
+          // Enviar los autores, también convertidos a cadena JSON
+          socket.emit(
+            "set_autores",
+            {
+              codigo: codigoCombinado,
+              autores: JSON.stringify(jsonAutroes),
+            },
+            (response: any) => {
+              if (response.success) {
+                console.log(
+                  "📢 Autores guardados correctamente:",
+                  response.message
+                );
+                toast.success("Datos editados guardados correctamente.");
+              } else {
+                console.error(
+                  "❌ Error al guardar los autores:",
+                  response.message
+                );
+                toast.error("Error al guardar los datos editados.");
+              }
+            }
+          );
+        } else {
+          console.error(
+            "❌ Error al guardar los datos editados:",
+            response.message
+          );
+          toast.info(
+            "Ya se encuentran registrados todos los productos de este Memorando."
+          );
+          toast.info("Ingrese un Nuevo Registro.");
+        }
+      }
+    );
+
+    toast.success("Proceso guardado exitosamente");
+    console.log("Datos finales:", {
+      autores: formDataAutores,
+      productos: formDataProductos,
+    });
   };
 
   return (
@@ -75,84 +202,69 @@ export default function UploadForm() {
           size="2xl"
           className="text-center text-gray-800 mb-3 text-lg"
         />
-        <h1 className="text-sm font-bold text-center text-gray-900 mb-9">
-          Revisión y Análisis de Requerimiento
-        </h1>
 
-        {/* Contenedor de las Cards */}
+        {/* Contenedor de Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-          {/* Card 1 */}
+          {/* Card Productos */}
           <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 hover:shadow-xl transition-shadow">
             <div className="flex flex-col items-center text-center">
               <FaFileAlt className="text-[#931D21] text-4xl mb-4" />
               <h2 className="text-xl font-semibold text-gray-800 mb-2">
-                Formato de Registro de Propiedad Intelectual
+                Registro de Productos
               </h2>
-              <p className="text-gray-600 mb-4">
-                Ingrese, Revise y guarde los datos de los productos a registrar.
-              </p>
               <Button
-                className="bg-[#931D21] text-white rounded-lg px-6 py-2 hover:bg-[#7A171A] transition-colors duration-200"
+                className="bg-[#931D21] text-white rounded-lg px-6 py-2 hover:bg-[#7A171A]"
                 onClick={openModal1}
               >
-                Ver Detalles
+                {formDataProductos.length ? "Editar" : "Comenzar"}
               </Button>
             </div>
           </div>
 
-          {/* Card 2 */}
+          {/* Card Autores */}
           <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 hover:shadow-xl transition-shadow">
             <div className="flex flex-col items-center text-center">
               <FaRegFilePdf className="text-blue-600 text-4xl mb-4" />
               <h2 className="text-xl font-semibold text-gray-800 mb-2">
                 Registro de Autores
               </h2>
-              <p className="text-gray-600 mb-4">
-                Ingrese, Revise y Guarde los datos de los autores.
-              </p>
               <Button
-                className="bg-blue-600 text-white rounded-lg px-6 py-2 hover:bg-blue-700 transition-colors duration-200"
+                className="bg-blue-600 text-white rounded-lg px-6 py-2 hover:bg-blue-700"
                 onClick={openModal2}
               >
-                Ver Detalles
+                {formDataAutores.length ? "Editar" : "Comenzar"}
               </Button>
             </div>
           </div>
         </div>
 
-        {/* Botones de Acción en la Parte Inferior */}
-        <div className="flex justify-center mt-6 space-x-4">
+        {/* Botón de Guardado Final */}
+        <div className="flex justify-center mt-6">
           <Button
-            className="bg-[#931D21] text-white rounded-lg px-6 py-2 hover:bg-[#7A171A] transition-colors duration-200"
-            onClick={() => console.log("Siguiente")}
+            className="bg-[#931D21] text-white rounded-lg px-8 py-3 hover:bg-[#7A171A] transition-colors duration-200 text-sm sm:text-base"
+            onClick={handleFinalSave}
           >
-            Siguiente
-          </Button>
-          <Button
-            className="bg-[#931D21] text-white rounded-lg px-6 py-2 hover:bg-blue-700 transition-colors duration-200"
-            onClick={handleSave}
-          >
+            Guardar Proceso Completo
           </Button>
         </div>
       </div>
 
-      {/* Modal 1 */}
+      {/* Modales */}
       <ModalP
         isOpen={isModal1Open}
         onClose={closeModal1}
-        title="Formato de Registro de Propiedad Intelectual"
+        title="Registro de Productos"
       >
         <Form3Modal1
           showModal={isModal1Open}
           closeModal={closeModal1}
-          modalData={formData} // Pasamos los datos del formulario aquí
-          onSave={handleSave}
+          onSave={handleSaveProductos}
           tipoMemorando={tipoMemorando}
-          handleTipoMemorandoChange={handleTipoMemorandoChange}
+          initialData={formDataProductos}
+          handleTipoMemorandoChange={(e) => setTipoMemorando(e.target.value)}
         />
       </ModalP>
 
-      {/* Modal 2 */}
       <ModalP
         isOpen={isModal2Open}
         onClose={closeModal2}
@@ -161,10 +273,8 @@ export default function UploadForm() {
         <Form3Modal2
           showModal={isModal2Open}
           closeModal={closeModal2}
-          modalData={formDataAutores} // Pasamos los datos del formulario aquí
-          onSave={handleSave}
-          tipoMemorando={tipoMemorando}
-          handleTipoMemorandoChange={handleTipoMemorandoChange}
+          onSave={handleSaveAutores}
+          initialData={formDataAutores}
         />
       </ModalP>
     </div>
