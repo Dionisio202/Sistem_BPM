@@ -25,11 +25,13 @@ export default function Formulario6() {
     useState<StaticDocument | null>(null);
   const bonita: BonitaUtilities = new BonitaUtilities();
   const [json, setJson] = useState<temporalData | null>(null);
-  const [aprobado, setAprobado] = useState<boolean>(false);
-    // @ts-ignore
+  // @ts-ignore
   const [loading, setLoading] = useState(false);
-    // @ts-ignore
+  // @ts-ignore
   const [processAdvanced, setProcessAdvanced] = useState(false);
+  // New state to track if documents were generated
+  const [documentsGenerated, setDocumentsGenerated] = useState(false);
+
   // Modificamos la función para aceptar un string
   const handleViewDocument = async (documentType: string) => {
     const document = staticDocuments[documentType];
@@ -44,9 +46,12 @@ export default function Formulario6() {
         (response: any) => {
           if (response.success) {
             console.log("Respuesta del servidor:", response.message);
-            // Puedes manejar la respuesta según tus necesidades
+            // Mark documents as generated when successful
+            setDocumentsGenerated(true);
           } else {
             console.error("Error del servidor:", response.message);
+            toast.error("Error al generar documentos: " + response.message);
+            setDocumentsGenerated(false);
           }
         }
       );
@@ -64,6 +69,7 @@ export default function Formulario6() {
         jsonData: JSON.stringify(selectedDocuments),
         id_funcionario: parseInt(usuario.user_id),
         nombre_tarea: tareaActual?.name ?? "",
+        eliminar_documentos: true,
       };
       setJson(data);
       startAutoSave(data, 10000, "En Proceso");
@@ -72,23 +78,35 @@ export default function Formulario6() {
 
   // Guardado final
   const handleNext = async () => {
-  
+    // Check if documents were generated before proceeding
+    if (!documentsGenerated) {
+      toast.error("Por favor, genere los documentos antes de continuar");
+      return;
+    }
+
+    // Also check if a document was selected
+    if (!selectedDocuments) {
+      toast.error("Por favor, seleccione un documento antes de continuar");
+      return;
+    }
 
     try {
       if (json) {
         setLoading(true);
-        await saveFinalState(json);
+        const saveResponse = await saveFinalState(json);
+        if (!saveResponse || typeof saveResponse.success !== "boolean") {
+          throw new Error("Respuesta inválida al guardar el estado final.");
+        }
+        if (!saveResponse.success) {
+          toast.error(
+            saveResponse.message ||
+              "No se pudo guardar el estado final. Inténtelo de nuevo."
+          );
+        }
       } else {
         console.error("❌ Error: json is null");
       }
-      console.log("Aprobado", aprobado);
-      bonita.changeTask({
-        formData: {
-          aprobadoInput: {
-            aprobado: aprobado,
-          },
-        },
-      });
+      bonita.changeTask();
       setProcessAdvanced(true);
     } catch (error) {
       toast.error(`Error: ${error}`);
@@ -121,23 +139,16 @@ export default function Formulario6() {
           defaultLabel="Selecciona un documento"
         />
         <button
-          className="w-40 bg-[#931D21] text-white p-2 rounded hover:bg-[#7A171A] transition duration-300"
+          className={`w-40 text-white p-2 rounded transition duration-300 ${
+            documentsGenerated && selectedDocuments
+              ? "bg-[#931D21] hover:bg-[#7A171A]"
+              : "bg-gray-400 cursor-not-allowed"
+          }`}
           onClick={handleNext}
+          disabled={!documentsGenerated || !selectedDocuments}
         >
           Siguiente
         </button>
-        <div className="flex items-center">
-          <input
-            type="checkbox"
-            className="h-6 w-6"
-            id="aprobado"
-            name="aprobado"
-            onChange={(e) => setAprobado(e.target.checked)}
-          />
-          <label htmlFor="aprobado" className="ml-2">
-            Aprobado
-          </label>
-        </div>
       </div>
 
       <div className="flex-grow">

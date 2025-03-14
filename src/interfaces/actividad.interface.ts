@@ -44,4 +44,5 @@ export interface Actividad {
     jsonData: string,
     id_tarea: number,
     nombre_tarea : string,
+    eliminar_documentos?: boolean
   }

@@ -27,8 +27,9 @@ export default function ConfirmationScreen() {
   const [contratoFile, setContratoFile] = useState<File | null>(null);
   const [actaFile, setActaFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const bonita: BonitaUtilities = new BonitaUtilities();
-    // @ts-ignore
+  // @ts-ignore
   const [processAdvanced, setProcessAdvanced] = useState(false);
 
   const handleChange = (name: string, checked: boolean) => {
@@ -79,6 +80,7 @@ export default function ConfirmationScreen() {
         jsonData: JSON.stringify(selectedDocuments),
         id_funcionario: parseInt(usuario.user_id),
         nombre_tarea: tareaActual?.name || "",
+        eliminar_documentos: false,
       };
       setJson(data);
       startAutoSave(data, 10000, "En Proceso");
@@ -168,7 +170,17 @@ export default function ConfirmationScreen() {
 
         // Guardado final del estado temporal
         if (json) {
-          await saveFinalState(json);
+          const saveResponse = await saveFinalState(json);
+          if (!saveResponse || typeof saveResponse.success !== "boolean") {
+            throw new Error("Respuesta inválida al guardar el estado final.");
+          }
+          if (!saveResponse.success) {
+            toast.error(
+              saveResponse.message ||
+                "No se pudo guardar el estado final. Inténtelo de nuevo."
+            );
+          }
+    
         } else {
           console.error("❌ Error: json is null");
         }
@@ -198,7 +210,13 @@ export default function ConfirmationScreen() {
 
         // Verificar si ambos archivos se subieron correctamente
         if (contratoUploadSuccess && actaUploadSuccess) {
-          await bonita.changeTask();
+         await  bonita.changeTask({
+            formData: {
+              aprobadoInput: {
+                aprobado: false,
+              },
+            },
+          });
           setProcessAdvanced(true);
           // Cambiar de tarea solo si no hubo errores
         } else {
@@ -222,6 +240,28 @@ export default function ConfirmationScreen() {
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault(); // Evita que el formulario se envíe y recargue la página
     console.log("📌 Documentos confirmados:", selectedDocuments);
+  };
+
+  // Manejador para regresar a la tarea anterior
+  const handleBack = async () => {
+    if (bonitaData && usuario) {
+      try {
+        setLoading(true);
+        bonita.changeTask({
+          formData: {
+            aprobadoInput: {
+              aprobado: true,
+            },
+          },
+        });
+        setShowConfirmModal(false);
+      } catch (error) {
+        console.error("Error al regresar a la tarea anterior:", error);
+        toast.error("Ocurrió un error al intentar regresar.");
+      } finally {
+        setLoading(false);
+      }
+    }
   };
 
   return (
@@ -260,19 +300,28 @@ export default function ConfirmationScreen() {
           />
         </div>
 
-        <Button
-          className="w-full bg-[#931D21] hover:bg-[#7A171A] text-white py-2 rounded-lg font-semibold hover:scale-105 transition-transform duration-300"
-          onClick={handleNext}
-          disabled={
-            loading ||
-            !selectedDocuments.contrato ||
-            !selectedDocuments.acta ||
-            !contratoFile ||
-            !actaFile
-          }
-        >
-          {loading ? "Cargando..." : "Siguiente"}
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Button
+            className="w-full bg-gray-500 hover:bg-gray-600 text-white py-2 rounded-lg font-semibold hover:scale-105 transition-transform duration-300"
+            onClick={() => setShowConfirmModal(true)}
+            disabled={loading}
+          >
+            Regresar
+          </Button>
+          <Button
+            className="w-full bg-[#931D21] hover:bg-[#7A171A] text-white py-2 rounded-lg font-semibold hover:scale-105 transition-transform duration-300"
+            onClick={handleNext}
+            disabled={
+              loading ||
+              !selectedDocuments.contrato ||
+              !selectedDocuments.acta ||
+              !contratoFile ||
+              !actaFile
+            }
+          >
+            {loading ? "Cargando..." : "Siguiente"}
+          </Button>
+        </div>
         {usuario && (
           <p className="text-center text-gray-700 mt-2">
             Usuario autenticado: <b>{usuario.user_name}</b> (ID:{" "}
@@ -281,6 +330,32 @@ export default function ConfirmationScreen() {
         )}
         {error && <p className="text-red-500 text-center">{error}</p>}
       </form>
+
+      {/* Modal de confirmación para regresar */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
+            <h3 className="text-lg font-bold mb-4">Confirmar acción</h3>
+            <p className="mb-6">¿Está seguro de que quiere regresar a la parte de Atender la solicitud?</p>
+            <div className="flex justify-end gap-4">
+              <Button
+                className="bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 px-4 rounded"
+                onClick={() => setShowConfirmModal(false)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                className="bg-[#931D21] hover:bg-[#7A171A] text-white py-2 px-4 rounded"
+                onClick={handleBack}
+                disabled={loading}
+              >
+                {loading ? "Procesando..." : "Confirmar"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <ToastContainer />
     </CardContainer>
   );
