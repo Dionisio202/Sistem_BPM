@@ -11,6 +11,7 @@ import { toast } from "react-toastify";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { useCombinedBonitaData } from "../bonita/hooks/obtener_datos_bonita.tsx";
 import { useSaveTempState } from "../bonita/hooks/datos_temprales";
+
 interface Autor {
   id_persona: number | null;
   id_rol: number;
@@ -26,46 +27,37 @@ interface Autor {
   id_producto?: number;
   id_autor?: number;
   porcentaje_participacion: number;
-  facultad_seleccionada?: number | null; // Para seguimiento de UI
-  carrera_seleccionada?: number | null; // Para seguimiento de UI
+  facultad_seleccionada?: number | null;
+  carrera_seleccionada?: number | null;
 }
 
 const socket = io(SERVER_BACK_URL);
 
 export default function UploadForm() {
-  // Estados para controlar modales
   const [isModal1Open, setIsModal1Open] = useState(false);
   const [isModal2Open, setIsModal2Open] = useState(false);
-
-  // Datos de Bonita
   const { usuario, bonitaData, tareaActual } = useCombinedBonitaData();
-
-  // Estados para datos
-  const [tipoMemorando, setTipoMemorando] = useState("Tipo A");
   const [json, setJson] = useState<temporalData | null>(null);
   const [formDataAutores, setFormDataAutores] = useState<Autor[]>([]);
   const [formDataProductos, setFormDataProductos] = useState<[]>([]);
-
-  // Auto-guardado
   const { startAutoSave, saveFinalState } = useSaveTempState(socket);
+  const [tipoOperacion, setTipoOperacion] = useState<boolean>(false); // ✅ Corrección aquí
+  const [idRegistro, setIdRegistro] = useState<string>("");
 
   useEffect(() => {
     if (bonitaData && usuario) {
       const registroId = `${bonitaData.processId}-${bonitaData.caseId}`;
-
-      // Cargar datos existentes solo si no hay datos locales
+      setIdRegistro(registroId);
       socket.emit(
         "comprobar_estado_registro",
         { id_registro: registroId },
         (response: any) => {
-          if (response.success && !formDataAutores.length) {
-            setFormDataAutores(response.data.autores || []);
-            setFormDataProductos(response.data.productos || []);
+          if (response.success) {
+            setTipoOperacion(response.data); // ✅ Actualización correcta
           }
         }
       );
 
-      // Configurar auto-guardado
       const data: temporalData = {
         id_registro: registroId,
         id_tarea: parseInt(bonitaData.taskId),
@@ -140,15 +132,15 @@ export default function UploadForm() {
       "agregar_producto_datos",
       {
         id_registro: `${bonitaData.processId}-${bonitaData.caseId}`,
-        jsonProductos: JSON.stringify(formDataProductos), // Se envía como cadena
-        memorando: tipoMemorando,
+        jsonProductos: JSON.stringify(formDataProductos),
+        //@ts-ignore
+        memorando: formDataProductos.codigoMemorando,
+        esEdicion: tipoOperacion,
       },
       (response: any) => {
         if (response.success) {
           const codigoCombinado =
-            bonitaData.processId + "-" + bonitaData.caseId;
-          console.log("📢 ID", codigoCombinado);
-          console.log("📢 Datos editados guardados correctamente:", response);
+          bonitaData.processId + "-" + bonitaData.caseId;
           toast.success("Datos Verificados y Guardados Correctamente");
 
           // Enviar los autores, también convertidos a cadena JSON
@@ -256,6 +248,7 @@ export default function UploadForm() {
         title="Registro de Productos"
       >
         <Form3Modal1
+          id_registro={idRegistro}
           showModal={isModal1Open}
           closeModal={closeModal1}
           onSave={handleSaveProductos}
