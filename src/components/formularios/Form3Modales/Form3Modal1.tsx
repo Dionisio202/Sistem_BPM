@@ -333,7 +333,6 @@ const Form3Modal1: React.FC<ModalProps> = ({
                   ...response.data,
                 },
               }));
-              toast.success("Documento mapeado correctamente");
             } else {
               const errorMessage =
                 response?.error || response?.message || "Error desconocido";

@@ -7,7 +7,7 @@ import { FaFileAlt, FaRegFilePdf } from "react-icons/fa";
 import Form3Modal1 from "./Form3Modales/Form3Modal1";
 import Form3Modal2 from "./Form3Modales/Form3Modal2";
 import { SERVER_BACK_URL } from "../../config.ts";
-import { toast } from "react-toastify";
+import { ToastContainer, toast } from "react-toastify";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { useCombinedBonitaData } from "../bonita/hooks/obtener_datos_bonita.tsx";
 import { useSaveTempState } from "../bonita/hooks/datos_temprales";
@@ -193,6 +193,7 @@ export default function UploadForm() {
       }),
     });
     await bonita.changeTask();
+    toast.success("Avanzando al siguiente proceso")
   };
 
   return (
@@ -277,6 +278,7 @@ export default function UploadForm() {
           initialData={formDataAutores}
         />
       </ModalP>
+      <ToastContainer/>
     </div>
   );
 }
