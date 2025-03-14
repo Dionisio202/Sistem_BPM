@@ -43,7 +43,6 @@ export default function UploadForm() {
   const [json, setJson] = useState<temporalData | null>(null);
   const [formDataAutores, setFormDataAutores] = useState<Autor[]>([]);
   const [formDataProductos, setFormDataProductos] = useState<[]>([]);
-  //@ts-ignore
   const { startAutoSave, saveFinalState } = useSaveTempState(socket);
   const [tipoOperacion, setTipoOperacion] = useState<boolean>(false); // ✅ Corrección aquí
   const [idRegistro, setIdRegistro] = useState<string>("");
@@ -71,7 +70,6 @@ export default function UploadForm() {
         }),
         id_funcionario: parseInt(usuario.user_id),
         nombre_tarea: tareaActual?.name ?? "",
-        eliminar_documentos: false,
       };
       setJson(data);
       startAutoSave(data, 10000, "En Proceso");
