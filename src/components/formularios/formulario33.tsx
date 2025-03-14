@@ -7,7 +7,7 @@ import { FaFileAlt, FaRegFilePdf } from "react-icons/fa";
 import Form3Modal1 from "./Form3Modales/Form3Modal1";
 import Form3Modal2 from "./Form3Modales/Form3Modal2";
 import { SERVER_BACK_URL } from "../../config.ts";
-import { toast } from "react-toastify";
+import { ToastContainer, toast } from "react-toastify";
 import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { useCombinedBonitaData } from "../bonita/hooks/obtener_datos_bonita.tsx";
 import { useSaveTempState } from "../bonita/hooks/datos_temprales";
@@ -144,7 +144,7 @@ export default function UploadForm() {
       (response: any) => {
         if (response.success) {
           const codigoCombinado =
-          bonitaData.processId + "-" + bonitaData.caseId;
+            bonitaData.processId + "-" + bonitaData.caseId;
           toast.success("Datos Verificados y Guardados Correctamente");
 
           // Enviar los autores, también convertidos a cadena JSON
@@ -192,11 +192,12 @@ export default function UploadForm() {
       }),
     });
     await bonita.changeTask();
+    toast.success("Avanzando al siguiente proceso")
   };
 
   return (
-    <div className="flex flex-col items-center p-1 bg-gradient-to-r to-gray-100 min-h-screen">
-      <div className="w-full max-w-4xl bg-white p-8 rounded-xl shadow-xl border border-gray-700">
+    <div className="flex flex-col items-center p-1 bg-gradient-to-r from-gray-200 to-gray-100 min-h-screen">
+      <div className="w-full max-w-4xl bg-white/50 p-8 rounded-xl shadow-xl border border-gray-300 backdrop-blur-md">
         <Title
           text="Atención de Solicitud de Registro de Propiedad Intelectual"
           size="2xl"
@@ -276,6 +277,7 @@ export default function UploadForm() {
           initialData={formDataAutores}
         />
       </ModalP>
+      <ToastContainer/>
     </div>
   );
 }
