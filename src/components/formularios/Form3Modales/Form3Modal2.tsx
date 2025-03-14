@@ -45,21 +45,22 @@ interface Form3Modal2Props {
   onSave?: (data: Autor[]) => void;
 }
 
-
 const Form3Modal2: React.FC<Form3Modal2Props> = ({
   closeModal,
   initialData = [],
   onSave,
 }) => {
-    // @ts-ignore
+  // @ts-ignore
 
   const [hasMissingData, setHasMissingData] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [authorDataFileBase64, setAuthorDataFileBase64] = useState< string | null>(null);
+  const [authorDataFileBase64, setAuthorDataFileBase64] = useState<
+    string | null
+  >(null);
   const [autores, setAutores] = useState<Autor[]>(initialData);
   const [facultades, setFacultades] = useState<Facultad[]>([]);
   const [roles, setRoles] = useState<any[]>([]);
-    // @ts-ignore
+  // @ts-ignore
 
   const [dataModified, setDataModified] = useState(false);
 
@@ -273,7 +274,7 @@ const Form3Modal2: React.FC<Form3Modal2Props> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-700/50 backdrop-blur-md flex justify-center items-center p-4">
+    <div className="fixed inset-0 backdrop-blur-lg bg-white/40 flex justify-center items-center p-4">
       <div className="bg-amber-50 rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
         <div className="p-6 border-zinc-800">
           {/* Título principal */}

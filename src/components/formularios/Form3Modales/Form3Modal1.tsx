@@ -56,7 +56,7 @@ const Form3Modal1: React.FC<ModalProps> = ({
   showModal,
   onSave,
   closeModal,
-  id_registro
+  id_registro,
 }) => {
   const [editedData, setEditedData] = useState<FormData>({
     productos: {
@@ -318,7 +318,7 @@ const Form3Modal1: React.FC<ModalProps> = ({
           {
             documento_productos: intellectualPropertyFileBase64,
             documento_memorando: memoFileBase64,
-            id_registro: id_registro
+            id_registro: id_registro,
           },
           (response: any) => {
             clearTimeout(timeout);
@@ -365,8 +365,8 @@ const Form3Modal1: React.FC<ModalProps> = ({
   if (!showModal) return null;
 
   return (
-    <div className="fixed inset-0 bg-gray-700/50 backdrop-blur-md flex justify-center items-center p-4">
-      <div className="bg-amber-50 rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 backdrop-blur-lg bg-white/40 flex justify-center items-center p-4">
+      <div className="bg-amber-50 rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6">
         <div className="p-6 border-zinc-800">
           <div>
             <h2 className="text-2xl font-bold mb-2 text-center">

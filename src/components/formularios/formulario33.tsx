@@ -145,7 +145,7 @@ export default function UploadForm() {
       (response: any) => {
         if (response.success) {
           const codigoCombinado =
-          bonitaData.processId + "-" + bonitaData.caseId;
+            bonitaData.processId + "-" + bonitaData.caseId;
           toast.success("Datos Verificados y Guardados Correctamente");
 
           // Enviar los autores, también convertidos a cadena JSON
@@ -196,8 +196,8 @@ export default function UploadForm() {
   };
 
   return (
-    <div className="flex flex-col items-center p-1 bg-gradient-to-r to-gray-100 min-h-screen">
-      <div className="w-full max-w-4xl bg-white p-8 rounded-xl shadow-xl border border-gray-700">
+    <div className="flex flex-col items-center p-1 bg-gradient-to-r from-gray-200 to-gray-100 min-h-screen">
+      <div className="w-full max-w-4xl bg-white/50 p-8 rounded-xl shadow-xl border border-gray-300 backdrop-blur-md">
         <Title
           text="Atención de Solicitud de Registro de Propiedad Intelectual"
           size="2xl"
