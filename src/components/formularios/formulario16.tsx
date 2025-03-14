@@ -34,8 +34,9 @@ export default function DocumentForm() {
   // @ts-ignore
   const bonita = new BonitaUtilities();
   const [loading, setLoading] = useState(false); // Estado para manejar el loading
+    // @ts-ignore
   const [uploadError, setUploadError] = useState<string>("");
-  const [errror, setError] = useState("");
+  const [_errror, setError] = useState("");
   const [fileUploaded, setFileUploaded] = useState(false); // Estado para rastrear si el archivo se ha subido
   // @ts-ignore
   const [processAdvanced, setProcessAdvanced] = useState(false);

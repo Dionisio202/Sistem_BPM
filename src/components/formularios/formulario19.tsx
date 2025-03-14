@@ -23,7 +23,7 @@ export default function ConfirmationScreen() {
   const bonita = new BonitaUtilities();
   // @ts-ignore
   const [loading, setLoading] = useState(false);
-  const [processAdvanced, setProcessAdvanced] = useState(false);
+  const [_processAdvanced, setProcessAdvanced] = useState(false);
   const handleNext = async () => {
     if (!isDocumentUploaded) {
       toast.error("Por favor, suba el documento antes de continuar.");

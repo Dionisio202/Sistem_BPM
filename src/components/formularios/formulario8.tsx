@@ -13,18 +13,7 @@ import { ToastContainer, toast } from "react-toastify";
 
 const socket = io(SERVER_BACK_URL);
 
-// Función auxiliar para convertir archivos a base64
-const fileToBase64 = (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => {
-      const result = reader.result as string;
-      resolve(result.split(",")[1]);
-    };
-    reader.onerror = (error) => reject(error);
-  });
-};
+
 
 export default function MemoCodeForm() {
   const { startAutoSave, saveFinalState } = useSaveTempState(socket);
@@ -36,7 +25,7 @@ export default function MemoCodeForm() {
   const bonita: BonitaUtilities = new BonitaUtilities();
   const id_tipo_documento = 3;
   const [json, setJson] = useState<temporalData | null>(null);
-  const [processAdvanced, setProcessAdvanced] = useState(false);
+  const [_processAdvanced, setProcessAdvanced] = useState(false);
 
   useEffect(() => {
     if (bonitaData && usuario) {

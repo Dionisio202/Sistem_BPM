@@ -30,7 +30,7 @@ export default function Formulario6() {
   const bonita: BonitaUtilities = new BonitaUtilities();
   const [json, setJson] = useState<temporalData | null>(null);
   const [loading, setLoading] = useState(false);
-  const [processAdvanced, setProcessAdvanced] = useState(false);
+  const [_processAdvanced, setProcessAdvanced] = useState(false);
   const handleNext = async () => {
     if (!json) {
       toast.error("No hay datos para guardar.");
