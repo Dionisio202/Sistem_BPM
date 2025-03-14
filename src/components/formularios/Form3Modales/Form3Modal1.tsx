@@ -14,6 +14,7 @@ interface ModalProps {
   closeModal: () => void;
   onSave: (productos: any[]) => void;
   initialData: any;
+  id_registro: string;
 }
 const socket = io(SERVER_BACK_URL);
 
@@ -55,6 +56,7 @@ const Form3Modal1: React.FC<ModalProps> = ({
   showModal,
   onSave,
   closeModal,
+  id_registro
 }) => {
   const [editedData, setEditedData] = useState<FormData>({
     productos: {
@@ -316,6 +318,7 @@ const Form3Modal1: React.FC<ModalProps> = ({
           {
             documento_productos: intellectualPropertyFileBase64,
             documento_memorando: memoFileBase64,
+            id_registro: id_registro
           },
           (response: any) => {
             clearTimeout(timeout);
@@ -473,6 +476,7 @@ const Form3Modal1: React.FC<ModalProps> = ({
                     editedData.productos.productos.map((producto: any) => ({
                       value: producto.nombre, // Valor de la opción
                       label: producto.nombre, // Texto mostrado en la opción
+                      indicador: producto.indicador, // Indicador de estado
                     }))
                   }
                 />

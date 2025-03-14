@@ -2,7 +2,7 @@ interface SelectFieldProps {
   label: string;
   value: string;
   onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
-  options: { value: string; label: string }[];
+  options: { value: string; label: string; indicador?: number;}[];
   disabled?: boolean;
 }
 
@@ -24,7 +24,10 @@ const SelectField: React.FC<SelectFieldProps> = ({
       >
         <option value="">Seleccione una opción</option> {/* Opción por defecto */}
         {options.map((option) => (
-          <option key={option.value} value={option.value}>
+          <option key={option.value} value={option.value}       style={{
+            backgroundColor: option.indicador === 2 ? "orange" : option.indicador === 0 ? "green" : option.indicador === 1 ? "red" : "white",
+            color: "white"
+          }}>
             {option.label}
           </option>
         ))}
