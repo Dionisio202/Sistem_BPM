@@ -51,12 +51,16 @@ const Form3Modal2: React.FC<Form3Modal2Props> = ({
   initialData = [],
   onSave,
 }) => {
+    // @ts-ignore
+
   const [hasMissingData, setHasMissingData] = useState(false);
   const [loading, setLoading] = useState(false);
   const [authorDataFileBase64, setAuthorDataFileBase64] = useState< string | null>(null);
   const [autores, setAutores] = useState<Autor[]>(initialData);
   const [facultades, setFacultades] = useState<Facultad[]>([]);
   const [roles, setRoles] = useState<any[]>([]);
+    // @ts-ignore
+
   const [dataModified, setDataModified] = useState(false);
 
   // Precarga de combobox de campos del form

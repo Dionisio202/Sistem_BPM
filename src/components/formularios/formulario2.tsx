@@ -39,7 +39,6 @@ export default function WebPage() {
   const [selectedDocument, setSelectedDocument] = useState<DocumentType | null>(
     null
   );
-  const [selectedDocs, setSelectedDocs] = useState<Set<string>>(new Set());
   const { usuario, bonitaData, tareaActual } = useCombinedBonitaData();
   const { startAutoSave, stopAutoSave, saveFinalState } = useSaveTempState(
     socket,

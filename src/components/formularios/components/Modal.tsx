@@ -210,7 +210,9 @@ const Modal: React.FC<ModalProps> = ({
     }
     setError(null);
     setHasMissingData(false);
-    onSave(editedData);
+    if (onSave) {
+      onSave(editedData);
+    }
     closeModal();
   };
 
