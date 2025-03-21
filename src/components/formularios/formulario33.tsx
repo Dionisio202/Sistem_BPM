@@ -70,6 +70,7 @@ export default function UploadForm() {
         }),
         id_funcionario: parseInt(usuario.user_id),
         nombre_tarea: tareaActual?.name ?? "",
+        eliminar_documentos:false
       };
       setJson(data);
       startAutoSave(data, 10000, "En Proceso");
@@ -139,7 +140,7 @@ export default function UploadForm() {
         //@ts-ignore
         memorando: formDataProductos.codigoMemorando,
         esEdicion: tipoOperacion,
-        id_tarea:`${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}`
+        id_tarea: `${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}`,
       },
       (response: any) => {
         if (response.success) {

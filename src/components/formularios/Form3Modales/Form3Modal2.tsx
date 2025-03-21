@@ -33,7 +33,8 @@ interface Autor {
   id_autor_producto?: number;
   id_producto?: number;
   id_autor?: number;
-  porcentaje_participacion: number;
+  // Se puede almacenar temporalmente como string para permitir que el input muestre vacío
+  porcentaje_participacion: number | string;
   facultad_seleccionada?: number | null; // Para seguimiento de UI
   carrera_seleccionada?: number | null; // Para seguimiento de UI
 }
@@ -50,18 +51,12 @@ const Form3Modal2: React.FC<Form3Modal2Props> = ({
   initialData = [],
   onSave,
 }) => {
-  // @ts-ignore
-
   const [hasMissingData, setHasMissingData] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [authorDataFileBase64, setAuthorDataFileBase64] = useState<
-    string | null
-  >(null);
+  const [authorDataFileBase64, setAuthorDataFileBase64] = useState<string | null>(null);
   const [autores, setAutores] = useState<Autor[]>(initialData);
   const [facultades, setFacultades] = useState<Facultad[]>([]);
   const [roles, setRoles] = useState<any[]>([]);
-  // @ts-ignore
-
   const [dataModified, setDataModified] = useState(false);
 
   // Precarga de combobox de campos del form
@@ -81,8 +76,8 @@ const Form3Modal2: React.FC<Form3Modal2Props> = ({
             // Intentamos encontrar la facultad basada en la carrera
             const autorProcesado = { ...autor };
             if (autor.id_facultad_carrera) {
-              const facultades = JSON.parse(response.data);
-              for (const facultad of facultades) {
+              const facultadesParsed = JSON.parse(response.data);
+              for (const facultad of facultadesParsed) {
                 const carrera = facultad.Carreras.find(
                   (c: Carrera) => c.id_carrera === autor.id_facultad_carrera
                 );
@@ -257,10 +252,10 @@ const Form3Modal2: React.FC<Form3Modal2Props> = ({
 
     setLoading(true);
     try {
-      // Preparar los datos para guardar
+      // Preparar los datos para guardar (eliminar propiedades de UI)
       const datosParaGuardar = autores.map((autor) => {
         const { facultad_seleccionada, carrera_seleccionada, ...rest } = autor;
-        return rest as Autor; // Eliminar propiedades de UI
+        return rest as Autor;
       });
       setAutores(datosParaGuardar);
       if (onSave) onSave(datosParaGuardar);
@@ -325,8 +320,7 @@ const Form3Modal2: React.FC<Form3Modal2Props> = ({
                           value={autor.identificacion}
                           onChange={(e) => {
                             const nuevosAutores = [...autores];
-                            nuevosAutores[index].identificacion =
-                              e.target.value;
+                            nuevosAutores[index].identificacion = e.target.value;
                             setAutores(nuevosAutores);
                             setDataModified(true);
                           }}
@@ -365,15 +359,30 @@ const Form3Modal2: React.FC<Form3Modal2Props> = ({
                         />
                         <InputField
                           label="Participación"
-                          value={autor.porcentaje_participacion.toString()}
+                          type="number"
+                          value={
+                            // Permitir mostrar cadena vacía si es que el usuario borró el contenido
+                            autor.porcentaje_participacion === 0 ||
+                            autor.porcentaje_participacion
+                              ? autor.porcentaje_participacion.toString()
+                              : ""
+                          }
                           onChange={(e) => {
                             const nuevosAutores = [...autores];
+                            // Si el valor es vacío, lo guardamos como cadena vacía
                             nuevosAutores[index].porcentaje_participacion =
-                              parseFloat(e.target.value);
+                              e.target.value === "" ? "" : parseFloat(e.target.value);
                             setAutores(nuevosAutores);
                             setDataModified(true);
                           }}
-                          type="number"
+                          onBlur={(e) => {
+                            // Si el campo queda vacío al salir, se asigna 0
+                            if (e.target.value === "") {
+                              const nuevosAutores = [...autores];
+                              nuevosAutores[index].porcentaje_participacion = 0;
+                              setAutores(nuevosAutores);
+                            }
+                          }}
                         />
                       </div>
                     </div>
