@@ -89,8 +89,10 @@ export default function WebPage() {
               id_proceso: bonitaData.processId,
               nombre_proceso: "Proceso de Registro de Propiedad Intelectual",
               id_funcionario: usuario.user_id,
-              id_caso: bonitaData.caseId
+              id_caso: bonitaData.caseId,
+              nombre_funcionario: usuario.user_name
             };
+            console.log("Datos a enviar al backend:", data);
             // Enviar los datos al backend vía WebSocket
             socket.emit("iniciar_registro", data, (response: any) => {
               console.log("Respuesta completa del backend:", response);
