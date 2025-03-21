@@ -13,26 +13,7 @@ import { useCombinedBonitaData } from "../bonita/hooks/obtener_datos_bonita.tsx"
 import { useSaveTempState } from "../bonita/hooks/datos_temprales";
 //@ts-ignore
 import BonitaUtilities from "../bonita/bonita-utilities";
-
-interface Autor {
-  id_persona: number | null;
-  id_rol: number;
-  id_facultad_carrera: number;
-  ciudad: string | null;
-  identificacion: string;
-  nombre: string;
-  telefono: string;
-  fecha_nacimiento: Date | null;
-  direccion: string;
-  correo: string;
-  id_autor_producto?: number;
-  id_producto?: number;
-  id_autor?: number;
-  porcentaje_participacion: number;
-  facultad_seleccionada?: number | null;
-  carrera_seleccionada?: number | null;
-}
-
+import { Autor } from "../../interfaces/autore.interface.ts";
 const socket = io(SERVER_BACK_URL);
 
 export default function UploadForm() {
@@ -110,7 +91,7 @@ export default function UploadForm() {
 
     // Validar porcentajes de participación
     const totalParticipacion = formDataAutores.reduce(
-      (acc, autor) => acc + autor.porcentaje_participacion,
+      (acc, autor) => acc + Number (autor.porcentaje_participacion),
       0
     );
 
