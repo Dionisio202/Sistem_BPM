@@ -5,7 +5,7 @@ import Title from "../components/TitleProps";
 import { ToastContainer, toast } from "react-toastify";
 import { SERVER_BACK_URL } from "../../../config.ts";
 import InputField from "./components/InputField.tsx";
-
+import { Autor } from "../../../interfaces/autore.interface.ts";
 const socket = io(SERVER_BACK_URL); // Conecta con el backend
 
 interface Carrera {
@@ -17,26 +17,6 @@ interface Facultad {
   id_facultad: number;
   nombre_facultad: string;
   Carreras: Carrera[];
-}
-
-interface Autor {
-  id_persona: number | null;
-  id_rol: number;
-  id_facultad_carrera: number;
-  ciudad: string | null;
-  identificacion: string;
-  nombre: string;
-  telefono: string;
-  fecha_nacimiento: Date | null;
-  direccion: string;
-  correo: string;
-  id_autor_producto?: number;
-  id_producto?: number;
-  id_autor?: number;
-  // Se actualiza para permitir cadena vacía mientras se edita
-  porcentaje_participacion: number | string;
-  facultad_seleccionada?: number | null; // Para seguimiento de UI
-  carrera_seleccionada?: number | null; // Para seguimiento de UI
 }
 
 interface Form3Modal2Props {
