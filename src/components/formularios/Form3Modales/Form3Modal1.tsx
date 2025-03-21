@@ -239,7 +239,7 @@ const Form3Modal1: React.FC<ModalProps> = ({
     });
   }, []);
 
-  const checkMissingData = useCallback(() => {
+  const validateForm = (): boolean => {
     const requiredFields = [
       "productos.codigoMemorando",
       "productos.lugar",
@@ -248,13 +248,16 @@ const Form3Modal1: React.FC<ModalProps> = ({
       "productos.destinatario.cargo",
       "productos.destinatario.institucion",
       "productos.solicitante.nombre",
-      "productos.solicitante.cargo",
-      "productos.solicitante.facultad",
+      "productos.solicitante.cargo", // Combobox
+      "productos.solicitante.facultad", // Combobox
       "productos.proyecto.tipo",
       "productos.proyecto.titulo",
       "productos.proyecto.resolucion.numero",
       "productos.proyecto.resolucion.fecha",
+      "productos.tipoMemorando", // Combobox
+      "productos.productoSeleccionado", // Combobox
     ];
+
     const missingFields = requiredFields.filter((field) => {
       const keys = field.split(".");
       let value: any = editedData;
@@ -264,8 +267,55 @@ const Form3Modal1: React.FC<ModalProps> = ({
       }
       return false;
     });
-    setHasMissingData(missingFields.length > 0);
-  }, [editedData]);
+
+    if (missingFields.length > 0) {
+      toast.error(
+        "Por favor complete todos los campos requeridos"
+      );
+      return false;
+    }
+
+    // Validar que los combobox tengan opciones válidas
+    if (
+      !tiposProductos.some(
+        (tipo) => tipo.id.toString() === editedData.productos.tipoMemorando
+      )
+    ) {
+      toast.error("Seleccione un tipo de registro válido.");
+      return false;
+    }
+
+    if (
+      !roles.some(
+        (rol) => rol.id.toString() === editedData.productos.solicitante.cargo
+      )
+    ) {
+      toast.error("Seleccione un cargo válido para el solicitante.");
+      return false;
+    }
+
+    if (
+      !facultadesCarreras.some(
+        (facultad) =>
+          facultad.id_facultad.toString() ===
+          editedData.productos.solicitante.facultad
+      )
+    ) {
+      toast.error("Seleccione una facultad válida.");
+      return false;
+    }
+
+    if (
+      !editedData.productos.productos.some(
+        (producto: any) =>
+          producto.nombre === editedData.productos.productoSeleccionado
+      )
+    ) {
+      toast.error("Seleccione un producto válido.");
+      return false;
+    }
+    return true;
+  };
 
   const handleFileChange = useCallback(
     async (file: File | null, fileType: string) => {
@@ -351,15 +401,14 @@ const Form3Modal1: React.FC<ModalProps> = ({
   );
 
   const handleSave = useCallback(() => {
-    checkMissingData();
-    if (hasMissingData) {
-      toast.error("Por favor complete los campos requeridos");
+    if (!validateForm()) {
       return;
     }
+
     //@ts-ignore
     onSave(editedData.productos);
     closeModal();
-  }, [editedData, hasMissingData, checkMissingData, onSave, closeModal]);
+  }, [editedData, onSave, closeModal]);
 
   if (!showModal) return null;
 
@@ -532,7 +581,7 @@ const Form3Modal1: React.FC<ModalProps> = ({
           <button
             onClick={handleSave}
             className="bg-[#931D21] text-white text-xs sm:text-sm px-4 py-2 rounded-lg hover:bg-red-700"
-            disabled={loading}
+            disabled={loading || hasMissingData}
           >
             {loading ? "Procesando..." : "Guardar Cambios"}
           </button>

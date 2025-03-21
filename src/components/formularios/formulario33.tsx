@@ -44,7 +44,7 @@ export default function UploadForm() {
   const [formDataAutores, setFormDataAutores] = useState<Autor[]>([]);
   const [formDataProductos, setFormDataProductos] = useState<[]>([]);
   const { startAutoSave, saveFinalState } = useSaveTempState(socket);
-  const [tipoOperacion, setTipoOperacion] = useState<boolean>(false); // ✅ Corrección aquí
+  const [tipoOperacion, setTipoOperacion] = useState<boolean>(false);
   const [idRegistro, setIdRegistro] = useState<string>("");
 
   useEffect(() => {
@@ -122,13 +122,6 @@ export default function UploadForm() {
     // Guardar estado final
     console.log("autores", formDataAutores);
     console.log("productos", formDataProductos);
-    // saveFinalState({
-    //   ...json,
-    //   jsonData: JSON.stringify({
-    //     autores: formDataAutores,
-    //     productos: formDataProductos,
-    //   }),
-    // });
     if (!bonitaData) {
       throw new Error("No se encontraron los datos de Bonita.");
     }
@@ -147,7 +140,6 @@ export default function UploadForm() {
           const codigoCombinado =
             bonitaData.processId + "-" + bonitaData.caseId;
           toast.success("Datos Verificados y Guardados Correctamente");
-
           // Enviar los autores, también convertidos a cadena JSON
           socket.emit(
             "set_autores",
@@ -192,8 +184,7 @@ export default function UploadForm() {
         productos: formDataProductos,
       }),
     });
-    await bonita.changeTask();
-    toast.success("Avanzando al siguiente proceso")
+    bonita.changeTask();
   };
 
   return (
