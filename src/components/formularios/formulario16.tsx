@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import CardContainer from "./components/CardContainer";
 import Checkbox from "./components/Checkbox";
-import UploadFile from "./components/UploadFile"; // Componente para cargar archivos
+import UploadFile from "./components/UploadFile";
 // @ts-ignore
 import BonitaUtilities from "../bonita/bonita-utilities";
 import { useBonitaService } from "../../services/bonita.service";
@@ -33,15 +33,14 @@ export default function DocumentForm() {
   const idtipoDocumento = 3;
   // @ts-ignore
   const bonita = new BonitaUtilities();
-  const [loading, setLoading] = useState(false); // Estado para manejar el loading
-    // @ts-ignore
+  const [saving, setSaving] = useState(false);
+  const [processing, setProcessing] = useState(false);
+  const [hasSaved, setHasSaved] = useState(false); // Nuevo estado para controlar el guardado
+  // @ts-ignore
   const [uploadError, setUploadError] = useState<string>("");
   const [_errror, setError] = useState("");
-  const [fileUploaded, setFileUploaded] = useState(false); // Estado para rastrear si el archivo se ha subido
-  // @ts-ignore
-  const [processAdvanced, setProcessAdvanced] = useState(false);
+  const [fileUploaded, setFileUploaded] = useState(false);
 
-  // 🔹 Recuperar el estado guardado al cargar el componente
   useEffect(() => {
     if (bonitaData) {
       const id_registro = `${bonitaData.processId}-${bonitaData.caseId}`;
@@ -87,23 +86,26 @@ export default function DocumentForm() {
     }
   }, [bonitaData, usuario, startAutoSave, selectedDocuments, tareaActual]);
 
+  // Resetear estado de guardado cuando cambia el código
+  useEffect(() => {
+    setHasSaved(false);
+  }, [memoCode]);
+
   const handleMemoCodeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setMemoCode(event.target.value);
   };
 
-  // Función para subir el archivo del memorando y obtener el código mediante Socket.io
   const handleFileUpload = async (file: File | null) => {
     if (!file) {
       setError("Debes seleccionar un archivo para continuar.");
       return;
     }
     try {
-      setLoading(true);
+      setSaving(true);
       setError("");
       setFileUploaded(false);
       setMemoCode("");
 
-      // Convertir el archivo a base64
       const memoBase64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
@@ -115,7 +117,6 @@ export default function DocumentForm() {
         reader.onerror = (error) => reject(error);
       });
 
-      // Emitir el evento "subir_documento" mediante Socket.io para obtener el código
       socket.emit(
         "subir_documento",
         { documento: memoBase64 },
@@ -130,7 +131,6 @@ export default function DocumentForm() {
             setFileUploaded(true);
             toast.success("Archivo subido correctamente. Puede Continuar");
           } else {
-            // Si la respuesta indica éxito pero el código tiene formato incorrecto
             if (
               response.success &&
               response.codigo &&
@@ -146,7 +146,6 @@ export default function DocumentForm() {
                 "Documento inválido. Por favor, suba un documento válido."
               );
             } else {
-              // Error general
               setError(
                 response.message ||
                   "No se pudo obtener el código del memorando."
@@ -156,7 +155,7 @@ export default function DocumentForm() {
               toast.error("Error al subir el archivo.");
             }
           }
-          setLoading(false);
+          setSaving(false);
         }
       );
     } catch (error) {
@@ -167,7 +166,7 @@ export default function DocumentForm() {
       setMemoCode("");
       setFileUploaded(false);
       toast.error("Error al procesar el archivo.");
-      setLoading(false);
+      setSaving(false);
     }
   };
 
@@ -178,20 +177,23 @@ export default function DocumentForm() {
     }));
   };
 
-  // Función para guardar el memorando (submit del formulario)
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    console.log("Código del memorando:", memoCode);
-    console.log("Documentos seleccionados:", selectedDocuments);
-
-    await fetch(
-      `${SERVER_BACK_URL}/api/save-memorando?key=${memoCode}&id_tipo_documento=${idtipoDocumento}&id_registro=${bonitaData?.processId}-${bonitaData?.caseId}&id_tarea_per=${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}`
-    );
-
-    toast.success("Memorando guardado correctamente.");
+  const handleSubmit = async () => {
+    setSaving(true);
+    setHasSaved(true);
+    try {
+      await fetch(
+        `${SERVER_BACK_URL}/api/save-memorando?key=${memoCode}&id_tipo_documento=${idtipoDocumento}&id_registro=${bonitaData?.processId}-${bonitaData?.caseId}&id_tarea_per=${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}`
+      );
+      toast.success("Memorando guardado correctamente.");
+    } catch (error) {
+      console.error("Error al guardar el memorando:", error);
+      toast.error("Error al guardar el memorando. Intente nuevamente.");
+    } finally {
+      setSaving(false);
+      setHasSaved(true); // Marcar que se intentó guardar
+    }
   };
 
-  // Guardado final y avance en el proceso
   const handleNext = async () => {
     if (bonitaData && usuario) {
       if (!json) {
@@ -199,9 +201,9 @@ export default function DocumentForm() {
         return;
       }
       try {
-        setLoading(true); // Activar el estado de loading
+        setProcessing(true);
         const saveResponse = await saveFinalState(json);
-        // Verificar que la respuesta sea válida y exitosa
+        
         if (!saveResponse || typeof saveResponse.success !== "boolean") {
           throw new Error("Respuesta inválida al guardar el estado final.");
         }
@@ -213,20 +215,19 @@ export default function DocumentForm() {
         }
 
         await bonita.changeTask();
-        setProcessAdvanced(true);
       } catch (error) {
         console.error("Error guardando estado final:", error);
       } finally {
-        setLoading(false); // Desactivar el estado de loading
+        setProcessing(false);
       }
     }
   };
 
-  // Condición para habilitar ambos botones (ajústala según la lógica deseada)
-  const isDisabled =
-    loading ||
+  const isSaveDisabled = 
+    saving || 
+    processing ||
     (memoCode.trim() === "" && !fileUploaded) ||
-    !Object.values(selectedDocuments).every((value) => value === true);
+    !Object.values(selectedDocuments).every(Boolean);
 
   return (
     <CardContainer title="Expediente de Entrega">
@@ -234,8 +235,7 @@ export default function DocumentForm() {
         text="Oficio de entrega y Expediente"
         className="text-center mb-1"
       />
-      <form onSubmit={handleSubmit} className="flex flex-col space-y-4">
-        {/* Componente para subir el archivo del memorando */}
+      <div className="flex flex-col space-y-4">
         <div className="flex flex-col">
           <label htmlFor="memoFile" className="block font-semibold">
             Suba el archivo del Memorando para obtener el código
@@ -248,7 +248,6 @@ export default function DocumentForm() {
           {uploadError && <p className="text-red-500">{uploadError}</p>}
         </div>
 
-        {/* Input para el código del memorando */}
         <div className="flex flex-col">
           <label htmlFor="memoCode" className="block font-semibold">
             Código de Oficio realizado para entrega de ejemplares
@@ -262,7 +261,6 @@ export default function DocumentForm() {
           />
         </div>
 
-        {/* Checkboxes para los documentos */}
         <div className="space-y-2 text-xn">
           <Checkbox
             label="Solicitud"
@@ -301,14 +299,22 @@ export default function DocumentForm() {
           />
         </div>
 
-        {/* Botones separados para cada acción */}
         <div className="flex flex-row gap-4">
           <Button
+            type="button"
+            className="w-full bg-blue-500 hover:bg-blue-700 text-white py-2 rounded-lg font-semibold hover:scale-105 transition-transform duration-300 disabled:opacity-50"
+            onClick={handleSubmit}
+            disabled={isSaveDisabled}
+          >
+            {"Guardar Memorando"}
+          </Button>
+          <Button
+            type="button"
             className="w-full bg-[#931D21] hover:bg-[#7A171A] text-white py-2 rounded-lg font-semibold hover:scale-105 transition-transform duration-300 disabled:opacity-50"
             onClick={handleNext}
-            disabled={loading || isDisabled} // Deshabilitar si no se ha subido el archivo
+            disabled={!hasSaved || processing} // Control modificado aquí
           >
-            {loading ? "Cargando..." : "Siguiente Proceso"}
+            {processing ? "Procesando..." : "Siguiente Proceso"}
           </Button>
         </div>
 
@@ -319,7 +325,7 @@ export default function DocumentForm() {
           </p>
         )}
         {error && <p className="text-red-500 text-center">{error}</p>}
-      </form>
+      </div>
       <ToastContainer />
     </CardContainer>
   );
