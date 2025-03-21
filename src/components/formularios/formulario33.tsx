@@ -140,7 +140,7 @@ export default function UploadForm() {
         //@ts-ignore
         memorando: formDataProductos.codigoMemorando,
         esEdicion: tipoOperacion,
-        id_tarea: `${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}`,
+        id_tarea:`${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}`,
       },
       (response: any) => {
         if (response.success) {
