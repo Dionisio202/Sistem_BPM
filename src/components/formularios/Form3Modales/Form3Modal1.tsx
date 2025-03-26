@@ -92,7 +92,7 @@ const Form3Modal1: React.FC<ModalProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [facultadSeleccionada, setFacultadSeleccionada] = useState("");
-  const [hasMissingData, setHasMissingData] = useState(false);
+  const [hasMissingData, _setHasMissingData] = useState(false);
   const [intellectualPropertyFileBase64, setIntellectualPropertyFileBase64] =
     useState<string | null>(null);
   const [memoFileBase64, setMemoFileBase64] = useState<string | null>(null);
