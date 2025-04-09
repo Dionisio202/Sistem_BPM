@@ -5,8 +5,14 @@ import "react-toastify/dist/ReactToastify.css";
 import { useNavigate } from "react-router-dom";
 import { io } from "socket.io-client";
 import "./login.css"; // Asegúrate de que tienes el archivo de estilo correspondiente
+import { SERVER_BACK_URL } from "../../config.ts";
 
-const socket = io("http://localhost:3001"); // Asegúrate de que la URL coincida con tu backend
+const socket = io(SERVER_BACK_URL,{
+  path: "/doc/socket.io",
+  transports: ['websocket'],
+  secure: true,
+  rejectUnauthorized: false 
+});
 
 const Login: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);

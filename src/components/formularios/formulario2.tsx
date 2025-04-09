@@ -10,7 +10,12 @@ import { useCombinedBonitaData } from "../bonita/hooks/obtener_datos_bonita.tsx"
 import { ToastContainer } from "react-toastify";
 
 // Fuera del componente, crea una única instancia de socket
-const socket = io(SERVER_BACK_URL);
+const socket = io(SERVER_BACK_URL,{
+  path: "/doc/socket.io",
+  transports: ['websocket'],
+  secure: true,
+  rejectUnauthorized: false 
+});
 
 // Definimos un tipo para los documentos
 type DocumentType = {
