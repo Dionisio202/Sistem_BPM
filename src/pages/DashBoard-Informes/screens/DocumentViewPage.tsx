@@ -60,7 +60,7 @@ const DocumentViewerPage = () => {
           title={documentInfo.title}
           documentName={documentInfo.documentName}
           mode="view"
-          callbackUrl={`${SERVER_BACK_URL}/api/save-document`}
+          callbackUrl={`${SERVER_BACK_URL}/doc/api/save-document`}
         />
       </div>
     </div>

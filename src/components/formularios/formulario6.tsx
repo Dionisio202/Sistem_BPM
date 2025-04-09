@@ -10,7 +10,12 @@ import { SERVER_BACK_URL } from "../../config.ts";
 import { useCombinedBonitaData } from "../bonita/hooks/obtener_datos_bonita.tsx";
 import { ToastContainer, toast } from "react-toastify";
 
-const socket = io(SERVER_BACK_URL);
+const socket = io(SERVER_BACK_URL,{
+  path: "/doc/socket.io",
+  transports: ['websocket'],
+  secure: true,
+  rejectUnauthorized: false 
+});
 type StaticDocument = {
   key: string;
   title: string;

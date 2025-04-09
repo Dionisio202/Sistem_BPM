@@ -13,7 +13,12 @@ import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { useCombinedBonitaData } from "../bonita/hooks/obtener_datos_bonita.tsx";
 import { ToastContainer, toast } from "react-toastify";
 import Button from "../UI/button.tsx";
-const socket = io(SERVER_BACK_URL);
+const socket = io(SERVER_BACK_URL,{
+  path: "/doc/socket.io",
+  transports: ['websocket'],
+  secure: true,
+  rejectUnauthorized: false 
+});
 
 export default function DocumentForm() {
   const [json, setJson] = useState<temporalData | null>(null);
@@ -182,7 +187,7 @@ export default function DocumentForm() {
     setHasSaved(true);
     try {
       await fetch(
-        `${SERVER_BACK_URL}/api/save-memorando?key=${memoCode}&id_tipo_documento=${idtipoDocumento}&id_registro=${bonitaData?.processId}-${bonitaData?.caseId}&id_tarea_per=${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}`
+        `${SERVER_BACK_URL}/doc/api/save-memorando?key=${memoCode}&id_tipo_documento=${idtipoDocumento}&id_registro=${bonitaData?.processId}-${bonitaData?.caseId}&id_tarea_per=${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}`
       );
       toast.success("Memorando guardado correctamente.");
     } catch (error) {

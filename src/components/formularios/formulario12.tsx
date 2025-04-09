@@ -10,7 +10,12 @@ import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { useCombinedBonitaData } from "../bonita/hooks/obtener_datos_bonita.tsx";
 import { ToastContainer, toast } from "react-toastify";
 
-const socket = io(SERVER_BACK_URL);
+const socket = io(SERVER_BACK_URL,{
+  path: "/doc/socket.io",
+  transports: ['websocket'],
+  secure: true,
+  rejectUnauthorized: false 
+});
 
 type DocumentType = {
   key: string;
@@ -30,7 +35,7 @@ export default function WebPage() {
   const { startAutoSave, saveFinalState } = useSaveTempState(socket);
   const { usuario, bonitaData, tareaActual } = useCombinedBonitaData();
   const [json, setJson] = useState<temporalData | null>(null);
-  const urlSave = `${SERVER_BACK_URL}/api/save-document`;
+  const urlSave = `${SERVER_BACK_URL}/doc/api/save-document`;
   const [codigo, setCodigo] = useState(""); // Código del memorando
   // @ts-ignore
   const [codigoGuardado, setCodigoGuardado] = useState<string | null>(null);
@@ -166,7 +171,7 @@ export default function WebPage() {
       await bonita.changeTask();
       setProcessAdvanced(true);
       const response = await fetch(
-        `${SERVER_BACK_URL}/api/save-memorando?key=${codigo}&id_tipo_documento=${3}&id_registro=${
+        `${SERVER_BACK_URL}/doc/api/save-memorando?key=${codigo}&id_tipo_documento=${3}&id_registro=${
           bonitaData?.processId
         }-${bonitaData?.caseId}&id_tarea_per=${bonitaData?.processId}-${
           bonitaData?.caseId

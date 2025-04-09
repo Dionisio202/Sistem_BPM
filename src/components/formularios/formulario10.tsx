@@ -11,7 +11,12 @@ import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { useCombinedBonitaData } from "../bonita/hooks/obtener_datos_bonita.tsx";
 import { ToastContainer, toast } from "react-toastify";
 import Button from "../UI/button.tsx";
-const socket = io(SERVER_BACK_URL);
+const socket = io(SERVER_BACK_URL,{
+  path: "/doc/socket.io",
+  transports: ['websocket'],
+  secure: true,
+  rejectUnauthorized: false 
+});
 
 export default function ConfirmationScreen() {
   const { startAutoSave, saveFinalState } = useSaveTempState(socket);

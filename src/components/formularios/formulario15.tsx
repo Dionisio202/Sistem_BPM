@@ -11,7 +11,12 @@ import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { useCombinedBonitaData } from "../bonita/hooks/obtener_datos_bonita.tsx";
 import { ToastContainer, toast } from "react-toastify";
 
-const socket = io(SERVER_BACK_URL);
+const socket = io(SERVER_BACK_URL,{
+  path: "/doc/socket.io",
+  transports: ['websocket'],
+  secure: true,
+  rejectUnauthorized: false 
+});
 
 // Definimos un tipo para nuestros documentos
 type StaticDocument = {
@@ -21,7 +26,7 @@ type StaticDocument = {
 };
 
 export default function Formulario6() {
-  const urlSave = `${SERVER_BACK_URL}/api/save-document`;
+  const urlSave = `${SERVER_BACK_URL}/doc/api/save-document`;
   const { startAutoSave, saveFinalState } = useSaveTempState(socket);
   const { usuario, bonitaData, tareaActual } = useCombinedBonitaData();
   // Estado para almacenar el documento seleccionado
@@ -93,7 +98,7 @@ export default function Formulario6() {
     if (documentType === "Validación de Transferencias") {
       try {
         // Llamada a la API usando los valores del documento estático
-        const apiUrl = `${SERVER_BACK_URL}/api/verificar-documento?key=${document.key}&nombre=${nombrePlantilla}.docx&id_registro_per=${bonitaData?.processId}-${bonitaData?.caseId}&id_tipo_documento=3&id_tarea_per=${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}`;
+        const apiUrl = `${SERVER_BACK_URL}/doc/api/verificar-documento?key=${document.key}&nombre=${nombrePlantilla}.docx&id_registro_per=${bonitaData?.processId}-${bonitaData?.caseId}&id_tipo_documento=3&id_tarea_per=${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}`;
         const response = await fetch(apiUrl);
         const data = await response.json();
         console.log("Respuesta de la API:", data);

@@ -8,7 +8,12 @@ import CardContent from "../../components/cards/cardcontent.tsx";
 import DocumentViewer from "../../components/files/DocumentViewer.tsx";
 
 // Crear la conexión WebSocket
-const socket = io(SERVER_BACK_URL);
+const socket = io(SERVER_BACK_URL,{
+  path: "/doc/socket.io",
+  transports: ['websocket'],
+  secure: true,
+  rejectUnauthorized: false 
+});
 
 // Definición de interfaces para tipar la data
 interface Registro {
@@ -436,7 +441,7 @@ export default function Trazabilidad() {
             title={`Documento: ${selectedDocumento.codigo_almacenamiento}`} 
             documentName={selectedDocumento.codigo_almacenamiento} 
             mode="view" 
-            callbackUrl={`${SERVER_BACK_URL}/api/save-document`} 
+            callbackUrl={`${SERVER_BACK_URL}/doc/api/save-document`} 
           />
         </div>
       )}

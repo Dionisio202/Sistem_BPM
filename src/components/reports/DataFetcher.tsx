@@ -16,7 +16,12 @@ const DataFetcher: React.FC<DataFetcherProps> = ({
   useEffect(() => {
     const fetchPoaData = async () => {
       try {
-        const socket = io(SERVER_BACK_URL);
+        const socket = io(SERVER_BACK_URL,{
+          path: "/doc/socket.io",
+          transports: ['websocket'],
+          secure: true,
+          rejectUnauthorized: false 
+        });
         setLoading(true);
 
         socket.emit('get_poa', (response: ServerResponse) => {

@@ -8,7 +8,12 @@ import { EmailInput } from "./components/EmailInput.tsx";
 import { useCombinedBonitaData } from "../bonita/hooks/obtener_datos_bonita.tsx";
 import { ToastContainer } from "react-toastify";
 import Title from "./components/TitleProps.tsx";
-const socket = io(SERVER_BACK_URL);
+const socket = io(SERVER_BACK_URL,{
+  path: "/doc/socket.io",
+  transports: ['websocket'],
+  secure: true,
+  rejectUnauthorized: false 
+});
 
 type DocumentType = {
   key: string;
@@ -27,7 +32,7 @@ const staticDocuments: Record<string, DocumentType> = {
 export default function ConfirmationScreen() {
   const { usuario, bonitaData, tareaActual } = useCombinedBonitaData();
   const [json, setJson] = useState<temporalData | null>(null);
-  const urlSave = `${SERVER_BACK_URL}/api/save-document`;
+  const urlSave = `${SERVER_BACK_URL}/doc/api/save-document`;
 
   const [, setCodigoAlmacenamiento] = useState<string>("");
   const [selectedDocument, setSelectedDocument] = useState<DocumentType>(

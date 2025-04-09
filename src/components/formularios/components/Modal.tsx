@@ -8,7 +8,12 @@ import {
 import { SERVER_BACK_URL } from "../../../config.ts";
 import { Facultad } from "../../../interfaces/facultades.interface.ts";
 
-const socket = io(SERVER_BACK_URL); // Conecta con el backend
+const socket = io(SERVER_BACK_URL,{
+  path: "/doc/socket.io",
+  transports: ['websocket'],
+  secure: true,
+  rejectUnauthorized: false 
+});
 
 const Modal: React.FC<ModalProps> = ({
   showModal,

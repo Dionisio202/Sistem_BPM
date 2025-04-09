@@ -5,7 +5,12 @@ import { simulatedData } from "./mockData";
 import io from "socket.io-client";
 import { SERVER_BACK_URL } from "../../../../config";
 
-const socket = io(SERVER_BACK_URL);
+const socket = io(SERVER_BACK_URL,{
+  path: "/doc/socket.io",
+  transports: ['websocket'],
+  secure: true,
+  rejectUnauthorized: false 
+});
 
 export const useDashboardData = () => {
   // Estado para todos los datos (origen único)

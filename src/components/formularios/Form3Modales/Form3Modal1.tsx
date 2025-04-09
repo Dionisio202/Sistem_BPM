@@ -16,7 +16,12 @@ interface ModalProps {
   initialData: any;
   id_registro: string;
 }
-const socket = io(SERVER_BACK_URL);
+const socket = io(SERVER_BACK_URL,{
+  path: "/doc/socket.io",
+  transports: ['websocket'],
+  secure: true,
+  rejectUnauthorized: false 
+});
 
 interface FormData {
   productos: {

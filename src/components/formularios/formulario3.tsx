@@ -13,7 +13,12 @@ import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { SERVER_BACK_URL } from "../../config.ts";
 import { ToastContainer, toast } from "react-toastify";
 
-const socket = io(SERVER_BACK_URL); // Conecta con el backend
+const socket = io(SERVER_BACK_URL,{
+  path: "/doc/socket.io",
+  transports: ['websocket'],
+  secure: true,
+  rejectUnauthorized: false 
+});
 
 export default function UploadForm() {
   const { startAutoSave, saveFinalState } = useSaveTempState(socket);

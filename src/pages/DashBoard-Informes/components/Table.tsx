@@ -22,7 +22,12 @@ const Example = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const socket = io(SERVER_BACK_URL);
+    const socket = io(SERVER_BACK_URL,{
+      path: "/doc/socket.io",
+      transports: ['websocket'],
+      secure: true,
+      rejectUnauthorized: false 
+    });
 
     socket.emit("datos_proceso", (response: SocketResponse) => {
       if (response.success && response.jsonData) {

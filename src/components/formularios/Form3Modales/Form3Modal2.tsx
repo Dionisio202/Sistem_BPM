@@ -6,7 +6,12 @@ import { ToastContainer, toast } from "react-toastify";
 import { SERVER_BACK_URL } from "../../../config.ts";
 import InputField from "./components/InputField.tsx";
 import { Autor } from "../../../interfaces/autore.interface.ts";
-const socket = io(SERVER_BACK_URL); // Conecta con el backend
+const socket = io(SERVER_BACK_URL,{
+  path: "/doc/socket.io",
+  transports: ['websocket'],
+  secure: true,
+  rejectUnauthorized: false 
+});
 
 interface Carrera {
   id_carrera: number;

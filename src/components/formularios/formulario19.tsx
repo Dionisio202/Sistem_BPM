@@ -12,7 +12,12 @@ import { temporalData } from "../../interfaces/actividad.interface.ts";
 import { useCombinedBonitaData } from "../bonita/hooks/obtener_datos_bonita.tsx";
 import { ToastContainer, toast } from "react-toastify";
 
-const socket = io(SERVER_BACK_URL);
+const socket = io(SERVER_BACK_URL,{
+  path: "/doc/socket.io",
+  transports: ['websocket'],
+  secure: true,
+  rejectUnauthorized: false 
+});
 
 export default function ConfirmationScreen() {
   const { startAutoSave, saveFinalState } = useSaveTempState(socket);
@@ -102,7 +107,7 @@ export default function ConfirmationScreen() {
     };
 
     try {
-      const response = await fetch(`${SERVER_BACK_URL}/api/get-document`, {
+      const response = await fetch(`${SERVER_BACK_URL}/doc/api/get-document`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

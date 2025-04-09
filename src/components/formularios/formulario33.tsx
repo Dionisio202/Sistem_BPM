@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import io from "socket.io-client";
 import Button from "../UI/button";
 import Title from "./components/TitleProps";
@@ -14,7 +14,12 @@ import { useSaveTempState } from "../bonita/hooks/datos_temprales";
 //@ts-ignore
 import BonitaUtilities from "../bonita/bonita-utilities";
 import { Autor } from "../../interfaces/autore.interface.ts";
-const socket = io(SERVER_BACK_URL);
+const socket = io(SERVER_BACK_URL,{
+  path: "/doc/socket.io",
+  transports: ['websocket'],
+  secure: true,
+  rejectUnauthorized: false 
+});
 
 export default function UploadForm() {
   const bonita: BonitaUtilities = new BonitaUtilities();
@@ -27,6 +32,26 @@ export default function UploadForm() {
   const { startAutoSave, saveFinalState } = useSaveTempState(socket);
   const [tipoOperacion, setTipoOperacion] = useState<boolean>(false);
   const [idRegistro, setIdRegistro] = useState<string>("");
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  // Función para agregar notificaciones
+  const addNotification = useCallback(
+    (message: string, type: Notification["type"] = "info") => {
+      const newNotification: Notification = {
+        id: Date.now().toString(),
+        message,
+        type,
+        timestamp: new Date(),
+      };
+      setNotifications((prev) => [newNotification, ...prev].slice(0, 10)); // Mantener máximo 10 notificaciones
+    },
+    []
+  );
+  type Notification = {
+    id: string;
+    message: string;
+    type: "success" | "error" | "info" | "warning";
+    timestamp: Date;
+  };
 
   useEffect(() => {
     if (bonitaData && usuario) {
@@ -51,7 +76,7 @@ export default function UploadForm() {
         }),
         id_funcionario: parseInt(usuario.user_id),
         nombre_tarea: tareaActual?.name ?? "",
-        eliminar_documentos:false
+        eliminar_documentos: false,
       };
       setJson(data);
       startAutoSave(data, 10000, "En Proceso");
@@ -81,6 +106,7 @@ export default function UploadForm() {
   const handleFinalSave = async () => {
     if (!json) {
       toast.error("Error de configuración del proceso");
+      addNotification("Error: Configuración del proceso no válida", "error");
       return;
     }
 
@@ -91,21 +117,29 @@ export default function UploadForm() {
 
     // Validar porcentajes de participación
     const totalParticipacion = formDataAutores.reduce(
-      (acc, autor) => acc + Number (autor.porcentaje_participacion),
+      (acc, autor) => acc + Number(autor.porcentaje_participacion),
       0
     );
 
     if (totalParticipacion !== 100) {
       toast.error("La suma de porcentajes debe ser 100%");
+      addNotification(
+        "Error: La suma de porcentajes debe ser exactamente 100%",
+        "error"
+      );
       return;
     }
 
     // Guardar estado final
     console.log("autores", formDataAutores);
     console.log("productos", formDataProductos);
+
     if (!bonitaData) {
+      addNotification("Error: No se encontraron los datos de Bonita", "error");
       throw new Error("No se encontraron los datos de Bonita.");
     }
+    addNotification("Guardando productos intelectuales...", "info");
+
     socket.emit(
       "agregar_producto_datos",
       {
@@ -114,14 +148,20 @@ export default function UploadForm() {
         //@ts-ignore
         memorando: formDataProductos.codigoMemorando,
         esEdicion: tipoOperacion,
-        id_tarea:`${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}`,
+        id_tarea: `${bonitaData?.processId}-${bonitaData?.caseId}-${bonitaData?.taskId}`,
       },
       (response: any) => {
         if (response.success) {
           const codigoCombinado =
             bonitaData.processId + "-" + bonitaData.caseId;
           toast.success("Datos Verificados y Guardados Correctamente");
-          // Enviar los autores, también convertidos a cadena JSON
+          addNotification(
+            "Productos intelectuales guardados correctamente",
+            "success"
+          );
+
+          // Enviar los autores
+          addNotification("Guardando información de autores...", "info");
           socket.emit(
             "set_autores",
             {
@@ -135,12 +175,17 @@ export default function UploadForm() {
                   response.message
                 );
                 toast.success("Datos editados guardados correctamente.");
+                addNotification("Autores registrados exitosamente", "success");
               } else {
                 console.error(
                   "❌ Error al guardar los autores:",
                   response.message
                 );
                 toast.error("Error al guardar los datos editados.");
+                addNotification(
+                  `Error al guardar autores: ${response.message}`,
+                  "error"
+                );
               }
             }
           );
@@ -153,9 +198,15 @@ export default function UploadForm() {
             "Ya se encuentran registrados todos los productos de este Memorando."
           );
           toast.info("Ingrese un Nuevo Registro.");
+          addNotification("Error: " + response.message, "error");
+          addNotification(
+            "Todos los productos de este memorando ya están registrados",
+            "warning"
+          );
         }
       }
     );
+
     toast.success("Proceso guardado exitosamente");
     // guardado final
     saveFinalState({
@@ -165,6 +216,7 @@ export default function UploadForm() {
         productos: formDataProductos,
       }),
     });
+    addNotification("Avanzando a la siguiente tarea. Registro Exitoso", "info");
     bonita.changeTask();
   };
 
@@ -222,6 +274,42 @@ export default function UploadForm() {
           </Button>
         </div>
       </div>
+      {/* Panel de Notificaciones */}
+      <div className="w-full max-w-4xl mt-6 bg-white/80 p-4 rounded-lg shadow-md border border-gray-200">
+        <h3 className="text-lg font-semibold text-gray-800 mb-3">
+          Estado de la Tarea
+        </h3>
+
+        {notifications.length === 0 ? (
+          <p className="text-gray-500 italic">No hay actividades recientes</p>
+        ) : (
+          <div className="space-y-2 max-h-60 overflow-y-auto">
+            {notifications.map((notification) => (
+              <div
+                key={notification.id}
+                className={`p-3 rounded-md border-l-4 ${
+                  notification.type === "success"
+                    ? "border-green-500 bg-green-50"
+                    : notification.type === "error"
+                    ? "border-red-500 bg-red-50"
+                    : notification.type === "warning"
+                    ? "border-yellow-500 bg-yellow-50"
+                    : "border-blue-500 bg-blue-50"
+                }`}
+              >
+                <div className="flex justify-between items-start">
+                  <p className="text-sm font-medium text-gray-800">
+                    {notification.message}
+                  </p>
+                  <span className="text-xs text-gray-500">
+                    {notification.timestamp.toLocaleTimeString()}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Modales */}
       <ModalP
@@ -250,7 +338,7 @@ export default function UploadForm() {
           initialData={formDataAutores}
         />
       </ModalP>
-      <ToastContainer/>
+      <ToastContainer />
     </div>
   );
 }
