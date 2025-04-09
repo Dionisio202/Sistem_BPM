@@ -39,7 +39,7 @@ const staticDocuments: Record<string, DocumentType> = {
 };
 
 export default function WebPage() {
-  const urlSaveDocument = SERVER_BACK_URL + "/api/save-document";
+  const urlSaveDocument = SERVER_BACK_URL + "/doc/api/save-document";
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const [selectedDocument, setSelectedDocument] = useState<DocumentType | null>(
     null
