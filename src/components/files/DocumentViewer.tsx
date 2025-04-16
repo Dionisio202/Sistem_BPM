@@ -49,7 +49,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
   const resolvedDocumentType = documentType || (extension === 'pdf' ? 'pdf' : 'word');
 
   const processedKey = keyDocument.replace(/\.(pdf|docx)$/i, "");
-  const documentUrl = `${SERVER_BACK_URL}api/document?nombre=${encodeURIComponent(documentName)}`;
+  const documentUrl = `${SERVER_BACK_URL}/doc/api/document?nombre=${encodeURIComponent(documentName)}`;
   const serverUrl = SERVER_ONLYOFFICE_URL;
   // Configuración de ONLYOFFICE con callbackUrl opcional
   const config: any = {

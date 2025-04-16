@@ -25,7 +25,7 @@ type StaticDocument = {
 export default function Formulario6() {
   const { startAutoSave, saveFinalState } = useSaveTempState(socket);
   const { usuario, bonitaData, tareaActual } = useCombinedBonitaData();
-  const urlSave = `${SERVER_BACK_URL}api/save-document`;
+  const urlSave = `${SERVER_BACK_URL}/doc/api/save-document`;
   const [selectedDocuments, setSelectedDocuments] =
     useState<StaticDocument | null>(null);
   const bonita: BonitaUtilities = new BonitaUtilities();

@@ -14,11 +14,11 @@ import { useSaveTempState } from "../bonita/hooks/datos_temprales";
 //@ts-ignore
 import BonitaUtilities from "../bonita/bonita-utilities";
 import { Autor } from "../../interfaces/autore.interface.ts";
-const socket = io(SERVER_BACK_URL,{
+const socket = io(SERVER_BACK_URL, {
   path: "/doc/socket.io",
-  transports: ['websocket'],
+  transports: ["websocket"],
   secure: true,
-  rejectUnauthorized: false 
+  rejectUnauthorized: false,
 });
 
 export default function UploadForm() {
@@ -33,6 +33,7 @@ export default function UploadForm() {
   const [tipoOperacion, setTipoOperacion] = useState<boolean>(false);
   const [idRegistro, setIdRegistro] = useState<string>("");
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
   // Función para agregar notificaciones
   const addNotification = useCallback(
     (message: string, type: Notification["type"] = "info") => {
@@ -104,18 +105,22 @@ export default function UploadForm() {
   };
 
   const handleFinalSave = async () => {
+    if (isSaving) return; // evitar múltiples clics
+    setIsSaving(true); // desactiva el botón
+
     if (!json) {
       toast.error("Error de configuración del proceso");
       addNotification("Error: Configuración del proceso no válida", "error");
+      setIsSaving(false);
       return;
     }
 
     if (formDataAutores.length === 0 || formDataProductos.length === 0) {
       toast.error("Complete ambos formularios primero");
+      setIsSaving(false);
       return;
     }
 
-    // Validar porcentajes de participación
     const totalParticipacion = formDataAutores.reduce(
       (acc, autor) => acc + Number(autor.porcentaje_participacion),
       0
@@ -127,17 +132,16 @@ export default function UploadForm() {
         "Error: La suma de porcentajes debe ser exactamente 100%",
         "error"
       );
+      setIsSaving(false);
       return;
     }
 
-    // Guardar estado final
-    console.log("autores", formDataAutores);
-    console.log("productos", formDataProductos);
-
     if (!bonitaData) {
       addNotification("Error: No se encontraron los datos de Bonita", "error");
-      throw new Error("No se encontraron los datos de Bonita.");
+      setIsSaving(false);
+      return;
     }
+
     addNotification("Guardando productos intelectuales...", "info");
 
     socket.emit(
@@ -154,13 +158,14 @@ export default function UploadForm() {
         if (response.success) {
           const codigoCombinado =
             bonitaData.processId + "-" + bonitaData.caseId;
+
           toast.success("Datos Verificados y Guardados Correctamente");
           addNotification(
             "Productos intelectuales guardados correctamente",
             "success"
           );
 
-          // Enviar los autores
+          // Enviar autores
           addNotification("Guardando información de autores...", "info");
           socket.emit(
             "set_autores",
@@ -170,54 +175,46 @@ export default function UploadForm() {
             },
             (response: any) => {
               if (response.success) {
-                console.log(
-                  "📢 Autores guardados correctamente:",
-                  response.message
-                );
                 toast.success("Datos editados guardados correctamente.");
                 addNotification("Autores registrados exitosamente", "success");
               } else {
-                console.error(
-                  "❌ Error al guardar los autores:",
-                  response.message
-                );
                 toast.error("Error al guardar los datos editados.");
                 addNotification(
                   `Error al guardar autores: ${response.message}`,
                   "error"
                 );
               }
+
+              // Finalizar guardado
+              saveFinalState({
+                ...json,
+                jsonData: JSON.stringify({
+                  autores: formDataAutores,
+                  productos: formDataProductos,
+                }),
+              });
+              toast.success("Proceso guardado exitosamente");
+              addNotification(
+                "Avanzando a la siguiente tarea. Registro Exitoso",
+                "info"
+              );
+              setIsSaving(false);
+              bonita.changeTask();
             }
           );
         } else {
-          console.error(
-            "❌ Error al guardar los datos editados:",
-            response.message
-          );
           toast.info(
             "Ya se encuentran registrados todos los productos de este Memorando."
           );
-          toast.info("Ingrese un Nuevo Registro.");
           addNotification("Error: " + response.message, "error");
           addNotification(
             "Todos los productos de este memorando ya están registrados",
             "warning"
           );
+          setIsSaving(false);
         }
       }
     );
-
-    toast.success("Proceso guardado exitosamente");
-    // guardado final
-    saveFinalState({
-      ...json,
-      jsonData: JSON.stringify({
-        autores: formDataAutores,
-        productos: formDataProductos,
-      }),
-    });
-    addNotification("Avanzando a la siguiente tarea. Registro Exitoso", "info");
-    bonita.changeTask();
   };
 
   return (
@@ -267,10 +264,13 @@ export default function UploadForm() {
         {/* Botón de Guardado Final */}
         <div className="flex justify-center mt-6">
           <Button
-            className="bg-[#931D21] text-white rounded-lg px-8 py-3 hover:bg-[#7A171A] transition-colors duration-200 text-sm sm:text-base"
+            className={`bg-[#931D21] text-white rounded-lg px-8 py-3 hover:bg-[#7A171A] transition-colors duration-200 text-sm sm:text-base ${
+              isSaving ? "opacity-50 cursor-not-allowed" : ""
+            }`}
             onClick={handleFinalSave}
+            disabled={isSaving}
           >
-            Guardar Proceso Completo
+            {isSaving ? "Guardando..." : "Guardar Proceso Completo"}
           </Button>
         </div>
       </div>
